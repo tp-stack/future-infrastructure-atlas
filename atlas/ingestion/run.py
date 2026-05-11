@@ -6,8 +6,8 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
-from atlas.ingestion.csv_loader import read_csv_records
-from atlas.ingestion.normalize import normalize_records
+from atlas.ingestion.csv_loader import read_csv_records, read_csv_stream
+from atlas.ingestion.normalize import normalize_record, normalize_records
 from atlas.ingestion.validators import validate_records
 from atlas.provenance import build_raw_manifest, validate_raw_manifest
 from atlas.registry import get_dataset_by_key
@@ -31,7 +31,11 @@ def _manifest_sha256(manifest: dict) -> str:
     return hashlib.sha256(_canonical_json(manifest).encode("utf-8")).hexdigest()
 
 
-def run_ingestion(dataset_key: str, file_path: str | Path) -> dict[str, Any]:
+def _apply_field_map(record: dict[str, Any], field_map: dict[str, str]) -> dict[str, Any]:
+    return {field_map.get(k, k): v for k, v in record.items()}
+
+
+def run_ingestion(dataset_key: str, file_path: str | Path, stream: bool = False) -> dict[str, Any]:
     path = Path(file_path)
     if not path.exists():
         raise FileNotFoundError(f"File does not exist: {path}")
@@ -44,6 +48,7 @@ def run_ingestion(dataset_key: str, file_path: str | Path) -> dict[str, Any]:
     if not required_fields:
         raise ValueError(f"dataset {dataset_key} has no required_fields configured")
 
+    field_map: dict[str, str] = dataset.get("field_map", {})
     source_key: str = dataset["source_key"]
     run_id = str(uuid4())
 
@@ -52,35 +57,53 @@ def run_ingestion(dataset_key: str, file_path: str | Path) -> dict[str, Any]:
     if not raw_validation["ok"]:
         raise ValueError(f"Raw manifest validation failed: {raw_validation['errors']}")
 
-    records = read_csv_records(path)
-    records_raw = len(records)
-
-    valid_records, rejected = validate_records(records, required_fields)
-    records_loaded = len(valid_records)
-    records_rejected = len(rejected)
-
     storage_paths = get_storage_paths()
     processed_dir = storage_paths[PROCESSED_DIR_NAME] / dataset_key
     processed_dir.mkdir(parents=True, exist_ok=True)
     processed_file = processed_dir / f"{run_id}.jsonl"
 
-    lines = "\n".join(
-        json.dumps(r, sort_keys=True, ensure_ascii=True) for r in normalize_records(valid_records, dataset_key, source_key)
-    )
-    atomic_write_text(processed_file, lines + "\n")
-
     cache_dir = storage_paths[CACHE_DIR_NAME]
     cache_dir.mkdir(parents=True, exist_ok=True)
     cache_path = cache_dir / f"{dataset_key}.ingestion_manifest.json"
 
-    started_at = _utc_now()
+    if stream:
+        records_raw = 0
+        records_loaded = 0
+        rejected: list[dict[str, Any]] = []
+
+        with processed_file.open("w", encoding="utf-8") as out:
+            for record in read_csv_stream(path):
+                records_raw += 1
+                mapped = _apply_field_map(record, field_map)
+                valid, record_rejected = validate_records([mapped], required_fields)
+                if record_rejected:
+                    rejected.extend(record_rejected)
+                    continue
+                normalized = normalize_record(mapped, dataset_key, source_key)
+                out.write(json.dumps(normalized, sort_keys=True, ensure_ascii=True) + "\n")
+                records_loaded += 1
+
+        records_rejected = len(rejected)
+    else:
+        records = read_csv_records(path)
+        records_raw = len(records)
+        mapped = [_apply_field_map(r, field_map) for r in records]
+        valid_records, rejected = validate_records(mapped, required_fields)
+        records_loaded = len(valid_records)
+        records_rejected = len(rejected)
+
+        lines = "\n".join(
+            json.dumps(r, sort_keys=True, ensure_ascii=True) for r in normalize_records(valid_records, dataset_key, source_key)
+        )
+        atomic_write_text(processed_file, lines + "\n")
+
     manifest: dict[str, Any] = {
         "manifest_version": "1.0",
         "run_id": run_id,
         "dataset_key": dataset_key,
         "source_key": source_key,
         "raw_manifest_sha256": _manifest_sha256(raw_manifest),
-        "started_at": started_at,
+        "started_at": _utc_now(),
         "finished_at": _utc_now(),
         "status": "succeeded" if records_rejected == 0 else "partially_succeeded",
         "records_raw": records_raw,

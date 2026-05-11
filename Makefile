@@ -1,4 +1,4 @@
-.PHONY: init-storage test check-storage db-up db-down init-db check-db check-registry create-test-manifest ingest-fixture load-postgis
+.PHONY: init-storage test check-storage db-up db-down init-db check-db check-registry create-test-manifest ingest-fixture ingest-wri load-postgis
 
 init-storage:
 	python scripts/init_storage.py
@@ -29,6 +29,9 @@ create-test-manifest:
 
 ingest-fixture:
 	python scripts/ingest_dataset.py --dataset-key wri_global_power_plants --file-path tests/fixtures/sample_power_plants.csv
+
+ingest-wri:
+	python scripts/ingest_dataset.py --dataset-key wri_global_power_plants --file-path data/raw/wri_global_power_plants/global_power_plant_database.csv
 
 load-postgis:
 	python scripts/load_processed_to_postgis.py --processed-path data/processed/wri_global_power_plants

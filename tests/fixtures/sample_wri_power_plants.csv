@@ -1,0 +1,4 @@
+country,country_long,name,gppd_idnr,capacity_mw,latitude,longitude,primary_fuel,commissioning_year,owner
+US,United States,Plant Alpha,USA001,100,40.0,-75.0,Natural Gas,2005,Acme Energy
+IT,Italy,Plant Beta,ITA001,50,41.8902,12.4924,Solar,2020,SolarCorp
+DE,Germany,Plant Gamma,DEU001,200,999.0,10.0,Wind,2010,WindCo

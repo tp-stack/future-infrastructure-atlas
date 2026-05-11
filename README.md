@@ -159,3 +159,39 @@ make load-postgis
 PostGIS loading is optional and skips gracefully if the database is unavailable.
 
 All generated outputs are written to Git-ignored `data/` directories. No real datasets are downloaded, ingested, or committed.
+
+## Step 5: Controlled WRI Power Plant Ingestion
+
+Step 5 extends the ingestion framework to handle the real WRI Global Power Plant Database CSV format with field mapping, streaming support, and traceability fields.
+
+The WRI dataset uses different column names than the sample fixture. A `field_map` in the dataset configuration maps WRI source columns to canonical field names (e.g. `primary_fuel` => `fuel_type`). This allows the required fields to remain stable across datasets.
+
+**Key features:**
+- **Field mapping** — WRI CSV columns (`primary_fuel`, `gppd_idnr`, `country_long`) are mapped to canonical names, with extra fields preserved in the normalized output
+- **Streaming mode** — Large files are processed record-by-record without loading the full CSV into memory
+- **Traceability** — WRI identifiers (`gppd_idnr`), owner, commissioning year, and country long name are preserved in each normalized record
+- **Confidence** — Real WRI records get confidence 0.85 (vs 0.95 for the sample fixture)
+
+**Manual download required:**
+1. Download the WRI Global Power Plant Database CSV from https://datasets.wri.org/
+2. Place it at `data/raw/wri_global_power_plants/global_power_plant_database.csv`
+
+**Run controlled ingestion:**
+
+```powershell
+python scripts/ingest_dataset.py --dataset-key wri_global_power_plants --file-path data/raw/wri_global_power_plants/global_power_plant_database.csv
+```
+
+or:
+
+```powershell
+make ingest-wri
+```
+
+**Test with the WRI-format fixture:**
+
+```powershell
+python scripts/ingest_dataset.py --dataset-key wri_global_power_plants --file-path tests/fixtures/sample_wri_power_plants.csv
+```
+
+The WRI fixture has 3 rows: 2 valid, 1 with an invalid latitude (rejected during validation). PostGIS loading remains optional and skips gracefully when unavailable.

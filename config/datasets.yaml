@@ -22,6 +22,8 @@ datasets:
       - capacity_mw
       - latitude
       - longitude
+    field_map:
+      primary_fuel: fuel_type
     notes: Metadata placeholder only. No source data has been downloaded or ingested.
 
   - dataset_key: peeringdb_ixps

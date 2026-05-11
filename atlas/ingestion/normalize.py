@@ -20,7 +20,9 @@ def normalize_record(
     except (ValueError, TypeError):
         capacity_mw = None
 
-    return {
+    confidence = 0.85 if dataset_key != "wri_global_power_plants" or record.get("gppd_idnr") else 0.95
+
+    normalized: dict[str, Any] = {
         "asset_id": str(uuid4()),
         "dataset_key": dataset_key,
         "source_key": source_key,
@@ -30,9 +32,16 @@ def normalize_record(
         "capacity_mw": capacity_mw,
         "latitude": float(record["latitude"]),
         "longitude": float(record["longitude"]),
-        "confidence": 0.95,
+        "confidence": confidence,
         "ingested_at": _utc_now(),
     }
+
+    for extra_field in ("country_long", "gppd_idnr", "commissioning_year", "owner", "source"):
+        val = record.get(extra_field)
+        if val is not None and str(val).strip():
+            normalized[extra_field] = val
+
+    return normalized
 
 
 def normalize_records(
