@@ -22,11 +22,11 @@ export default function StatsPanel({ metadata }: Props) {
         { label: "Data centers", value: c.data_centers_mapped },
       ],
       metadataOnly: [
-        { label: "Submarine cables", value: cablesUnmapped },
-        { label: "Data centers", value: c.data_centers_unmapped },
+        { label: "Cables (unmapped)", value: cablesUnmapped },
+        { label: "Data centers (unmapped)", value: c.data_centers_unmapped },
       ],
       rejected: [
-        ...(c.power_plants_rejected > 0 ? [{ label: "Power plants", value: c.power_plants_rejected }] : []),
+        ...(c.power_plants_rejected > 0 ? [{ label: "Power plants (rejected)", value: c.power_plants_rejected }] : []),
       ],
       totals: [
         { label: "Power plants (source)", value: ppTotal },
@@ -50,17 +50,23 @@ export default function StatsPanel({ metadata }: Props) {
         </div>
       ))}
 
-      <div className="stats-section-label">Metadata-only infrastructure</div>
-      {sections.metadataOnly.map((s) => (
-        <div key={s.label} className="stat-row">
-          <span className="stat-label">{s.label}</span>
-          <span className="stat-value">{s.value.toLocaleString()}</span>
-        </div>
-      ))}
+      {sections.metadataOnly.some((s) => s.value > 0) && (
+        <>
+          <div className="stats-section-label">Metadata only</div>
+          {sections.metadataOnly.map((s) => (
+            s.value > 0 && (
+              <div key={s.label} className="stat-row">
+                <span className="stat-label">{s.label}</span>
+                <span className="stat-value">{s.value.toLocaleString()}</span>
+              </div>
+            )
+          ))}
+        </>
+      )}
 
       {sections.rejected.length > 0 && (
         <>
-          <div className="stats-section-label">Rejected records</div>
+          <div className="stats-section-label">Rejected</div>
           {sections.rejected.map((s) => (
             <div key={s.label} className="stat-row">
               <span className="stat-label">{s.label}</span>
@@ -70,7 +76,7 @@ export default function StatsPanel({ metadata }: Props) {
         </>
       )}
 
-      <div className="stats-section-label">Current spatial coverage</div>
+      <div className="stats-section-label">Source totals</div>
       {sections.totals.map((s) => (
         <div key={s.label} className="stat-row">
           <span className="stat-label">{s.label}</span>

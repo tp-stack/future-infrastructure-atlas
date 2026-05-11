@@ -17,41 +17,43 @@ type LayerConfig = {
   dotColor: string;
   getMapped: (c: AtlasCounts) => number;
   getTotal: (c: AtlasCounts) => number;
-  getStatus: (c: AtlasCounts) => "mapped" | "metadata_only" | "missing_geometry" | "disabled";
+  getCoverage: (mapped: number, total: number) => "ok" | "warning" | "disabled";
   tooltip: string;
-  statusLabel: string | ((c: AtlasCounts) => string);
 };
 
 const LAYER_CONFIG: LayerConfig[] = [
   {
     key: "power_plants",
     label: "Power Plants",
-    dotColor: "#f59e0b",
+    dotColor: "#d69a13",
     getMapped: (c: AtlasCounts) => c.power_plants_mapped,
     getTotal: (c: AtlasCounts) => c.power_plants_total ?? c.power_plants_mapped + c.power_plants_rejected,
-    getStatus: (c: AtlasCounts) => c.power_plants_mapped > 0 ? "mapped" as const : "missing_geometry" as const,
-    tooltip: "",
-    statusLabel: "mapped",
+    getCoverage: (mapped) => mapped > 0 ? "ok" : "disabled",
+    tooltip: "34,936 power plants mapped from WRI Global Power Plant Database",
   },
   {
     key: "cables",
     label: "Submarine Cables",
-    dotColor: "#4dd0e1",
+    dotColor: "#4cc9e8",
     getMapped: (c: AtlasCounts) => c.cables_mapped ?? c.submarine_cables_mapped,
     getTotal: (c: AtlasCounts) => c.cables_total ?? c.submarine_cables_total,
-    getStatus: (c: AtlasCounts) => (c.cables_mapped ?? c.submarine_cables_mapped) > 0 ? "mapped" as const : "metadata_only" as const,
-    tooltip: "Cable geometry enriched from OSM-derived lookup or landing-point interpolation.",
-    statusLabel: (c: AtlasCounts) => (c.cables_mapped ?? c.submarine_cables_mapped) > 0 ? "mapped" : "metadata only",
+    getCoverage: (mapped, total) => {
+      if (mapped === 0) return "disabled";
+      return mapped < total ? "warning" : "ok";
+    },
+    tooltip: "Cable geometry enriched from OSM-derived lookup. 4 of 1,175 have geometry.",
   },
   {
     key: "data_centers",
     label: "Data Centers",
-    dotColor: "#e0e0e0",
+    dotColor: "#e8e5dc",
     getMapped: (c: AtlasCounts) => c.data_centers_mapped,
     getTotal: (c: AtlasCounts) => c.data_centers_total,
-    getStatus: (c: AtlasCounts) => c.data_centers_mapped > 0 ? "mapped" as const : "metadata_only" as const,
-    tooltip: "Coordinates enriched from curated public-disclosure lookup at metro-level precision.",
-    statusLabel: (c: AtlasCounts) => c.data_centers_mapped > 0 ? "mapped" : "metadata only",
+    getCoverage: (mapped, total) => {
+      if (mapped === 0) return "disabled";
+      return mapped < total ? "warning" : "ok";
+    },
+    tooltip: "Coordinates enriched from public-disclosure lookup. 3 of 43 have verified coordinates.",
   },
 ];
 
@@ -74,14 +76,13 @@ export default function LayerPanel({
         const c = counts!;
         const mapped = cfg.getMapped(c);
         const total = cfg.getTotal(c);
-        const status = cfg.getStatus(c);
+        const coverage = cfg.getCoverage(mapped, total);
         const isDisabled = mapped === 0;
         const checked = visibleLayers[cfg.key] && !isDisabled;
-        const statusLabel = typeof cfg.statusLabel === "function" ? cfg.statusLabel(c) : cfg.statusLabel;
 
         return (
           <div key={cfg.key} className="layer-row" title={cfg.tooltip}>
-            <label className="layer-toggle" style={{ opacity: isDisabled ? 0.5 : 1 }}>
+            <label className="layer-toggle" style={{ opacity: isDisabled ? 0.4 : 1 }}>
               <input
                 type="checkbox"
                 checked={checked}
@@ -91,16 +92,17 @@ export default function LayerPanel({
               <span className="layer-dot" style={{ background: cfg.dotColor }} />
               <div className="layer-info">
                 <span className="layer-name">{cfg.label}</span>
-                <span className="layer-counts">{mapped.toLocaleString()} / {total.toLocaleString()}</span>
+                <span className="layer-counts">{mapped.toLocaleString()} / {total.toLocaleString()} mapped</span>
               </div>
-              <span className={`layer-badge layer-badge--${status}`}>{statusLabel}</span>
+              <span className={`layer-status-chip layer-status-chip--${coverage}`}>
+                {coverage === "ok" ? "mapped" : coverage === "warning" ? "partial" : "unmapped"}
+              </span>
             </label>
-            {isDisabled && <div className="layer-note">{cfg.tooltip}</div>}
           </div>
         );
       })}
 
-      <h2 style={{ marginTop: 16 }}>Filters</h2>
+      <h2 style={{ marginTop: 14 }}>Filters</h2>
       <div className="filter-group">
         <label>Fuel Type</label>
         <select
@@ -142,7 +144,7 @@ export default function LayerPanel({
 
       {activeFilters.length > 0 && (
         <div className="filter-summary">
-          <span className="filter-summary-label">Active filters:</span> {activeFilters.join(", ")}
+          <span className="filter-summary-label">Active:</span> {activeFilters.join(", ")}
         </div>
       )}
       <div className="filter-summary">

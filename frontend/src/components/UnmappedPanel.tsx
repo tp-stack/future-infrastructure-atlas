@@ -11,45 +11,36 @@ export default function UnmappedPanel({ metadata }: Props) {
   const cablesMapped = c.cables_mapped ?? c.submarine_cables_mapped;
   const cablesTotal = c.cables_total ?? c.submarine_cables_total;
   const cablesUnmapped = c.cables_unmapped ?? c.submarine_cables_unmapped;
+  const dcsMapped = c.data_centers_mapped;
+  const dcsTotal = c.data_centers_total;
+  const dcsUnmapped = c.data_centers_unmapped;
 
   return (
     <div className="panel-section">
-      <h2>Unmapped Infrastructure</h2>
+      <h2>Data Coverage</h2>
 
       <div className="stat-row">
-        <span className="stat-label">Cables loaded</span>
-        <span className="stat-value">{cablesTotal.toLocaleString()}</span>
+        <span className="stat-label">Cables</span>
+        <span className="stat-value">{cablesMapped.toLocaleString()} / {cablesTotal.toLocaleString()}</span>
       </div>
       <div className="stat-row">
-        <span className="stat-label">Cables mapped</span>
-        <span className="stat-value">{cablesMapped.toLocaleString()}</span>
-      </div>
-      <div className="stat-row">
-        <span className="stat-label">Cables unmapped</span>
-        <span className="stat-value">{cablesUnmapped.toLocaleString()}</span>
+        <span className="stat-label">Data centers</span>
+        <span className="stat-value">{dcsMapped.toLocaleString()} / {dcsTotal.toLocaleString()}</span>
       </div>
 
-      <div className="stat-row" style={{ marginTop: 8 }}>
-        <span className="stat-label">Data centers loaded</span>
-        <span className="stat-value">{c.data_centers_total.toLocaleString()}</span>
-      </div>
-      <div className="stat-row">
-        <span className="stat-label">Data centers mapped</span>
-        <span className="stat-value">{c.data_centers_mapped.toLocaleString()}</span>
-      </div>
-      <div className="stat-row">
-        <span className="stat-label">Data centers unmapped</span>
-        <span className="stat-value">{c.data_centers_unmapped.toLocaleString()}</span>
-      </div>
-
-      <div className="unmapped-reason">
-        <div className="unmapped-reason-item">
-          <strong>Submarine cables</strong> need geometry/polyline coordinates to appear on the map.
+      {(cablesUnmapped > 0 || dcsUnmapped > 0) && (
+        <div className="coverage-warning" style={{ marginTop: 8, borderRadius: 4, border: '1px solid rgba(200,100,50,0.15)' }}>
+          <div>
+            <div style={{ fontWeight: 600, fontSize: 10, marginBottom: 4, color: '#d08040' }}>Limited spatial coverage</div>
+            <div className="unmapped-reason-item">
+              <strong>Submarine cables:</strong> {cablesUnmapped.toLocaleString()} of {cablesTotal.toLocaleString()} records lack verified geometry and cannot be rendered on the map.
+            </div>
+            <div className="unmapped-reason-item">
+              <strong>Data centers:</strong> {dcsUnmapped.toLocaleString()} of {dcsTotal.toLocaleString()} records lack verified coordinates and cannot be rendered.
+            </div>
+          </div>
         </div>
-        <div className="unmapped-reason-item">
-          <strong>Frontier AI data centers</strong> need public or licensed latitude/longitude or metro-level coordinates to appear on the map.
-        </div>
-      </div>
+      )}
 
       <div className="unmapped-sources">
         <div><strong>Source:</strong> SCN Submarine Cable Network Data (github.com/miaw-net/scn-data)</div>

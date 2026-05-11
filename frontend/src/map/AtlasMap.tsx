@@ -11,6 +11,8 @@ interface Props {
   onPopup: (asset: Asset | null) => void;
 }
 
+const DARK_BG = "#050609";
+
 const DARK_STYLE: maplibregl.StyleSpecification = {
   version: 8,
   name: "Dark Atlas",
@@ -26,7 +28,7 @@ const DARK_STYLE: maplibregl.StyleSpecification = {
     {
       id: "background",
       type: "background" as const,
-      paint: { "background-color": "#0a0a0f" },
+      paint: { "background-color": DARK_BG },
     },
     {
       id: "osm-tiles-layer",
@@ -50,9 +52,11 @@ export default function AtlasMap({ data, filters, visibleLayers, onPopup }: Prop
       container: mapContainer.current,
       style: DARK_STYLE,
       center: [10, 30],
-      zoom: 1.5,
+      zoom: 1.8,
+      renderWorldCopies: false,
+      maxBounds: [[-180, -85], [180, 85]],
     });
-    m.addControl(new maplibregl.NavigationControl(), "bottom-right");
+    m.addControl(new maplibregl.NavigationControl(), "top-right");
     map.current = m;
 
     m.on("load", () => {
@@ -89,7 +93,7 @@ export default function AtlasMap({ data, filters, visibleLayers, onPopup }: Prop
         lon: coords[0],
         mapped_status: "mapped",
       };
-      showPopup(m, popupRef, plant);
+      showPlantPopup(m, popupRef, plant, e.originalEvent);
       onPopup(plant);
     });
 
@@ -111,7 +115,7 @@ export default function AtlasMap({ data, filters, visibleLayers, onPopup }: Prop
         coordinate_precision: (props.coordinate_precision as string) || "",
         confidence: (props.confidence as number) || undefined,
       };
-      showDCPopup(m, popupRef, dc);
+      showDCPopup(m, popupRef, dc, e.originalEvent);
       onPopup(dc);
     });
 
@@ -127,7 +131,7 @@ export default function AtlasMap({ data, filters, visibleLayers, onPopup }: Prop
         geometry_precision: (props.geometry_precision as string) || "",
         confidence: (props.confidence as number) || undefined,
       };
-      showCablePopup(m, popupRef, cable, e.lngLat);
+      showCablePopup(m, popupRef, cable, e.lngLat, e.originalEvent);
       onPopup(cable);
     });
 
@@ -178,7 +182,43 @@ export default function AtlasMap({ data, filters, visibleLayers, onPopup }: Prop
     applyFilters(map.current, filters);
   }, [filters, loaded]);
 
-  return <div ref={mapContainer} className="map-container" />;
+  const handleResetView = useCallback(() => {
+    if (!map.current) return;
+    map.current.flyTo({ center: [10, 30], zoom: 1.8 });
+  }, []);
+
+  const handleFitData = useCallback(() => {
+    if (!map.current) return;
+    const bounds = new maplibregl.LngLatBounds();
+    let hasData = false;
+    for (const p of data.power_plants) {
+      bounds.extend([p.lon, p.lat]);
+      hasData = true;
+    }
+    for (const d of data.data_centers) {
+      if (d.lat != null && d.lon != null) {
+        bounds.extend([d.lon, d.lat]);
+        hasData = true;
+      }
+    }
+    if (hasData) {
+      map.current.fitBounds(bounds, { padding: 60, maxZoom: 10 });
+    }
+  }, [data]);
+
+  return (
+    <div className="map-container">
+      <div ref={mapContainer} className="map-canvas" />
+      <div className="map-overlay-controls">
+        <button className="map-ctrl-btn" onClick={handleResetView} title="Reset view">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+        <button className="map-ctrl-btn" onClick={handleFitData} title="Fit to data">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        </button>
+      </div>
+    </div>
+  );
 }
 
 function addPowerPlantLayer(m: maplibregl.Map, plants: PowerPlant[]) {
@@ -196,7 +236,7 @@ function addPowerPlantLayer(m: maplibregl.Map, plants: PowerPlant[]) {
     data: geojson,
     cluster: true,
     clusterMaxZoom: 14,
-    clusterRadius: 50,
+    clusterRadius: 40,
   });
 
   m.addLayer({
@@ -225,7 +265,7 @@ function addPowerPlantLayer(m: maplibregl.Map, plants: PowerPlant[]) {
   });
 }
 
-function addCableLayer(m: maplibregl.Map, cables: { n: string; source: string; geometry: number[][]; mapped_status?: string; geometry_precision?: string; confidence?: number; operators?: string; landing_points?: string; length_km?: string }[]) {
+function addCableLayer(m: maplibregl.Map, cables: { n: string; source: string; geometry: number[][]; mapped_status?: string; geometry_precision?: string; confidence?: number }[]) {
   const withGeom = cables.filter((c) => c.mapped_status === "mapped" && c.geometry && c.geometry.length >= 2);
   const geojson: GeoJSON.FeatureCollection = {
     type: "FeatureCollection",
@@ -265,75 +305,61 @@ function addDataCenterLayer(m: maplibregl.Map, dcs: { n: string; op: string; c: 
   });
 }
 
-function showPopup(m: maplibregl.Map, popupRef: React.MutableRefObject<maplibregl.Popup | null>, asset: Asset) {
+function showPlantPopup(m: maplibregl.Map, popupRef: React.MutableRefObject<maplibregl.Popup | null>, plant: Asset, event?: MouseEvent | PointerEvent) {
   if (popupRef.current) popupRef.current.remove();
-  if ("f" in asset) {
-    const plant = asset;
-    const html = `
-      <div class="popup-content">
-        <h3>${escapeHtml(plant.n)}</h3>
-        <div><span class="label">Type</span> Power Plant</div>
-        <div><span class="label">Fuel</span> ${escapeHtml(plant.f)}</div>
-        <div><span class="label">Capacity</span> ${plant.mw.toLocaleString()} MW</div>
-        <div><span class="label">Country</span> ${escapeHtml(plant.c)}</div>
-      </div>
-    `;
-    popupRef.current = new maplibregl.Popup({ closeButton: true, maxWidth: "280px" })
-      .setLngLat([plant.lon, plant.lat])
-      .setHTML(html)
-      .addTo(m);
-  } else {
-    showGenericPopup(m, popupRef, asset);
-  }
+  if (!("f" in plant)) return;
+  const html = `
+    <div class="popup-content">
+      <div class="popup-header">${escapeHtml(plant.n)}</div>
+      <div class="popup-row"><span class="popup-label">Type</span><span class="popup-val">Power Plant</span></div>
+      <div class="popup-row"><span class="popup-label">Fuel</span><span class="popup-val">${escapeHtml(plant.f)}</span></div>
+      <div class="popup-row"><span class="popup-label">Capacity</span><span class="popup-val">${plant.mw.toLocaleString()} MW</span></div>
+      <div class="popup-row"><span class="popup-label">Country</span><span class="popup-val">${escapeHtml(plant.c)}</span></div>
+      <div class="popup-row"><span class="popup-label">Confidence</span><span class="popup-val">Source-native precision</span></div>
+    </div>
+  `;
+  popupRef.current = new maplibregl.Popup({ closeButton: true, maxWidth: "300px", offset: 10 })
+    .setLngLat([plant.lon, plant.lat])
+    .setHTML(html)
+    .addTo(m);
 }
 
-function showDCPopup(m: maplibregl.Map, popupRef: React.MutableRefObject<maplibregl.Popup | null>, dc: Asset) {
+function showDCPopup(m: maplibregl.Map, popupRef: React.MutableRefObject<maplibregl.Popup | null>, dc: Asset, event?: MouseEvent | PointerEvent) {
   if (popupRef.current) popupRef.current.remove();
   if (!("op" in dc)) return;
   const html = `
     <div class="popup-content">
-      <h3>${escapeHtml(dc.n)}</h3>
-      <div><span class="label">Type</span> Data Center</div>
-      <div><span class="label">Owner</span> ${escapeHtml(dc.op)}</div>
-      <div><span class="label">Country</span> ${escapeHtml(dc.c)}</div>
-      <div><span class="label">Capacity</span> ${dc.mw ? dc.mw.toLocaleString() + " MW" : "N/A"}</div>
-      <div><span class="label">Precision</span> ${dc.coordinate_precision || ""}</div>
-      <div><span class="label">Confidence</span> ${dc.confidence ?? "N/A"}</div>
+      <div class="popup-header">${escapeHtml(dc.n)}</div>
+      <div class="popup-row"><span class="popup-label">Type</span><span class="popup-val">Data Center</span></div>
+      <div class="popup-row"><span class="popup-label">Owner</span><span class="popup-val">${escapeHtml(dc.op || "N/A")}</span></div>
+      <div class="popup-row"><span class="popup-label">Country</span><span class="popup-val">${escapeHtml(dc.c)}</span></div>
+      <div class="popup-row"><span class="popup-label">Capacity</span><span class="popup-val">${dc.mw ? dc.mw.toLocaleString() + " MW" : "N/A"}</span></div>
+      <div class="popup-row"><span class="popup-label">Precision</span><span class="popup-val">${dc.coordinate_precision || "N/A"}</span></div>
+      <div class="popup-row"><span class="popup-label">Confidence</span><span class="popup-val">${dc.confidence ?? "N/A"}</span></div>
+      <div class="popup-note">Metro-level coordinates — not exact facility location</div>
     </div>
   `;
-  popupRef.current = new maplibregl.Popup({ closeButton: true, maxWidth: "280px" })
+  popupRef.current = new maplibregl.Popup({ closeButton: true, maxWidth: "300px", offset: 10 })
     .setLngLat([dc.lon, dc.lat])
     .setHTML(html)
     .addTo(m);
 }
 
-function showCablePopup(m: maplibregl.Map, popupRef: React.MutableRefObject<maplibregl.Popup | null>, cable: Asset, lngLat: maplibregl.LngLat) {
+function showCablePopup(m: maplibregl.Map, popupRef: React.MutableRefObject<maplibregl.Popup | null>, cable: Asset, lngLat: maplibregl.LngLat, event?: MouseEvent | PointerEvent) {
   if (popupRef.current) popupRef.current.remove();
+  const precision = "geometry_precision" in cable ? cable.geometry_precision : "N/A";
+  const confidence = "confidence" in cable && cable.confidence ? cable.confidence : "N/A";
   const html = `
     <div class="popup-content">
-      <h3>${escapeHtml(cable.n)}</h3>
-      <div><span class="label">Type</span> Submarine Cable</div>
-      <div><span class="label">Precision</span> ${"geometry_precision" in cable ? cable.geometry_precision : ""}</div>
-      <div><span class="label">Confidence</span> ${"confidence" in cable && cable.confidence ? cable.confidence : "N/A"}</div>
+      <div class="popup-header">${escapeHtml(cable.n)}</div>
+      <div class="popup-row"><span class="popup-label">Type</span><span class="popup-val">Submarine Cable</span></div>
+      <div class="popup-row"><span class="popup-label">Precision</span><span class="popup-val">${precision}</span></div>
+      <div class="popup-row"><span class="popup-label">Confidence</span><span class="popup-val">${confidence}</span></div>
+      <div class="popup-note">Generalized public geometry — not exact trench route</div>
     </div>
   `;
-  popupRef.current = new maplibregl.Popup({ closeButton: true, maxWidth: "280px" })
+  popupRef.current = new maplibregl.Popup({ closeButton: true, maxWidth: "300px", offset: 10 })
     .setLngLat(lngLat)
-    .setHTML(html)
-    .addTo(m);
-}
-
-function showGenericPopup(m: maplibregl.Map, popupRef: React.MutableRefObject<maplibregl.Popup | null>, asset: Asset) {
-  if (popupRef.current) popupRef.current.remove();
-  const status = asset.mapped_status ?? "mapped";
-  const html = `
-    <div class="popup-content">
-      <h3>${escapeHtml(asset.n)}</h3>
-      <div><span class="label">Status</span> ${status}</div>
-    </div>
-  `;
-  popupRef.current = new maplibregl.Popup({ closeButton: true, maxWidth: "280px" })
-    .setLngLat([0, 0])
     .setHTML(html)
     .addTo(m);
 }

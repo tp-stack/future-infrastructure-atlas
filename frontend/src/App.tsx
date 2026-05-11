@@ -12,6 +12,7 @@ export default function App() {
   const [data, setData] = useState<AtlasData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [visibleLayers, setVisibleLayers] = useState({
     power_plants: true,
     cables: true,
@@ -75,6 +76,10 @@ export default function App() {
     }).length;
   }, [data, filters]);
 
+  const activeFilterCount = useMemo(() => {
+    return [filters.fuelType, filters.country, filters.minMw > 0 ? `${filters.minMw}+ MW` : ""].filter(Boolean).length;
+  }, [filters]);
+
   const handleToggle = useCallback((key: string) => {
     setVisibleLayers((prev) => ({ ...prev, [key]: !(prev as Record<string, boolean>)[key] }));
   }, []);
@@ -85,7 +90,7 @@ export default function App() {
         <div className="loading-screen">
           <div className="loading-spinner" />
           <div className="loading-text">Loading infrastructure atlas...</div>
-          <div className="loading-sub">FUTURE Infrastructure Atlas — Global energy, internet and compute infrastructure intelligence</div>
+          <div className="loading-sub">Global Infrastructure Atlas — energy, internet &amp; compute intelligence</div>
         </div>
       </div>
     );
@@ -107,17 +112,24 @@ export default function App() {
     );
   }
 
-  const hasMappableLayers =
-    data.power_plants.length > 0 ||
-    data.cables.some((c) => c.geometry && c.geometry.length >= 2) ||
-    data.data_centers.some((d) => d.lat != null && d.lon != null);
+  const counts = data.metadata.counts;
+  const cablesMapped = counts.cables_mapped ?? counts.submarine_cables_mapped;
+  const cablesTotal = counts.cables_total ?? counts.submarine_cables_total;
+  const dcsMapped = counts.data_centers_mapped;
+  const dcsTotal = counts.data_centers_total;
+  const hasCoverageWarning = cablesMapped < cablesTotal || dcsMapped < dcsTotal;
 
   return (
     <div className="app">
-      <div className="side-panel">
+      <div className={`side-panel ${sidebarOpen ? "open" : "closed"}`}>
         <div className="panel-header">
-          <h1>FUTURE Infrastructure Atlas</h1>
-          <div className="subtitle">Global energy, internet and compute infrastructure intelligence</div>
+          <div className="panel-header-top">
+            <h1>Global Infrastructure Atlas</h1>
+            <button className="sidebar-toggle" onClick={() => setSidebarOpen(false)} title="Close sidebar">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <div className="panel-subtitle">Energy, internet &amp; compute intelligence</div>
         </div>
         <LayerPanel
           visibleLayers={visibleLayers}
@@ -134,16 +146,49 @@ export default function App() {
         <UnmappedPanel metadata={data.metadata} />
         <AssetPopup asset={selectedAsset} />
         <SourcePanel metadata={data.metadata} />
-        <div className="status-bar">
-          Generated {new Date(data.metadata.generated_at).toLocaleString()} — {data.power_plants.length.toLocaleString()} power plants mapped
+        <div className="panel-footer">
+          Generated {new Date(data.metadata.generated_at).toLocaleString()}
         </div>
       </div>
-      <AtlasMap
-        data={data}
-        filters={filters}
-        visibleLayers={visibleLayers}
-        onPopup={setSelectedAsset}
-      />
+
+      {!sidebarOpen && (
+        <button className="sidebar-reopen" onClick={() => setSidebarOpen(true)} title="Open sidebar">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+      )}
+
+      <div className="map-area">
+        <div className="top-bar">
+          <div className="top-bar-left">
+            <span className="top-bar-title">Global Infrastructure Atlas</span>
+            <span className="top-bar-stat">{data.power_plants.length.toLocaleString()} power plants</span>
+            <span className="top-bar-stat">{cablesMapped.toLocaleString()} / {cablesTotal.toLocaleString()} cables</span>
+            <span className="top-bar-stat">{dcsMapped.toLocaleString()} / {dcsTotal.toLocaleString()} data centers</span>
+          </div>
+          <div className="top-bar-right">
+            {activeFilterCount > 0 && (
+              <span className="top-bar-filter-badge">{activeFilterCount} filter{activeFilterCount > 1 ? "s" : ""} active</span>
+            )}
+            {hasCoverageWarning && (
+              <span className="top-bar-warning-badge">Partial coverage</span>
+            )}
+          </div>
+        </div>
+
+        {hasCoverageWarning && (
+          <div className="coverage-warning">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 9v2m0 4h.01M12 2l10 18H2L12 2z"/></svg>
+            <span>Some infrastructure layers have limited mapped coverage. Cables: {cablesMapped}/{cablesTotal} mapped. Data centers: {dcsMapped}/{dcsTotal} mapped.</span>
+          </div>
+        )}
+
+        <AtlasMap
+          data={data}
+          filters={filters}
+          visibleLayers={visibleLayers}
+          onPopup={setSelectedAsset}
+        />
+      </div>
     </div>
   );
 }

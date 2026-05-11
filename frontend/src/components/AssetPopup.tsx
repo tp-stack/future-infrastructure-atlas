@@ -9,7 +9,7 @@ export default function AssetPopup({ asset }: Props) {
     return (
       <div className="panel-section">
         <h2>Selected Asset</h2>
-        <div style={{ fontSize: 12, color: "#52525b" }}>
+        <div style={{ fontSize: 11, color: "#5a5a62" }}>
           Click on the map to inspect an asset
         </div>
       </div>
@@ -20,12 +20,12 @@ export default function AssetPopup({ asset }: Props) {
     return (
       <div className="panel-section">
         <h2>Selected Asset</h2>
-        <div style={{ fontSize: 13, marginBottom: 4 }}>{asset.n}</div>
-        <div style={{ fontSize: 11, color: "#71717a" }}>
-          <div>Type: Power Plant</div>
-          <div>Fuel: {asset.f}</div>
-          <div>Capacity: {asset.mw.toLocaleString()} MW</div>
-          <div>Country: {asset.c}</div>
+        <div style={{ fontSize: 12, marginBottom: 4, color: "#f4efe6", fontWeight: 600 }}>{asset.n}</div>
+        <div style={{ fontSize: 10, color: "#6a6a72", lineHeight: 1.6 }}>
+          <div style={{ display: "flex", justifyContent: "space-between" }}><span>Type</span><span style={{ color: "#f4efe6" }}>Power Plant</span></div>
+          <div style={{ display: "flex", justifyContent: "space-between" }}><span>Fuel</span><span style={{ color: "#f4efe6" }}>{asset.f}</span></div>
+          <div style={{ display: "flex", justifyContent: "space-between" }}><span>Capacity</span><span style={{ color: "#f4efe6" }}>{asset.mw.toLocaleString()} MW</span></div>
+          <div style={{ display: "flex", justifyContent: "space-between" }}><span>Country</span><span style={{ color: "#f4efe6" }}>{asset.c}</span></div>
         </div>
       </div>
     );
@@ -35,14 +35,15 @@ export default function AssetPopup({ asset }: Props) {
     return (
       <div className="panel-section">
         <h2>Selected Asset</h2>
-        <div style={{ fontSize: 13, marginBottom: 4 }}>{asset.n}</div>
-        <div style={{ fontSize: 11, color: "#71717a" }}>
-          <div>Type: Data Center</div>
-          <div>Owner: {asset.op || "N/A"}</div>
-          <div>Country: {asset.c}</div>
-          <div>Capacity: {asset.mw ? `${asset.mw.toLocaleString()} MW` : "N/A"}</div>
-          <div>Precision: {asset.coordinate_precision || "N/A"}</div>
+        <div style={{ fontSize: 12, marginBottom: 4, color: "#f4efe6", fontWeight: 600 }}>{asset.n}</div>
+        <div style={{ fontSize: 10, color: "#6a6a72", lineHeight: 1.6 }}>
+          <div style={{ display: "flex", justifyContent: "space-between" }}><span>Type</span><span style={{ color: "#f4efe6" }}>Data Center</span></div>
+          <div style={{ display: "flex", justifyContent: "space-between" }}><span>Owner</span><span style={{ color: "#f4efe6" }}>{asset.op || "N/A"}</span></div>
+          <div style={{ display: "flex", justifyContent: "space-between" }}><span>Country</span><span style={{ color: "#f4efe6" }}>{asset.c}</span></div>
+          <div style={{ display: "flex", justifyContent: "space-between" }}><span>Capacity</span><span style={{ color: "#f4efe6" }}>{asset.mw ? `${asset.mw.toLocaleString()} MW` : "N/A"}</span></div>
+          <div style={{ display: "flex", justifyContent: "space-between" }}><span>Precision</span><span style={{ color: "#f4efe6" }}>{asset.coordinate_precision || "N/A"}</span></div>
         </div>
+        <div style={{ fontSize: 9, color: "#5a5a62", marginTop: 6, fontStyle: "italic" }}>Metro-level coordinates — not exact facility location</div>
       </div>
     );
   }
@@ -50,11 +51,12 @@ export default function AssetPopup({ asset }: Props) {
   return (
     <div className="panel-section">
       <h2>Selected Asset</h2>
-      <div style={{ fontSize: 13, marginBottom: 4 }}>{asset.n}</div>
-      <div style={{ fontSize: 11, color: "#71717a" }}>
-        <div>Type: Submarine Cable</div>
-        <div>Precision: {"geometry_precision" in asset ? asset.geometry_precision : "N/A"}</div>
+      <div style={{ fontSize: 12, marginBottom: 4, color: "#f4efe6", fontWeight: 600 }}>{asset.n}</div>
+      <div style={{ fontSize: 10, color: "#6a6a72", lineHeight: 1.6 }}>
+        <div style={{ display: "flex", justifyContent: "space-between" }}><span>Type</span><span style={{ color: "#f4efe6" }}>Submarine Cable</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between" }}><span>Precision</span><span style={{ color: "#f4efe6" }}>{"geometry_precision" in asset ? asset.geometry_precision : "N/A"}</span></div>
       </div>
+      <div style={{ fontSize: 9, color: "#5a5a62", marginTop: 6, fontStyle: "italic" }}>Generalized public geometry — not exact trench route</div>
     </div>
   );
 }
