@@ -1,13 +1,12 @@
 import { useRef, useEffect, useCallback } from "react";
-import type maplibregl from "maplibre-gl";
 import type { AtlasData, FilterState, PowerPlant, Cable, DataCenter } from "./types";
 
 interface Props {
   data: AtlasData;
   filters: FilterState;
   visibleLayers: Record<string, boolean>;
-  mapInstance: maplibregl.Map | null;
-  mapLoaded: boolean;
+  mapInstance?: unknown;
+  mapLoaded?: boolean;
   showTestPoints?: boolean;
   onCanvasDiagnostics?: (d: CanvasDiagnostics) => void;
   onCanvasClick?: (asset: AssetHit | null) => void;
@@ -21,9 +20,11 @@ export interface CanvasDiagnostics {
   cableLinesDrawn: number;
   dataCentersDrawn: number;
   testPointsDrawn: number;
+  recordsReceived: number;
+  validCoords: number;
   lastDrawTime: string;
   lastError: string | null;
-  usingFallbackProjection: boolean;
+  projectionMode: string;
 }
 
 export interface AssetHit {
@@ -33,19 +34,14 @@ export interface AssetHit {
   y: number;
 }
 
-const GRID_COLOR = "rgba(60, 60, 70, 0.3)";
-const GRID_LINE_WIDTH = 0.5;
-const EQUATOR_COLOR = "rgba(80, 80, 90, 0.6)";
-const EQUATOR_LINE_WIDTH = 1;
-
 const FUEL_COLORS: Record<string, string> = {
-  Hydro: "#4fc3f7",
-  Solar: "#d69a13",
-  Wind: "#5cb88a",
-  Nuclear: "#a87bc7",
-  Coal: "#d45050",
-  "Natural Gas": "#d4956a",
-  Oil: "#c47555",
+  Hydro: "#4cc9f0",
+  Solar: "#f2b705",
+  Wind: "#62c370",
+  "Natural Gas": "#d99a6c",
+  Nuclear: "#b985d6",
+  Coal: "#d95c5c",
+  Oil: "#c97955",
   Biomass: "#7ab87a",
   Geothermal: "#d48a6a",
   Waste: "#8a8a8a",
@@ -53,7 +49,7 @@ const FUEL_COLORS: Record<string, string> = {
   "Wave and Tidal": "#4dd0e1",
 };
 
-const OTHER_COLOR = "#8d93a1";
+const OTHER_COLOR = "#9ca3af";
 
 const TEST_POINTS = [
   { n: "New York", lat: 40.7128, lon: -74.006, color: "#ff4444" },
@@ -63,36 +59,50 @@ const TEST_POINTS = [
   { n: "São Paulo", lat: -23.5505, lon: -46.6333, color: "#ff44ff" },
 ];
 
-function mercY(lat: number): number {
-  return Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360));
+function getLon(record: Record<string, unknown>): number | null {
+  const v = record.lon ?? record.longitude ?? record.lng ?? null;
+  if (v == null) return null;
+  const n = typeof v === "number" ? v : Number(v);
+  return isFinite(n) ? n : null;
+}
+
+function getLat(record: Record<string, unknown>): number | null {
+  const v = record.lat ?? record.latitude ?? null;
+  if (v == null) return null;
+  const n = typeof v === "number" ? v : Number(v);
+  return isFinite(n) ? n : null;
+}
+
+function isValidLonLat(lon: number, lat: number): boolean {
+  return isFinite(lon) && isFinite(lat) && lon >= -180 && lon <= 180 && lat >= -90 && lat <= 90;
+}
+
+function projectEquirectangular(lon: number, lat: number, w: number, h: number): [number, number] {
+  const x = ((lon + 180) / 360) * w;
+  const y = ((90 - lat) / 180) * h;
+  return [x, y];
 }
 
 export default function InfrastructureCanvasOverlay({
   data,
   filters,
   visibleLayers,
-  mapInstance,
-  mapLoaded,
   showTestPoints,
   onCanvasDiagnostics,
-  onCanvasClick,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const animFrameRef = useRef(0);
   const resizeObsRef = useRef<ResizeObserver | null>(null);
-  const diagRef = useRef<CanvasDiagnostics>({
-    active: false,
-    canvasWidth: 0,
-    canvasHeight: 0,
-    powerPlantsDrawn: 0,
-    cableLinesDrawn: 0,
-    dataCentersDrawn: 0,
-    testPointsDrawn: 0,
-    lastDrawTime: "",
-    lastError: null,
-    usingFallbackProjection: true,
-  });
+
+  // Console-diagnose the first render
+  console.log("[CanvasOverlay] Mounted. Plants:", data?.power_plants?.length);
+  if (data?.power_plants?.length) {
+    const first = data.power_plants[0];
+    const lon = getLon(first as unknown as Record<string, unknown>);
+    const lat = getLat(first as unknown as Record<string, unknown>);
+    console.log("[CanvasOverlay] First plant:", first.n, "lon=", first.lon, "lat=", first.lat, "parsedLon=", lon, "parsedLat=", lat);
+  }
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -107,7 +117,11 @@ export default function InfrastructureCanvasOverlay({
       const dpr = window.devicePixelRatio || 1;
       const cssW = rect.width;
       const cssH = rect.height;
-      if (cssW < 1 || cssH < 1) return;
+
+      if (cssW < 1 || cssH < 1) {
+        console.log("[CanvasOverlay] Canvas too small:", cssW, cssH);
+        return;
+      }
 
       if (canvas.width !== Math.floor(cssW * dpr) || canvas.height !== Math.floor(cssH * dpr)) {
         canvas.width = Math.floor(cssW * dpr);
@@ -117,32 +131,14 @@ export default function InfrastructureCanvasOverlay({
       }
 
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
       ctx.clearRect(0, 0, cssW, cssH);
 
-      const map = mapInstance;
-      const usingFallback = !map || !mapLoaded;
-      const center: [number, number] = map && mapLoaded
-        ? [map.getCenter().lng, map.getCenter().lat]
-        : [10, 30];
-      const zoom: number = map && mapLoaded ? map.getZoom() : 1.8;
+      console.log("[CanvasOverlay] Drawing. Canvas:", cssW, "x", cssH, "DPR:", dpr);
 
-      function project(lon: number, lat: number): [number, number] {
-        if (map && mapLoaded) {
-          try {
-            const p = map.project([lon, lat]);
-            return [p.x, p.y];
-          } catch {
-          }
-        }
-        const scaleFactor = cssH / (2 * Math.PI) * Math.pow(2, zoom - 1) * 0.4;
-        const x = cssW / 2 + (lon - center[0]) * scaleFactor * Math.cos(center[1] * Math.PI / 180);
-        const mc = mercY(center[1]);
-        const y = cssH / 2 - (mercY(lat) - mc) * scaleFactor;
-        return [x, y];
-      }
+      const project = (lon: number, lat: number): [number, number] =>
+        projectEquirectangular(lon, lat, cssW, cssH);
 
-      let diag: CanvasDiagnostics = {
+      const diag: CanvasDiagnostics = {
         active: true,
         canvasWidth: cssW,
         canvasHeight: cssH,
@@ -150,31 +146,50 @@ export default function InfrastructureCanvasOverlay({
         cableLinesDrawn: 0,
         dataCentersDrawn: 0,
         testPointsDrawn: 0,
+        recordsReceived: data?.power_plants?.length || 0,
+        validCoords: 0,
         lastDrawTime: new Date().toISOString(),
         lastError: null,
-        usingFallbackProjection: usingFallback,
+        projectionMode: "equirectangular",
       };
 
       // --- Graticule ---
       drawGraticule(ctx, cssW, cssH, project);
+      console.log("[CanvasOverlay] Graticule drawn");
 
       // --- Power Plants ---
-      if (visibleLayers.power_plants) {
-        const filtered = filterPlants(data.power_plants, filters);
-        const grouped = groupByFuel(filtered);
-        const isLowZoom = zoom < 4;
-        const pointRadius = isLowZoom ? 1.2 : Math.min(3, 1 + (zoom - 4) * 0.3);
+      if (visibleLayers.power_plants && data?.power_plants) {
+        const rawPlants = data.power_plants;
+        console.log("[CanvasOverlay] Total plants available:", rawPlants.length);
+        const filtered: PowerPlant[] = [];
+        for (const p of rawPlants) {
+          const lon = getLon(p as unknown as Record<string, unknown>);
+          const lat = getLat(p as unknown as Record<string, unknown>);
+          if (lon == null || lat == null || !isValidLonLat(lon, lat)) continue;
+          diag.validCoords++;
+          if (filters.fuelType && p.f !== filters.fuelType) continue;
+          if (filters.country && p.c !== filters.country) continue;
+          if (filters.minMw > 0 && p.mw < filters.minMw) continue;
+          filtered.push(p);
+        }
+        console.log("[CanvasOverlay] Valid coord count:", diag.validCoords, "After filter:", filtered.length);
 
+        const grouped: Record<string, PowerPlant[]> = {};
+        for (const p of filtered) {
+          const fuel = p.f || "Other";
+          if (!grouped[fuel]) grouped[fuel] = [];
+          grouped[fuel].push(p);
+        }
+
+        const pointRadius = 1.8;
         for (const fuel of Object.keys(grouped)) {
           const color = FUEL_COLORS[fuel] || OTHER_COLOR;
           const plants = grouped[fuel];
           ctx.fillStyle = color;
-          const opacity = isLowZoom ? 0.6 : Math.min(0.85, 0.5 + zoom * 0.03);
-          ctx.globalAlpha = opacity;
-
+          ctx.globalAlpha = 0.85;
           for (const p of plants) {
-            const [x, y] = project(p.lon, p.lat);
-            if (x < -10 || x > cssW + 10 || y < -10 || y > cssH + 10) continue;
+            const [x, y] = projectEquirectangular(p.lon, p.lat, cssW, cssH);
+            if (x < -5 || x > cssW + 5 || y < -5 || y > cssH + 5) continue;
             ctx.beginPath();
             ctx.arc(x, y, pointRadius, 0, Math.PI * 2);
             ctx.fill();
@@ -182,24 +197,28 @@ export default function InfrastructureCanvasOverlay({
           }
         }
         ctx.globalAlpha = 1;
+        console.log("[CanvasOverlay] Power plants drawn:", diag.powerPlantsDrawn);
       }
 
       // --- Cables ---
-      if (visibleLayers.cables) {
+      if (visibleLayers.cables && data?.cables) {
         const mappedCables = data.cables.filter(
           (c) => c.mapped_status === "mapped" && c.geometry && c.geometry.length >= 2
         );
         ctx.strokeStyle = "#4cc9e8";
-        ctx.lineWidth = Math.max(1.5, Math.min(3, 1 + zoom * 0.15));
+        ctx.lineWidth = 2;
         ctx.globalAlpha = 0.8;
         for (const c of mappedCables) {
           if (!c.geometry || c.geometry.length < 2) continue;
           ctx.beginPath();
           let started = false;
-          let segmentsVisible = 0;
+          let visibleCount = 0;
           for (const coord of c.geometry) {
-            const [x, y] = project(coord[0], coord[1]);
-            if (x < -100 || x > cssW + 100 || y < -100 || y > cssH + 100) {
+            const px = coord[0];
+            const py = coord[1];
+            if (px == null || py == null) { started = false; continue; }
+            const [x, y] = projectEquirectangular(px, py, cssW, cssH);
+            if (x < -200 || x > cssW + 200 || y < -200 || y > cssH + 200) {
               started = false;
               continue;
             }
@@ -209,24 +228,25 @@ export default function InfrastructureCanvasOverlay({
             } else {
               ctx.lineTo(x, y);
             }
-            segmentsVisible++;
+            visibleCount++;
           }
-          if (segmentsVisible >= 2) {
+          if (visibleCount >= 2) {
             ctx.stroke();
             diag.cableLinesDrawn++;
           }
         }
         ctx.globalAlpha = 1;
+        console.log("[CanvasOverlay] Cables drawn:", diag.cableLinesDrawn);
       }
 
       // --- Data Centers ---
-      if (visibleLayers.data_centers) {
+      if (visibleLayers.data_centers && data?.data_centers) {
         const mappedDCs = data.data_centers.filter(
           (d) => d.mapped_status === "mapped" && d.lat != null && d.lon != null
         );
-        const dcRadius = Math.max(4, Math.min(8, 4 + zoom * 0.5));
+        const dcRadius = 6;
         for (const d of mappedDCs) {
-          const [x, y] = project(d.lon!, d.lat!);
+          const [x, y] = projectEquirectangular(d.lon!, d.lat!, cssW, cssH);
           if (x < -20 || x > cssW + 20 || y < -20 || y > cssH + 20) continue;
           ctx.beginPath();
           ctx.arc(x, y, dcRadius, 0, Math.PI * 2);
@@ -235,18 +255,18 @@ export default function InfrastructureCanvasOverlay({
           ctx.fill();
           ctx.strokeStyle = "#4cc9e8";
           ctx.lineWidth = 1.5;
-          ctx.globalAlpha = 0.8;
           ctx.stroke();
           diag.dataCentersDrawn++;
         }
         ctx.globalAlpha = 1;
+        console.log("[CanvasOverlay] Data centers drawn:", diag.dataCentersDrawn);
       }
 
       // --- Test Points ---
       if (showTestPoints) {
-        const tpRadius = Math.max(5, 8 * Math.pow(2, zoom - 2) / 60);
+        const tpRadius = 6;
         for (const tp of TEST_POINTS) {
-          const [x, y] = project(tp.lon, tp.lat);
+          const [x, y] = projectEquirectangular(tp.lon, tp.lat, cssW, cssH);
           if (x < -20 || x > cssW + 20 || y < -20 || y > cssH + 20) continue;
           ctx.beginPath();
           ctx.arc(x, y, tpRadius, 0, Math.PI * 2);
@@ -264,23 +284,25 @@ export default function InfrastructureCanvasOverlay({
         }
       }
 
-      diagRef.current = diag;
+      if (diag.powerPlantsDrawn === 0 && diag.recordsReceived > 1000) {
+        console.warn("[CanvasOverlay] ZERO POINTS DRAWN despite", diag.recordsReceived, "records and", diag.validCoords, "valid coords");
+      }
+
       onCanvasDiagnostics?.(diag);
     } catch (e) {
       const errMsg = e instanceof Error ? e.message : String(e);
       console.error("[CanvasOverlay] Draw error:", errMsg);
-      diagRef.current.lastError = errMsg;
-      onCanvasDiagnostics?.(diagRef.current);
     }
-  }, [data, filters, visibleLayers, mapInstance, mapLoaded, showTestPoints, onCanvasDiagnostics]);
+  }, [data, filters, visibleLayers, showTestPoints, onCanvasDiagnostics]);
 
-  // Trigger redraw when any dependency changes
   useEffect(() => {
-    animFrameRef.current = requestAnimationFrame(draw);
+    animFrameRef.current = requestAnimationFrame(() => {
+      console.log("[CanvasOverlay] First draw triggered");
+      draw();
+    });
     return () => cancelAnimationFrame(animFrameRef.current);
   }, [draw]);
 
-  // Set up resize observer
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -294,91 +316,19 @@ export default function InfrastructureCanvasOverlay({
     });
     resizeObsRef.current.observe(parent);
 
-    return () => {
-      resizeObsRef.current?.disconnect();
-    };
+    return () => resizeObsRef.current?.disconnect();
   }, [draw]);
-
-  // Listen for map move/zoom events
-  useEffect(() => {
-    if (!mapInstance || !mapLoaded) return;
-    const onMove = () => {
-      cancelAnimationFrame(animFrameRef.current);
-      animFrameRef.current = requestAnimationFrame(draw);
-    };
-    mapInstance.on("move", onMove);
-    mapInstance.on("resize", onMove);
-    return () => {
-      mapInstance.off("move", onMove);
-      mapInstance.off("resize", onMove);
-    };
-  }, [mapInstance, mapLoaded, draw]);
-
-  // Click handling
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || !onCanvasClick) return;
-    const handleClick = (e: MouseEvent) => {
-      const rect = canvas.getBoundingClientRect();
-      const mx = e.clientX - rect.left;
-      const my = e.clientY - rect.top;
-      const map = mapInstance;
-      const isLoaded = map && mapLoaded;
-
-      function project(lon: number, lat: number): [number, number] {
-        if (isLoaded) {
-          try { const p = map!.project([lon, lat]); return [p.x, p.y]; } catch {}
-        }
-        return [mx + 9999, my + 9999];
-      }
-
-      const searchRadius = 10;
-      let bestDist = searchRadius;
-      let bestHit: AssetHit | null = null;
-
-      if (visibleLayers.power_plants) {
-        const filtered = filterPlants(data.power_plants, filters);
-        for (const p of filtered) {
-          const [px, py] = project(p.lon, p.lat);
-          const d = Math.hypot(px - mx, py - my);
-          if (d < bestDist) {
-            bestDist = d;
-            bestHit = { type: "power_plant", asset: p, x: px, y: py };
-          }
-        }
-      }
-
-      if (visibleLayers.data_centers && !bestHit) {
-        const mappedDCs = data.data_centers.filter(
-          (d) => d.mapped_status === "mapped" && d.lat != null && d.lon != null
-        );
-        for (const d of mappedDCs) {
-          const [px, py] = project(d.lon!, d.lat!);
-          const dist = Math.hypot(px - mx, py - my);
-          if (dist < bestDist) {
-            bestDist = dist;
-            bestHit = { type: "data_center", asset: d, x: px, y: py };
-          }
-        }
-      }
-
-      onCanvasClick(bestHit);
-    };
-    canvas.addEventListener("click", handleClick);
-    return () => canvas.removeEventListener("click", handleClick);
-  }, [data, filters, visibleLayers, mapInstance, mapLoaded, onCanvasClick]);
 
   return <canvas ref={canvasRef} className="infrastructure-canvas" />;
 }
 
 function drawGraticule(ctx: CanvasRenderingContext2D, w: number, h: number, project: (lon: number, lat: number) => [number, number]) {
-  ctx.strokeStyle = GRID_COLOR;
-  ctx.lineWidth = GRID_LINE_WIDTH;
+  ctx.strokeStyle = "rgba(60, 60, 70, 0.3)";
+  ctx.lineWidth = 0.5;
   ctx.globalAlpha = 1;
 
   for (let lon = -180; lon <= 180; lon += 30) {
     const [x] = project(lon, 0);
-    if (x < -5 || x > w + 5) continue;
     ctx.beginPath();
     ctx.moveTo(x, 0);
     ctx.lineTo(x, h);
@@ -387,48 +337,23 @@ function drawGraticule(ctx: CanvasRenderingContext2D, w: number, h: number, proj
 
   for (let lat = -90; lat <= 90; lat += 30) {
     const [, y] = project(0, lat);
-    if (y < -5 || y > h + 5) continue;
     ctx.beginPath();
     ctx.moveTo(0, y);
     ctx.lineTo(w, y);
     ctx.stroke();
   }
 
-  ctx.strokeStyle = EQUATOR_COLOR;
-  ctx.lineWidth = EQUATOR_LINE_WIDTH;
+  ctx.strokeStyle = "rgba(80, 80, 90, 0.6)";
+  ctx.lineWidth = 1;
   const [, eqY] = project(0, 0);
-  if (eqY >= 0 && eqY <= h) {
-    ctx.beginPath();
-    ctx.moveTo(0, eqY);
-    ctx.lineTo(w, eqY);
-    ctx.stroke();
-  }
+  ctx.beginPath();
+  ctx.moveTo(0, eqY);
+  ctx.lineTo(w, eqY);
+  ctx.stroke();
 
   const [pmX] = project(0, 0);
-  if (pmX >= 0 && pmX <= w) {
-    ctx.beginPath();
-    ctx.moveTo(pmX, 0);
-    ctx.lineTo(pmX, h);
-    ctx.stroke();
-  }
-}
-
-function filterPlants(plants: PowerPlant[], filters: FilterState): PowerPlant[] {
-  return plants.filter((p) => {
-    if (p.lat == null || p.lon == null) return false;
-    if (filters.fuelType && p.f !== filters.fuelType) return false;
-    if (filters.country && p.c !== filters.country) return false;
-    if (filters.minMw > 0 && p.mw < filters.minMw) return false;
-    return true;
-  });
-}
-
-function groupByFuel(plants: PowerPlant[]): Record<string, PowerPlant[]> {
-  const groups: Record<string, PowerPlant[]> = {};
-  for (const p of plants) {
-    const fuel = p.f || "Other";
-    if (!groups[fuel]) groups[fuel] = [];
-    groups[fuel].push(p);
-  }
-  return groups;
+  ctx.beginPath();
+  ctx.moveTo(pmX, 0);
+  ctx.lineTo(pmX, h);
+  ctx.stroke();
 }

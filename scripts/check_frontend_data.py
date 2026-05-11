@@ -1,4 +1,5 @@
-"""Validate frontend atlas_web_data.json before deployment."""
+"""Validate frontend atlas_web_data.json before deployment.
+Includes coordinate parsing, equirectangular projection tests."""
 
 import json
 import sys
@@ -9,9 +10,63 @@ MAX_MB = 5
 MIN_PLANTS = 1000
 
 
+def get_lon(record: dict) -> float | None:
+    v = record.get("lon") or record.get("longitude") or record.get("lng")
+    if v is None:
+        return None
+    try:
+        n = float(v)
+        return n if (-180 <= n <= 180) else None
+    except (ValueError, TypeError):
+        return None
+
+
+def get_lat(record: dict) -> float | None:
+    v = record.get("lat") or record.get("latitude")
+    if v is None:
+        return None
+    try:
+        n = float(v)
+        return n if (-90 <= n <= 90) else None
+    except (ValueError, TypeError):
+        return None
+
+
+def equirectangular_x(lon: float, width: float) -> float:
+    return ((lon + 180) / 360) * width
+
+
+def equirectangular_y(lat: float, height: float) -> float:
+    return ((90 - lat) / 180) * height
+
+
 def main():
     errors = []
     warnings = []
+
+    # --- Equirectangular projection tests ---
+    W, H = 1200, 800
+    assert equirectangular_x(-180, W) == 0, "equirectangular_x(-180) != 0"
+    assert equirectangular_x(180, W) == W, "equirectangular_x(180) != width"
+    assert equirectangular_x(0, W) == W / 2, "equirectangular_x(0) != center"
+    assert equirectangular_y(90, H) == 0, "equirectangular_y(90) != 0"
+    assert equirectangular_y(-90, H) == H, "equirectangular_y(-90) != height"
+    assert equirectangular_y(0, H) == H / 2, "equirectangular_y(0) != center"
+    print("[PROJ] Equirectangular projection tests: PASS")
+
+    # --- get_lon / get_lat tests ---
+    assert get_lon({"lon": 65.119}) == 65.119
+    assert get_lon({"longitude": -74.006}) == -74.006
+    assert get_lon({"lng": 103.8}) == 103.8
+    assert get_lon({"lon": "32.5"}) == 32.5
+    assert get_lon({}) is None
+    assert get_lon({"lon": 999}) is None
+    assert get_lat({"lat": 32.322}) == 32.322
+    assert get_lat({"latitude": 40.7128}) == 40.7128
+    assert get_lat({"lat": "31.67"}) == 31.67
+    assert get_lat({}) is None
+    assert get_lat({"lat": 999}) is None
+    print("[PARSE] Coordinate parsing tests: PASS")
 
     # 1. File exists
     if not DATA_PATH.exists():
@@ -22,11 +77,10 @@ def main():
     size_mb = size_bytes / (1024 * 1024)
     print(f"File size: {size_mb:.2f} MB")
 
-    # 2. Under 5 MB
     if size_mb > MAX_MB:
         errors.append(f"File too large: {size_mb:.2f} MB > {MAX_MB} MB")
 
-    # 3. Valid JSON
+    # 2. Valid JSON
     try:
         with open(DATA_PATH, "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -34,15 +88,10 @@ def main():
         print(f"FAIL: Invalid JSON — {e}")
         sys.exit(1)
 
-    # 4. Has key sections
-    if "metadata" not in data:
-        errors.append("Missing 'metadata' key")
-    if "power_plants" not in data:
-        errors.append("Missing 'power_plants' key")
-    if "cables" not in data:
-        errors.append("Missing 'cables' key")
-    if "data_centers" not in data:
-        errors.append("Missing 'data_centers' key")
+    # 3. Has key sections
+    for key in ("metadata", "power_plants", "cables", "data_centers"):
+        if key not in data:
+            errors.append(f"Missing '{key}' key")
 
     if errors:
         for e in errors:
@@ -57,27 +106,37 @@ def main():
     print(f"Cables: {len(cables)}")
     print(f"Data centers: {len(dcs)}")
 
-    # 5. Power plants > 1000
     if len(plants) < MIN_PLANTS:
         errors.append(f"Too few power plants: {len(plants)} < {MIN_PLANTS}")
 
-    # 6. Valid lon/lat
+    # 4. Validate coordinates using get_lon/get_lat (same logic as canvas renderer)
     valid_coords = 0
     invalid_coords = 0
+    first_valid_sample = None
     for p in plants:
-        lon, lat = p.get("lon"), p.get("lat")
-        if lon is not None and lat is not None and -180 <= lon <= 180 and -90 <= lat <= 90:
+        lon = get_lon(p)
+        lat = get_lat(p)
+        if lon is not None and lat is not None:
             valid_coords += 1
+            if first_valid_sample is None:
+                first_valid_sample = (lon, lat, p.get("n", ""), p.get("f", ""))
         else:
             invalid_coords += 1
 
     print(f"Valid power plant coordinates: {valid_coords}")
     print(f"Invalid/missing coordinates: {invalid_coords}")
 
+    if first_valid_sample:
+        lon, lat, name, fuel = first_valid_sample
+        proj_x = equirectangular_x(lon, 1200)
+        proj_y = equirectangular_y(lat, 800)
+        print(f"First valid sample: '{name}' lon={lon} lat={lat} fuel={fuel}")
+        print(f"  Equirectangular on 1200x800: x={proj_x:.1f} y={proj_y:.1f}")
+
     if valid_coords < MIN_PLANTS:
         errors.append(f"Too few valid coordinates: {valid_coords} < {MIN_PLANTS}")
 
-    # 7. Cables breakdown
+    # 5. Cables breakdown
     cables_mapped = sum(1 for c in cables if c.get("mapped_status") == "mapped")
     cables_unmapped = sum(1 for c in cables if c.get("mapped_status") == "unmapped")
     cables_with_geom = sum(1 for c in cables if c.get("geometry") and len(c["geometry"]) >= 2)
@@ -85,15 +144,15 @@ def main():
     print(f"Cables unmapped: {cables_unmapped}")
     print(f"Cables with geometry: {cables_with_geom}")
 
-    # 8. Data centers breakdown
+    # 6. Data centers breakdown
     dcs_mapped = sum(1 for d in dcs if d.get("mapped_status") == "mapped")
     dcs_unmapped = sum(1 for d in dcs if d.get("mapped_status") == "unmapped")
-    dcs_with_coords = sum(1 for d in dcs if d.get("lat") is not None and d.get("lon") is not None)
+    dcs_with_coords = sum(1 for d in dcs if get_lon(d) is not None and get_lat(d) is not None)
     print(f"Data centers mapped: {dcs_mapped}")
     print(f"Data centers unmapped: {dcs_unmapped}")
     print(f"Data centers with coords: {dcs_with_coords}")
 
-    # 9. Counts consistency
+    # 7. Counts consistency
     counts = data.get("metadata", {}).get("counts", {})
     if counts.get("power_plants_total") is not None and counts["power_plants_total"] != len(plants):
         warnings.append(f"Count mismatch: metadata.power_plants_total={counts['power_plants_total']} != actual={len(plants)}")

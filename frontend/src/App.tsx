@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import AtlasMap from "./map/AtlasMap";
-import type { MapDiagnostics } from "./map/AtlasMap";
 import type { CanvasDiagnostics } from "./map/InfrastructureCanvasOverlay";
 import ErrorBoundary from "./components/ErrorBoundary";
 import LayerPanel from "./components/LayerPanel";
@@ -16,7 +15,6 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [mapDiag, setMapDiag] = useState<MapDiagnostics | null>(null);
   const [canvasDiag, setCanvasDiag] = useState<CanvasDiagnostics | null>(null);
   const [showTestPoints, setShowTestPoints] = useState(false);
   const [visibleLayers, setVisibleLayers] = useState({
@@ -87,7 +85,7 @@ export default function App() {
     setVisibleLayers((prev) => ({ ...prev, [key]: !(prev as Record<string, boolean>)[key] }));
   }, []);
 
-  const hasZeroCanvasPoints = canvasDiag && data && canvasDiag.powerPlantsDrawn === 0 && data.power_plants.length > 0;
+  const hasZeroCanvasPoints = canvasDiag && data && canvasDiag.powerPlantsDrawn === 0 && canvasDiag.recordsReceived > 1000;
 
   if (loading) {
     return (
@@ -149,7 +147,7 @@ export default function App() {
           <StatsPanel metadata={data.metadata} />
           <UnmappedPanel metadata={data.metadata} />
           <AssetPopup asset={selectedAsset} />
-          <DiagnosticsPanel mapDiag={mapDiag} canvasDiag={canvasDiag} showTestPoints={showTestPoints} onToggleTestPoints={setShowTestPoints} />
+          <DiagnosticsPanel canvasDiag={canvasDiag} showTestPoints={showTestPoints} onToggleTestPoints={setShowTestPoints} />
           <SourcePanel metadata={data.metadata} />
           <div className="panel-footer">
             Generated {new Date(data.metadata.generated_at).toLocaleString()}
@@ -175,9 +173,8 @@ export default function App() {
                 <span className="top-bar-filter-badge">{activeFilterCount} filter{activeFilterCount > 1 ? "s" : ""} active</span>
               )}
               {hasCoverageWarning && <span className="top-bar-warning-badge">Partial coverage</span>}
-              {mapDiag && mapDiag.status !== "ok" && <span className="top-bar-warning-badge">MapLibre: {mapDiag.status}</span>}
-              {canvasDiag && canvasDiag.usingFallbackProjection && <span className="top-bar-warning-badge">Fallback projection</span>}
-              {hasZeroCanvasPoints && <span className="top-bar-warning-badge">Renderer: 0 points</span>}
+              {canvasDiag && canvasDiag.projectionMode && <span className="top-bar-stat">{canvasDiag.projectionMode}</span>}
+              {hasZeroCanvasPoints && <span className="top-bar-warning-badge">0 points drawn</span>}
             </div>
           </div>
 
@@ -191,7 +188,7 @@ export default function App() {
           {hasZeroCanvasPoints && (
             <div className="coverage-warning" style={{ borderTop: "1px solid rgba(200,50,50,0.2)" }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 9v2m0 4h.01M12 2l10 18H2L12 2z"/></svg>
-              <span>Data loaded ({data.power_plants.length.toLocaleString()} plants) but renderer drew zero visible points.</span>
+              <span>Data loaded ({canvasDiag?.recordsReceived?.toLocaleString()} records, {canvasDiag?.validCoords?.toLocaleString()} valid coords) but renderer drew 0 points.</span>
             </div>
           )}
 
@@ -200,7 +197,6 @@ export default function App() {
             filters={filters}
             visibleLayers={visibleLayers}
             onPopup={setSelectedAsset}
-            onDiagnostics={setMapDiag}
             onCanvasDiagnostics={setCanvasDiag}
             showTestPoints={showTestPoints}
           />
@@ -211,103 +207,80 @@ export default function App() {
 }
 
 function DiagnosticsPanel({
-  mapDiag,
   canvasDiag,
   showTestPoints,
   onToggleTestPoints,
 }: {
-  mapDiag: MapDiagnostics | null;
   canvasDiag: CanvasDiagnostics | null;
   showTestPoints: boolean;
   onToggleTestPoints: (v: boolean) => void;
 }) {
+  if (!canvasDiag) return null;
   return (
     <div className="panel-section">
       <h2>Renderer Diagnostics</h2>
       <div className="diag-summary">
         <div className="diag-row">
           <span className="diag-label">Canvas active</span>
-          <span className={`diag-val ${canvasDiag?.active ? "ok" : "fail"}`}>
-            {canvasDiag?.active ? "yes" : "no"}
+          <span className={`diag-val ${canvasDiag.active ? "ok" : "fail"}`}>
+            {canvasDiag.active ? "yes" : "no"}
           </span>
         </div>
-        {canvasDiag && (
-          <>
-            <div className="diag-row">
-              <span className="diag-label">Canvas size</span>
-              <span className="diag-val">{canvasDiag.canvasWidth} &times; {canvasDiag.canvasHeight}</span>
-            </div>
-            <div className="diag-row">
-              <span className="diag-label">Power plants drawn</span>
-              <span className={`diag-val ${canvasDiag.powerPlantsDrawn > 1000 ? "ok" : "fail"}`}>
-                {canvasDiag.powerPlantsDrawn.toLocaleString()}
-              </span>
-            </div>
-            <div className="diag-row">
-              <span className="diag-label">Cable lines drawn</span>
-              <span className="diag-val">{canvasDiag.cableLinesDrawn}</span>
-            </div>
-            <div className="diag-row">
-              <span className="diag-label">Data centers drawn</span>
-              <span className="diag-val">{canvasDiag.dataCentersDrawn}</span>
-            </div>
-            <div className="diag-row">
-              <span className="diag-label">Test points drawn</span>
-              <span className="diag-val">{canvasDiag.testPointsDrawn}</span>
-            </div>
-            <div className="diag-row">
-              <span className="diag-label">Projection</span>
-              <span className={`diag-val ${canvasDiag.usingFallbackProjection ? "fail" : "ok"}`}>
-                {canvasDiag.usingFallbackProjection ? "fallback" : "MapLibre"}
-              </span>
-            </div>
-            <div className="diag-row">
-              <span className="diag-label">Last draw</span>
-              <span className="diag-val">{new Date(canvasDiag.lastDrawTime).toLocaleTimeString()}</span>
-            </div>
-            {canvasDiag.lastError && (
-              <div className="diag-row">
-                <span className="diag-label">Error</span>
-                <span className="diag-val fail">{canvasDiag.lastError}</span>
-              </div>
-            )}
-            <div className="diag-row">
-              <span className="diag-label">Test mode</span>
-              <span className="diag-val">
-                <label style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
-                  <input type="checkbox" checked={showTestPoints} onChange={(e) => onToggleTestPoints(e.target.checked)} style={{ accentColor: "#d69a13", width: 11, height: 11 }} />
-                  <span style={{ color: "#8d93a1", fontSize: 9 }}>5 test cities</span>
-                </label>
-              </span>
-            </div>
-          </>
+        <div className="diag-row">
+          <span className="diag-label">Canvas size</span>
+          <span className="diag-val">{canvasDiag.canvasWidth} &times; {canvasDiag.canvasHeight}</span>
+        </div>
+        <div className="diag-row">
+          <span className="diag-label">Records received</span>
+          <span className="diag-val">{canvasDiag.recordsReceived.toLocaleString()}</span>
+        </div>
+        <div className="diag-row">
+          <span className="diag-label">Valid coords</span>
+          <span className={`diag-val ${canvasDiag.validCoords > 1000 ? "ok" : "fail"}`}>
+            {canvasDiag.validCoords.toLocaleString()}
+          </span>
+        </div>
+        <div className="diag-row">
+          <span className="diag-label">Power plants drawn</span>
+          <span className={`diag-val ${canvasDiag.powerPlantsDrawn > 1000 ? "ok" : "fail"}`}>
+            {canvasDiag.powerPlantsDrawn.toLocaleString()}
+          </span>
+        </div>
+        <div className="diag-row">
+          <span className="diag-label">Cables drawn</span>
+          <span className="diag-val">{canvasDiag.cableLinesDrawn}</span>
+        </div>
+        <div className="diag-row">
+          <span className="diag-label">Data centers drawn</span>
+          <span className="diag-val">{canvasDiag.dataCentersDrawn}</span>
+        </div>
+        <div className="diag-row">
+          <span className="diag-label">Test points drawn</span>
+          <span className="diag-val">{canvasDiag.testPointsDrawn}</span>
+        </div>
+        <div className="diag-row">
+          <span className="diag-label">Projection</span>
+          <span className="diag-val">{canvasDiag.projectionMode}</span>
+        </div>
+        <div className="diag-row">
+          <span className="diag-label">Last draw</span>
+          <span className="diag-val">{new Date(canvasDiag.lastDrawTime).toLocaleTimeString()}</span>
+        </div>
+        {canvasDiag.lastError && (
+          <div className="diag-row">
+            <span className="diag-label">Error</span>
+            <span className="diag-val fail">{canvasDiag.lastError}</span>
+          </div>
         )}
-        {mapDiag && (
-          <>
-            <div className="diag-row" style={{ marginTop: 4, borderTop: "1px solid #16181f", paddingTop: 4 }}>
-              <span className="diag-label">MapLibre status</span>
-              <span className={`diag-val ${mapDiag.status === "ok" ? "ok" : "fail"}`}>{mapDiag.status}</span>
-            </div>
-            <div className="diag-row">
-              <span className="diag-label">ML layers ok</span>
-              <span className="diag-val ok">{mapDiag.layers_ok.length}</span>
-            </div>
-            <div className="diag-row">
-              <span className="diag-label">ML layers failed</span>
-              <span className={`diag-val ${mapDiag.layers_failed.length > 0 ? "fail" : "ok"}`}>{mapDiag.layers_failed.length}</span>
-            </div>
-            {mapDiag.layers_failed.length > 0 && (
-              <div style={{ marginTop: 4 }}>
-                {mapDiag.layers_failed.map((f, i) => (
-                  <div key={i} className="diag-row">
-                    <span className="diag-label">{f.layer}</span>
-                    <span className="diag-val fail">{f.error}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </>
-        )}
+        <div className="diag-row">
+          <span className="diag-label">Test mode</span>
+          <span className="diag-val">
+            <label style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+              <input type="checkbox" checked={showTestPoints} onChange={(e) => onToggleTestPoints(e.target.checked)} style={{ accentColor: "#d69a13", width: 11, height: 11 }} />
+              <span style={{ color: "#8d93a1", fontSize: 9 }}>5 test cities</span>
+            </label>
+          </span>
+        </div>
       </div>
     </div>
   );
