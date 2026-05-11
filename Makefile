@@ -1,4 +1,4 @@
-.PHONY: init-storage test check-storage db-up db-down init-db check-db check-registry create-test-manifest ingest-fixture ingest-wri load-postgis build-map-data frontend-install frontend-dev frontend-build frontend-preview deploy-vercel
+.PHONY: init-storage test check-storage db-up db-down init-db check-db check-registry create-test-manifest ingest-fixture ingest-wri load-postgis build-map-data check-frontend-data frontend-install frontend-dev frontend-build frontend-preview deploy-vercel validate-all
 
 init-storage:
 	python scripts/init_storage.py
@@ -48,8 +48,13 @@ frontend-dev:
 frontend-build:
 	cd frontend && npm run build
 
+check-frontend-data:
+	python scripts/check_frontend_data.py
+
 frontend-preview:
 	cd frontend && npm run preview
 
 deploy-vercel:
 	cd frontend && vercel --prod
+
+validate-all: init-storage check-registry build-map-data check-frontend-data test check-storage frontend-build

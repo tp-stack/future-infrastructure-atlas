@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import AtlasMap from "./map/AtlasMap";
 import type { MapDiagnostics } from "./map/AtlasMap";
+import type { CanvasDiagnostics } from "./map/InfrastructureCanvasOverlay";
 import ErrorBoundary from "./components/ErrorBoundary";
 import LayerPanel from "./components/LayerPanel";
 import Legend from "./components/Legend";
@@ -15,7 +16,9 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [diagnostics, setDiagnostics] = useState<MapDiagnostics | null>(null);
+  const [mapDiag, setMapDiag] = useState<MapDiagnostics | null>(null);
+  const [canvasDiag, setCanvasDiag] = useState<CanvasDiagnostics | null>(null);
+  const [showTestPoints, setShowTestPoints] = useState(false);
   const [visibleLayers, setVisibleLayers] = useState({
     power_plants: true,
     cables: true,
@@ -53,20 +56,16 @@ export default function App() {
 
   const fuelTypes = useMemo(() => {
     if (!data) return [];
-    const set = new Set<string>();
-    for (const p of data.power_plants) {
-      if (p.f) set.add(p.f);
-    }
-    return Array.from(set).sort();
+    const s = new Set<string>();
+    for (const p of data.power_plants) if (p.f) s.add(p.f);
+    return Array.from(s).sort();
   }, [data]);
 
   const countries = useMemo(() => {
     if (!data) return [];
-    const set = new Set<string>();
-    for (const p of data.power_plants) {
-      if (p.c) set.add(p.c);
-    }
-    return Array.from(set).sort();
+    const s = new Set<string>();
+    for (const p of data.power_plants) if (p.c) s.add(p.c);
+    return Array.from(s).sort();
   }, [data]);
 
   const visibleCount = useMemo(() => {
@@ -79,13 +78,16 @@ export default function App() {
     }).length;
   }, [data, filters]);
 
-  const activeFilterCount = useMemo(() => {
-    return [filters.fuelType, filters.country, filters.minMw > 0 ? `${filters.minMw}+ MW` : ""].filter(Boolean).length;
-  }, [filters]);
+  const activeFilterCount = useMemo(
+    () => [filters.fuelType, filters.country, filters.minMw > 0 ? `${filters.minMw}+ MW` : ""].filter(Boolean).length,
+    [filters]
+  );
 
   const handleToggle = useCallback((key: string) => {
     setVisibleLayers((prev) => ({ ...prev, [key]: !(prev as Record<string, boolean>)[key] }));
   }, []);
+
+  const hasZeroCanvasPoints = canvasDiag && data && canvasDiag.powerPlantsDrawn === 0 && data.power_plants.length > 0;
 
   if (loading) {
     return (
@@ -107,9 +109,7 @@ export default function App() {
           <div className="error-title">Data file missing or invalid</div>
           <div className="error-message">{error || "No data available"}</div>
           <div className="error-hint">Ensure atlas_web_data.json exists in the public data directory and is valid JSON.</div>
-          <div className="error-footer">
-            <SourcePanel metadata={null} />
-          </div>
+          <div className="error-footer"><SourcePanel metadata={null} /></div>
         </div>
       </div>
     );
@@ -149,7 +149,7 @@ export default function App() {
           <StatsPanel metadata={data.metadata} />
           <UnmappedPanel metadata={data.metadata} />
           <AssetPopup asset={selectedAsset} />
-          <DiagnosticsPanel diagnostics={diagnostics} />
+          <DiagnosticsPanel mapDiag={mapDiag} canvasDiag={canvasDiag} showTestPoints={showTestPoints} onToggleTestPoints={setShowTestPoints} />
           <SourcePanel metadata={data.metadata} />
           <div className="panel-footer">
             Generated {new Date(data.metadata.generated_at).toLocaleString()}
@@ -174,12 +174,10 @@ export default function App() {
               {activeFilterCount > 0 && (
                 <span className="top-bar-filter-badge">{activeFilterCount} filter{activeFilterCount > 1 ? "s" : ""} active</span>
               )}
-              {hasCoverageWarning && (
-                <span className="top-bar-warning-badge">Partial coverage</span>
-              )}
-              {diagnostics && diagnostics.status !== "ok" && (
-                <span className="top-bar-warning-badge">Map: {diagnostics.status}</span>
-              )}
+              {hasCoverageWarning && <span className="top-bar-warning-badge">Partial coverage</span>}
+              {mapDiag && mapDiag.status !== "ok" && <span className="top-bar-warning-badge">MapLibre: {mapDiag.status}</span>}
+              {canvasDiag && canvasDiag.usingFallbackProjection && <span className="top-bar-warning-badge">Fallback projection</span>}
+              {hasZeroCanvasPoints && <span className="top-bar-warning-badge">Renderer: 0 points</span>}
             </div>
           </div>
 
@@ -190,12 +188,21 @@ export default function App() {
             </div>
           )}
 
+          {hasZeroCanvasPoints && (
+            <div className="coverage-warning" style={{ borderTop: "1px solid rgba(200,50,50,0.2)" }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 9v2m0 4h.01M12 2l10 18H2L12 2z"/></svg>
+              <span>Data loaded ({data.power_plants.length.toLocaleString()} plants) but renderer drew zero visible points.</span>
+            </div>
+          )}
+
           <AtlasMap
             data={data}
             filters={filters}
             visibleLayers={visibleLayers}
             onPopup={setSelectedAsset}
-            onDiagnostics={setDiagnostics}
+            onDiagnostics={setMapDiag}
+            onCanvasDiagnostics={setCanvasDiag}
+            showTestPoints={showTestPoints}
           />
         </div>
       </div>
@@ -203,52 +210,103 @@ export default function App() {
   );
 }
 
-function DiagnosticsPanel({ diagnostics }: { diagnostics: MapDiagnostics | null }) {
-  if (!diagnostics) return null;
+function DiagnosticsPanel({
+  mapDiag,
+  canvasDiag,
+  showTestPoints,
+  onToggleTestPoints,
+}: {
+  mapDiag: MapDiagnostics | null;
+  canvasDiag: CanvasDiagnostics | null;
+  showTestPoints: boolean;
+  onToggleTestPoints: (v: boolean) => void;
+}) {
   return (
     <div className="panel-section">
-      <h2>Map Diagnostics</h2>
+      <h2>Renderer Diagnostics</h2>
       <div className="diag-summary">
         <div className="diag-row">
-          <span className="diag-label">Basemap</span>
-          <span className="diag-val">{diagnostics.basemap}</span>
-        </div>
-        <div className="diag-row">
-          <span className="diag-label">Layers loaded</span>
-          <span className="diag-val ok">{diagnostics.layers_ok.length}</span>
-        </div>
-        <div className="diag-row">
-          <span className="diag-label">Layers failed</span>
-          <span className={`diag-val ${diagnostics.layers_failed.length > 0 ? "fail" : "ok"}`}>
-            {diagnostics.layers_failed.length}
+          <span className="diag-label">Canvas active</span>
+          <span className={`diag-val ${canvasDiag?.active ? "ok" : "fail"}`}>
+            {canvasDiag?.active ? "yes" : "no"}
           </span>
         </div>
-        <div className="diag-row">
-          <span className="diag-label">Map status</span>
-          <span className={`diag-val ${diagnostics.status === "ok" ? "ok" : "fail"}`}>
-            {diagnostics.status}
-          </span>
-        </div>
-        <div className="diag-row">
-          <span className="diag-label">Data points</span>
-          <span className="diag-val">{diagnostics.total_points.toLocaleString()}</span>
-        </div>
-        {diagnostics.data_bounds && (
-          <div className="diag-row">
-            <span className="diag-label">Data bounds</span>
-            <span className="diag-val">{diagnostics.data_bounds}</span>
-          </div>
-        )}
-        {diagnostics.layers_failed.length > 0 && (
-          <div style={{ marginTop: 6 }}>
-            <div style={{ fontSize: 9, color: "#d07070", fontWeight: 600 }}>Failed layers:</div>
-            {diagnostics.layers_failed.map((f, i) => (
-              <div key={i} className="diag-row">
-                <span className="diag-label">{f.layer}</span>
-                <span className="diag-val fail">{f.error}</span>
+        {canvasDiag && (
+          <>
+            <div className="diag-row">
+              <span className="diag-label">Canvas size</span>
+              <span className="diag-val">{canvasDiag.canvasWidth} &times; {canvasDiag.canvasHeight}</span>
+            </div>
+            <div className="diag-row">
+              <span className="diag-label">Power plants drawn</span>
+              <span className={`diag-val ${canvasDiag.powerPlantsDrawn > 1000 ? "ok" : "fail"}`}>
+                {canvasDiag.powerPlantsDrawn.toLocaleString()}
+              </span>
+            </div>
+            <div className="diag-row">
+              <span className="diag-label">Cable lines drawn</span>
+              <span className="diag-val">{canvasDiag.cableLinesDrawn}</span>
+            </div>
+            <div className="diag-row">
+              <span className="diag-label">Data centers drawn</span>
+              <span className="diag-val">{canvasDiag.dataCentersDrawn}</span>
+            </div>
+            <div className="diag-row">
+              <span className="diag-label">Test points drawn</span>
+              <span className="diag-val">{canvasDiag.testPointsDrawn}</span>
+            </div>
+            <div className="diag-row">
+              <span className="diag-label">Projection</span>
+              <span className={`diag-val ${canvasDiag.usingFallbackProjection ? "fail" : "ok"}`}>
+                {canvasDiag.usingFallbackProjection ? "fallback" : "MapLibre"}
+              </span>
+            </div>
+            <div className="diag-row">
+              <span className="diag-label">Last draw</span>
+              <span className="diag-val">{new Date(canvasDiag.lastDrawTime).toLocaleTimeString()}</span>
+            </div>
+            {canvasDiag.lastError && (
+              <div className="diag-row">
+                <span className="diag-label">Error</span>
+                <span className="diag-val fail">{canvasDiag.lastError}</span>
               </div>
-            ))}
-          </div>
+            )}
+            <div className="diag-row">
+              <span className="diag-label">Test mode</span>
+              <span className="diag-val">
+                <label style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+                  <input type="checkbox" checked={showTestPoints} onChange={(e) => onToggleTestPoints(e.target.checked)} style={{ accentColor: "#d69a13", width: 11, height: 11 }} />
+                  <span style={{ color: "#8d93a1", fontSize: 9 }}>5 test cities</span>
+                </label>
+              </span>
+            </div>
+          </>
+        )}
+        {mapDiag && (
+          <>
+            <div className="diag-row" style={{ marginTop: 4, borderTop: "1px solid #16181f", paddingTop: 4 }}>
+              <span className="diag-label">MapLibre status</span>
+              <span className={`diag-val ${mapDiag.status === "ok" ? "ok" : "fail"}`}>{mapDiag.status}</span>
+            </div>
+            <div className="diag-row">
+              <span className="diag-label">ML layers ok</span>
+              <span className="diag-val ok">{mapDiag.layers_ok.length}</span>
+            </div>
+            <div className="diag-row">
+              <span className="diag-label">ML layers failed</span>
+              <span className={`diag-val ${mapDiag.layers_failed.length > 0 ? "fail" : "ok"}`}>{mapDiag.layers_failed.length}</span>
+            </div>
+            {mapDiag.layers_failed.length > 0 && (
+              <div style={{ marginTop: 4 }}>
+                {mapDiag.layers_failed.map((f, i) => (
+                  <div key={i} className="diag-row">
+                    <span className="diag-label">{f.layer}</span>
+                    <span className="diag-val fail">{f.error}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
