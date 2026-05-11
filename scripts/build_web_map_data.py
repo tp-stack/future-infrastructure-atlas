@@ -20,7 +20,24 @@ CABLES_CSV = PROJECT_ROOT / "data" / "raw" / "submarine_cable_lines" / "manual_2
 DATACENTERS_CSV = PROJECT_ROOT / "data" / "raw" / "data_centers" / "manual_20260511" / "frontier_ai_data_centers_epoch_public.csv"
 
 CABLE_GEOM_LOOKUP = PROJECT_ROOT / "config" / "cable_geometries.json"
+CABLE_GEOMETRY_CSV_DEFAULT = (
+    PROJECT_ROOT / "data/raw/submarine_cable_geometries/kmcd_manual_20260511"
+    / "world_submarine_cable_geometries_kmcd.csv"
+)
 DC_COORD_LOOKUP = PROJECT_ROOT / "config" / "datacenter_locations.yaml"
+PEERINGDB_COORDS_CSV = (
+    PROJECT_ROOT / "data/raw/data_centers/peeringdb_manual_20260511"
+    / "global_datacenters_public_peeringdb_coordinates.csv"
+)
+
+CABLE_SOURCE_DIRS = [
+    PROJECT_ROOT / "data" / "raw" / "submarine_cables",
+    PROJECT_ROOT / "data" / "raw" / "submarine_cable_lines",
+]
+
+DC_SOURCE_DIRS = [
+    PROJECT_ROOT / "data" / "raw" / "data_centers",
+]
 
 VALID_FUELS = {
     "hydro", "solar", "wind", "nuclear", "coal", "natural gas",
@@ -126,9 +143,9 @@ def _read_wri(path: Path) -> tuple[list[dict], int]:
                 "n": name,
                 "c": display_country,
                 "f": _normalize_fuel(fuel_raw),
-                "mw": mw,
-                "lat": round(float(lat_str), 6),
-                "lon": round(float(lng_str), 6),
+                "mw": round(float(cap_str)) if cap_str else 0,
+                "lat": max(-90.0, min(90.0, round(float(lat_str), 2))),
+                "lon": max(-180.0, min(180.0, round(float(lng_str), 2))),
             })
 
     return records, rejected
@@ -208,6 +225,60 @@ def _load_dc_coord_lookup(path: Path) -> dict:
     return lookup
 
 
+def _load_cable_geometry_csv(path: Path) -> dict:
+    """Load cable geometry CSV and return name-keyed lookup."""
+    if not path.exists():
+        return {}
+    import csv
+    lookup: dict[str, dict] = {}
+    with open(path, encoding="utf-8-sig") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            name = (row.get("cable_name") or "").strip()
+            if not name:
+                continue
+            geom_json = (row.get("geometry_json") or "").strip()
+            if not geom_json:
+                continue
+            try:
+                geom = json.loads(geom_json)
+            except json.JSONDecodeError:
+                continue
+            if not isinstance(geom, dict):
+                continue
+            gtype = geom.get("type")
+            coords = geom.get("coordinates", [])
+            if gtype == "LineString":
+                valid = [(round(p[0], 1), round(p[1], 1)) for p in coords if isinstance(p, (list, tuple)) and len(p) >= 2 and _valid_coord_pair(p[0], p[1])]
+                if len(valid) < 2:
+                    continue
+                geom_out = valid
+            elif gtype == "MultiLineString":
+                cleaned = []
+                for line in coords:
+                    valid_line = [(round(p[0], 1), round(p[1], 1)) for p in line if isinstance(p, (list, tuple)) and len(p) >= 2 and _valid_coord_pair(p[0], p[1])]
+                    if len(valid_line) >= 2:
+                        cleaned.append(valid_line)
+                if not cleaned:
+                    continue
+                geom_out = cleaned
+            else:
+                continue
+            key = _normalize_key(name)
+            lookup[key] = {
+                "geometry": geom_out,
+                "geometry_type": gtype,
+                "geometry_precision": row.get("geometry_precision", "generalized_public_geometry"),
+                "source_name": row.get("source_name", "KMCD Internet Infrastructure Map"),
+                "source_url": row.get("source_url", ""),
+                "source_license": row.get("source_license", "to_verify"),
+                "confidence": float(row.get("confidence", 0.65)),
+                "license_review_required": row.get("license_review_required", "true") == "true",
+                "cable_name": name,
+            }
+    return lookup
+
+
 def _enrich_cable_geometry(cables: list[dict], lookup: dict) -> list[dict]:
     enriched = []
     for cable in cables:
@@ -281,7 +352,127 @@ def _enrich_dc_coordinates(dcs: list[dict], lookup: dict) -> list[dict]:
     return enriched
 
 
-def build_web_data(max_public_mb: int = 5) -> None:
+def _load_peeringdb_datacenters(path: Path) -> list[dict] | None:
+    if not path.exists():
+        return None
+    dcs = []
+    with open(path, encoding="utf-8-sig") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            lat_str = (row.get("latitude") or "").strip()
+            lon_str = (row.get("longitude") or "").strip()
+            confidence = (row.get("confidence") or "").strip()
+            if not lat_str or not lon_str:
+                continue
+            try:
+                lat = float(lat_str)
+                lon = float(lon_str)
+            except (ValueError, TypeError):
+                continue
+            if not (-90 <= lat <= 90) or not (-180 <= lon <= 180):
+                continue
+            dcs.append({
+                "n": (row.get("name") or "").strip(),
+                "op": (row.get("operator") or row.get("organization") or "").strip(),
+                "c": (row.get("country") or "").strip(),
+                "city": (row.get("city") or "").strip(),
+                "lat": round(lat, 2),
+                "lon": round(lon, 2),
+                "source": "PeeringDB",
+                "mapped_status": "mapped",
+            })
+    return dcs if dcs else None
+
+
+def _discover_geojson_files(search_dirs: list[Path]) -> list[Path]:
+    found = []
+    for d in search_dirs:
+        if not d.exists():
+            continue
+        for ext in ("*.geojson", "*.json"):
+            found.extend(sorted(d.rglob(ext)))
+    return found
+
+
+def _load_geospatial_cables(
+    cable_geo_path: Path | None,
+    allow_licensed: bool,
+    config_path: Path | None,
+) -> list[dict] | None:
+    path = cable_geo_path
+    if path is None:
+        found = _discover_geojson_files(CABLE_SOURCE_DIRS)
+        if not found:
+            return None
+        path = found[0]
+        print(f"[build] Discovered cable GeoJSON: {path}")
+
+    if not path.exists():
+        print(f"[build] Cable GeoJSON not found: {path}", file=sys.stderr)
+        return None
+
+    from atlas.ingestion.cable_loader import has_license_restriction, load_cables_from_geojson
+
+    if config_path and config_path.exists():
+        import yaml
+        with open(config_path, encoding="utf-8") as f:
+            cfg = yaml.safe_load(f)
+    else:
+        cfg = None
+
+    if has_license_restriction(path.name, cfg) and not allow_licensed:
+        print(
+            "ERROR: Licensed source detected for cables. "
+            "Re-run with --allow-licensed-sources only if you have rights to use this file.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    cables = load_cables_from_geojson(path)
+    print(f"[build] Loaded {len(cables)} cables from geospatial source")
+    return cables
+
+
+def _load_geospatial_datacenters(
+    dc_geo_path: Path | None,
+    allow_licensed: bool,
+    config_path: Path | None,
+) -> list[dict] | None:
+    path = dc_geo_path
+    if path is None:
+        found = _discover_geojson_files(DC_SOURCE_DIRS)
+        if not found:
+            return None
+        path = found[0]
+        print(f"[build] Discovered DC GeoJSON: {path}")
+
+    if not path.exists():
+        print(f"[build] DC source not found: {path}", file=sys.stderr)
+        return None
+
+    from atlas.ingestion.datacenter_loader import load_datacenters_from_geojson, load_datacenters_from_csv
+
+    if path.suffix.lower() in (".geojson", ".json"):
+        dcs = load_datacenters_from_geojson(path)
+    elif path.suffix.lower() == ".csv":
+        dcs = load_datacenters_from_csv(path)
+    else:
+        print(f"[build] Unsupported DC format: {path.suffix}", file=sys.stderr)
+        return None
+
+    print(f"[build] Loaded {len(dcs)} data centers from geospatial source")
+    return dcs
+
+
+def build_web_data(
+    max_public_mb: float = 5.0,
+    cable_geo_path: Path | None = None,
+    dc_geo_path: Path | None = None,
+    allow_licensed_sources: bool = False,
+    cable_geometry_csv_path: Path | None = None,
+    allow_license_review: bool = False,
+    peeringdb_csv_path: Path | None = None,
+) -> bool:
     FRONTEND_DATA.mkdir(parents=True, exist_ok=True)
     PROCESSED_WEB.mkdir(parents=True, exist_ok=True)
 
@@ -313,13 +504,119 @@ def build_web_data(max_public_mb: int = 5) -> None:
     cable_geom_lookup = _load_cable_geom_lookup(CABLE_GEOM_LOOKUP)
     dc_coord_lookup = _load_dc_coord_lookup(DC_COORD_LOOKUP)
 
-    cables = _enrich_cable_geometry(cables_raw, cable_geom_lookup)
-    dcs = _enrich_dc_coordinates(dcs_raw, dc_coord_lookup)
+    config_path = PROJECT_ROOT / "config" / "sources.yaml"
 
-    cables_mapped = sum(1 for c in cables if c["mapped_status"] == "mapped")
-    cables_unmapped = sum(1 for c in cables if c["mapped_status"] == "unmapped")
-    dcs_mapped = sum(1 for d in dcs if d["mapped_status"] == "mapped")
-    dcs_unmapped = sum(1 for d in dcs if d["mapped_status"] == "unmapped")
+    # Cable geometry CSV path (KMCD or similar)
+    cable_geometry_csv_used = None
+    if cable_geometry_csv_path is not None:
+        csv_path = cable_geometry_csv_path
+        if csv_path.exists():
+            # Check license review requirement
+            with open(csv_path, encoding="utf-8-sig") as f:
+                import csv as _csv
+                reader = _csv.DictReader(f)
+                first_row = next(reader, None)
+                if first_row:
+                    lrr = (first_row.get("license_review_required") or "true").strip().lower()
+                    if lrr == "true" and not allow_license_review:
+                        print(
+                            "ERROR: Cable geometry source requires license review. "
+                            "Re-run with --allow-license-review only for internal/prototype use.",
+                            file=sys.stderr,
+                        )
+                        sys.exit(1)
+            geom_lookup = _load_cable_geometry_csv(csv_path)
+            cables = _enrich_cable_geometry(cables_raw, geom_lookup)
+            cable_geometry_csv_used = csv_path
+            print(f"[build] Enriched cables from geometry CSV: {csv_path.name} ({len(geom_lookup)} entries)")
+        else:
+            print(f"[build] Cable geometry CSV not found: {csv_path}", file=sys.stderr)
+
+    if cable_geometry_csv_used is None:
+        # Try geospatial cables (GeoJSON loader)
+        geo_cables = _load_geospatial_cables(cable_geo_path, allow_licensed_sources, config_path)
+        if geo_cables is not None:
+            cables = geo_cables
+            geo_cable_source = cable_geo_path or (_discover_geojson_files(CABLE_SOURCE_DIRS)[:1] or [None])[0]
+            if geo_cable_source:
+                sources.append({
+                    "key": "geospatial_cables",
+                    "name": f"Geospatial cable source ({geo_cable_source.name})",
+                    "url": "",
+                    "license": "User-provided",
+                })
+        else:
+            cables = _enrich_cable_geometry(cables_raw, cable_geom_lookup)
+
+    # Try PeeringDB data centers from coordinates CSV
+    peeringdb_dcs = None
+    peeringdb_csv = peeringdb_csv_path or PEERINGDB_COORDS_CSV
+    if peeringdb_csv.exists():
+        peeringdb_dcs = _load_peeringdb_datacenters(peeringdb_csv)
+    if peeringdb_dcs is not None:
+        dcs = peeringdb_dcs
+        sources.append({
+            "key": "peeringdb_facilities",
+            "name": "PeeringDB facilities / interconnection data centers",
+            "url": "https://www.peeringdb.com/",
+            "license": "PeeringDB public/user-maintained facility data — verify terms before commercial redistribution",
+        })
+    else:
+        # Try geospatial data centers
+        geo_dcs = _load_geospatial_datacenters(dc_geo_path, allow_licensed_sources, config_path)
+        if geo_dcs is not None:
+            dcs = geo_dcs
+            geo_dc_source = dc_geo_path or (_discover_geojson_files(DC_SOURCE_DIRS)[:1] or [None])[0]
+            if geo_dc_source:
+                sources.append({
+                    "key": "geospatial_data_centers",
+                    "name": f"Geospatial DC source ({geo_dc_source.name})",
+                    "url": "",
+                    "license": "User-provided",
+                })
+        else:
+            dcs = _enrich_dc_coordinates(dcs_raw, dc_coord_lookup)
+
+    cables_mapped = sum(1 for c in cables if c.get("mapped_status") == "mapped")
+    cables_unmapped = sum(1 for c in cables if c.get("mapped_status") == "unmapped")
+    dcs_mapped = sum(1 for d in dcs if d.get("mapped_status") == "mapped")
+    dcs_unmapped = sum(1 for d in dcs if d.get("mapped_status") == "unmapped")
+
+    cable_geometry_license_status = "to_verify"
+    cable_geometry_review_required = False
+    if cable_geometry_csv_used:
+        cable_geometry_license_status = "to_verify"
+        cable_geometry_review_required = True
+        sources.append({
+            "key": "cable_geometry_csv",
+            "name": f"KMCD Internet Infrastructure Map — cable geometries",
+            "url": "https://map.kmcd.dev/data/all_cables.json",
+            "license": "to_verify — requires license review before production/commercial use",
+        })
+
+    unmapped_cables = [
+        {
+            "n": c["n"],
+            "source": c.get("source", ""),
+            "operators": c.get("operators", ""),
+            "landing_points": c.get("landing_points", ""),
+            "length_km": c.get("length_km", ""),
+            "unmapped_reason": c.get("unmapped_reason", ""),
+        }
+        for c in cables if c.get("mapped_status") == "unmapped"
+    ]
+    unmapped_dcs = [
+        {
+            "n": d["n"],
+            "op": d.get("op", ""),
+            "c": d.get("c", ""),
+            "address": d.get("address", ""),
+            "mw": d.get("mw"),
+            "source": d.get("source", ""),
+            "unmapped_reason": d.get("unmapped_reason", ""),
+        }
+        for d in dcs if d.get("mapped_status") == "unmapped"
+    ]
 
     data = {
         "metadata": {
@@ -329,8 +626,9 @@ def build_web_data(max_public_mb: int = 5) -> None:
                 "This atlas uses public or redistribution-safe data. Some infrastructure layers are "
                 "metadata-only where public geometries or coordinates are unavailable. No coordinates "
                 "are inferred or invented. Submarine cable routes are generalized public geometries "
-                "or schematic arcs, not exact surveyed trench routes. Data center locations are "
-                "metro-level and do not represent exact facility coordinates."
+                "or schematic arcs, not exact surveyed trench routes. This layer uses PeeringDB public "
+                "facility data. It includes interconnection facilities, colocation sites, and data centers "
+                "with coordinates. It is not exhaustive of every global data center."
             ),
             "counts": {
                 "power_plants_total": len(pp) + pp_rej,
@@ -345,33 +643,17 @@ def build_web_data(max_public_mb: int = 5) -> None:
                 "data_centers_total": len(dcs),
                 "data_centers_mapped": dcs_mapped,
                 "data_centers_unmapped": dcs_unmapped,
+                "data_center_source": "PeeringDB public facility data" if peeringdb_dcs is not None else "Epoch AI + manual lookup",
+                "data_center_license_status": "PeeringDB terms/AUP review required" if peeringdb_dcs is not None else "CC BY",
+                "data_center_review_required": False,
                 "geometry_lookup_count": len(cable_geom_lookup),
-                "datacenter_location_lookup_count": len(dc_coord_lookup),
+                "cable_geometry_source": "KMCD Internet Infrastructure Map" if cable_geometry_csv_used else "legacy_lookup",
+                "cable_geometry_license_status": cable_geometry_license_status,
+                "cable_geometry_review_required": cable_geometry_review_required,
             },
             "unmapped": {
-                "submarine_cables": [
-                    {
-                        "n": c["n"],
-                        "source": c["source"],
-                        "operators": c.get("operators", ""),
-                        "landing_points": c.get("landing_points", ""),
-                        "length_km": c.get("length_km", ""),
-                        "unmapped_reason": c.get("unmapped_reason", ""),
-                    }
-                    for c in cables if c["mapped_status"] == "unmapped"
-                ],
-                "data_centers": [
-                    {
-                        "n": d["n"],
-                        "op": d["op"],
-                        "c": d["c"],
-                        "address": d.get("address", ""),
-                        "mw": d.get("mw"),
-                        "source": d["source"],
-                        "unmapped_reason": d.get("unmapped_reason", ""),
-                    }
-                    for d in dcs if d["mapped_status"] == "unmapped"
-                ],
+                "submarine_cables": unmapped_cables,
+                "data_centers": unmapped_dcs,
             },
         },
         "power_plants": pp,
@@ -391,23 +673,39 @@ def build_web_data(max_public_mb: int = 5) -> None:
         output_path = PROCESSED_WEB / "atlas_web_data.json"
         output_path.write_text(raw, encoding="utf-8")
         print(
-            f"ERROR: atlas_web_data.json is {size_mb:.2f} MB, exceeds {max_public_mb} MB limit.",
+            f"ERROR: Payload exceeds public limit ({size_mb:.2f} MB > {max_public_mb} MB). "
+            f"Written to {output_path} instead of frontend/public/data/.",
             file=sys.stderr,
         )
-        print(f"Written to {output_path} instead of frontend/public/data/", file=sys.stderr)
+        print("Use PMTiles/object storage or reduce frontend dataset.", file=sys.stderr)
         return False
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Build compact web map data from raw CSVs")
-    parser.add_argument(
-        "--max-public-mb",
-        type=float,
-        default=5.0,
-        help="Maximum size in MB for frontend public data (default: 5.0)",
-    )
+    parser = argparse.ArgumentParser(description="Build compact web map data from raw CSVs and optional geospatial sources")
+    parser.add_argument("--max-public-mb", type=float, default=5.0, help="Maximum size in MB for frontend public data (default: 5.0)")
+    parser.add_argument("--cable-geo-path", type=str, default=None, help="Path to cable GeoJSON/JSON file")
+    parser.add_argument("--datacenter-geo-path", type=str, default=None, help="Path to data center GeoJSON/JSON/CSV file")
+    parser.add_argument("--allow-licensed-sources", action="store_true", default=False, help="Allow ingestion from licensed sources")
+    parser.add_argument("--cable-geometry-csv", type=str, default=None, help=('Path to cable geometry CSV (e.g. data/raw/submarine_cable_geometries/kmcd_manual_20260511/world_submarine_cable_geometries_kmcd.csv)'))
+    parser.add_argument("--allow-license-review", action="store_true", default=False, help="Allow sources requiring license review (internal/prototype use only)")
+    parser.add_argument("--peeringdb-csv", type=str, default=None, help="Path to PeeringDB facilities CSV (default: data/processed/global_datacenters_public_peeringdb.csv)")
     args = parser.parse_args()
-    success = build_web_data(max_public_mb=args.max_public_mb)
+
+    cable_path = Path(args.cable_geo_path) if args.cable_geo_path else None
+    dc_path = Path(args.datacenter_geo_path) if args.datacenter_geo_path else None
+    cable_csv_path = Path(args.cable_geometry_csv) if args.cable_geometry_csv else None
+    peeringdb_path = Path(args.peeringdb_csv) if args.peeringdb_csv else None
+
+    success = build_web_data(
+        max_public_mb=args.max_public_mb,
+        cable_geo_path=cable_path,
+        dc_geo_path=dc_path,
+        allow_licensed_sources=args.allow_licensed_sources,
+        cable_geometry_csv_path=cable_csv_path,
+        allow_license_review=args.allow_license_review,
+        peeringdb_csv_path=peeringdb_path,
+    )
     sys.exit(0 if success else 1)
 
 

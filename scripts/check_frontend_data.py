@@ -11,7 +11,11 @@ MIN_PLANTS = 1000
 
 
 def get_lon(record: dict) -> float | None:
-    v = record.get("lon") or record.get("longitude") or record.get("lng")
+    v = record.get("lon")
+    if v is None:
+        v = record.get("longitude")
+    if v is None:
+        v = record.get("lng")
     if v is None:
         return None
     try:
@@ -22,7 +26,9 @@ def get_lon(record: dict) -> float | None:
 
 
 def get_lat(record: dict) -> float | None:
-    v = record.get("lat") or record.get("latitude")
+    v = record.get("lat")
+    if v is None:
+        v = record.get("latitude")
     if v is None:
         return None
     try:

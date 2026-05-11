@@ -41,11 +41,11 @@ const LAYER_CONFIG: LayerConfig[] = [
       if (mapped === 0) return "disabled";
       return mapped < total ? "warning" : "ok";
     },
-    tooltip: "Cable geometry enriched from OSM-derived lookup. 4 of 1,175 have geometry.",
+    tooltip: "Cable geometry from KMCD Internet Infrastructure Map (693 cable systems). License: to_verify.",
   },
   {
     key: "data_centers",
-    label: "Data Centers",
+    label: "PeeringDB facilities / interconnection",
     dotColor: "#e8e5dc",
     getMapped: (c: AtlasCounts) => c.data_centers_mapped,
     getTotal: (c: AtlasCounts) => c.data_centers_total,
@@ -53,7 +53,7 @@ const LAYER_CONFIG: LayerConfig[] = [
       if (mapped === 0) return "disabled";
       return mapped < total ? "warning" : "ok";
     },
-    tooltip: "Coordinates enriched from public-disclosure lookup. 3 of 43 have verified coordinates.",
+    tooltip: "PeeringDB public interconnection facilities, colocation sites, and data centers with coordinates. Not exhaustive of every global data center.",
   },
 ];
 

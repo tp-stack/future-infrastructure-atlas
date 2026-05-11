@@ -1,0 +1,62 @@
+[
+  {
+    "type": "Feature",
+    "geometry": {
+      "type": "MultiLineString",
+      "coordinates": [
+        [[-5.0, 35.0], [0.0, 40.0], [5.0, 45.0]],
+        [[5.0, 45.0], [10.0, 50.0]]
+      ]
+    },
+    "properties": {
+      "name": "Test Cable Alpha",
+      "rfs_year": 2020,
+      "owners": "OpCo",
+      "length": "12000",
+      "landing_points": ["CityA", "CityB"]
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+      "type": "LineString",
+      "coordinates": [
+        [-10.0, 30.0],
+        [-5.0, 32.0],
+        [0.0, 35.0]
+      ]
+    },
+    "properties": {
+      "name": "Test Cable Beta",
+      "rfs_year": 2015,
+      "owners": "NetCo",
+      "length": "5000",
+      "landing_points": ["PortX", "PortY", "PortZ"]
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+      "type": "LineString",
+      "coordinates": [
+        [200.0, 45.0],
+        [205.0, 50.0]
+      ]
+    },
+    "properties": {
+      "name": "Bad Coord Cable"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+      "type": "MultiLineString",
+      "coordinates": [
+        [[200.0, 45.0], [205.0, 50.0]]
+      ]
+    },
+    "properties": {
+      "name": "All Invalid Multi"
+    }
+  }
+]

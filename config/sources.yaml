@@ -184,6 +184,125 @@ sources:
     to_verify: true
     notes: Initial placeholder. Verify exact API or download source, license, and indicator methodology before ingestion.
 
+  - source_id: copernicus_telegeography_submarine_cables
+    source_key: copernicus_telegeography_submarine_cables
+    source_name: Copernicus / TeleGeography Submarine Cables (manual reference)
+    category: internet_infrastructure
+    source_type: open
+    reliability_class: P
+    license: to_verify
+    url: "https://github.com/telegeography/www.submarinecablemap.com"
+    update_frequency: ad_hoc
+    allowed_usage: metadata_registry_only_until_license_verified
+    access_method: manual_download
+    requires_license_review: true
+    expected_formats: [geojson, json]
+    geographic_scope: global
+    to_verify: true
+    notes: "Copernicus/EMODnet-derived cable schematics or public TeleGeography references. Verify exact license before use."
+
+  - source_id: telegeography_licensed_submarine_cables
+    source_key: telegeography_licensed_submarine_cables
+    source_name: TeleGeography Submarine Cable Map (licensed)
+    category: internet_infrastructure
+    source_type: premium
+    reliability_class: P
+    license: licensed
+    url: "https://www.submarinecablemap.com/"
+    update_frequency: ad_hoc
+    allowed_usage: licensed_redistribution_only
+    access_method: manual_download
+    requires_license_review: true
+    expected_formats: [geojson, json]
+    geographic_scope: global
+    to_verify: false
+    notes: "Requires valid TeleGeography license. Do not use without written permission."
+
+  - source_id: emodnet_schematic_cables
+    source_key: emodnet_schematic_cables
+    source_name: EMODnet Human Activities — Submarine Cables
+    category: internet_infrastructure
+    source_type: open
+    reliability_class: P
+    license: to_verify
+    url: "https://emodnet.ec.europa.eu/en/human-activities"
+    update_frequency: to_verify
+    allowed_usage: metadata_registry_only_until_license_verified
+    access_method: manual_download
+    requires_license_review: true
+    expected_formats: [geojson, shapefile]
+    geographic_scope: europe
+    to_verify: true
+    notes: "EMODnet schematic cable data. Verify licensing terms and geographic coverage before ingestion."
+
+  - source_id: licensed_data_center_source
+    source_key: licensed_data_center_source
+    source_name: Licensed data center geospatial reference
+    category: compute_infrastructure
+    source_type: premium
+    reliability_class: P
+    license: licensed
+    url: "https://example.com/licensed-dc-source"
+    update_frequency: ad_hoc
+    allowed_usage: licensed_redistribution_only
+    access_method: manual_download
+    requires_license_review: true
+    expected_formats: [geojson, json, csv]
+    geographic_scope: global
+    to_verify: false
+    notes: "Generic licensed DC source. Supply explicit license/permission file with the dataset."
+
+  - source_id: permissioned_atlas_data_centers
+    source_key: permissioned_atlas_data_centers
+    source_name: Permissioned ATLAS / Global-Data-Center-Map data
+    category: compute_infrastructure
+    source_type: community
+    reliability_class: P
+    license: permissioned
+    url: "https://example.com/atlas-dc-data"
+    update_frequency: ad_hoc
+    allowed_usage: permissioned_redistribution_only
+    access_method: manual_download
+    requires_license_review: true
+    expected_formats: [geojson, json, csv]
+    geographic_scope: global
+    to_verify: true
+    notes: "Only use if the user has written permission from ATLAS / Global-Data-Center-Map."
+
+  - source_id: public_operator_data_centers
+    source_key: public_operator_data_centers
+    source_name: Public operator-disclosed data centers
+    category: compute_infrastructure
+    source_type: open
+    reliability_class: P
+    license: to_verify
+    url: "to_verify: operator-disclosed data center locations"
+    update_frequency: ad_hoc
+    allowed_usage: metadata_registry_only_until_license_verified
+    access_method: manual_download
+    requires_license_review: true
+    expected_formats: [geojson, json, csv]
+    geographic_scope: global
+    to_verify: true
+    notes: "Public disclosures from cloud providers or colo operators. Verify each operator's terms."
+
+  - source_id: kmcd_internet_infrastructure_cables
+    source_key: kmcd_internet_infrastructure_cables
+    source_name: KMCD Internet Infrastructure Map — all_cables GeoJSON
+    category: internet_infrastructure
+    source_type: open
+    reliability_class: C
+    license: to_verify
+    url: "https://map.kmcd.dev/"
+    update_frequency: to_verify
+    allowed_usage: internal_prototype_pending_license_review
+    access_method: manual_download
+    requires_license_review: true
+    expected_formats: [geojson, csv]
+    geographic_scope: global
+    to_verify: true
+    notes: "Candidate public GeoJSON cable geometry source. Source cites TeleGeography and Submarine Networks. Do not use as production-clean commercial dataset until license is verified."
+
   - source_id: cloud_provider_official_regions
     source_key: cloud_provider_official_regions
     source_name: Cloud provider official region pages

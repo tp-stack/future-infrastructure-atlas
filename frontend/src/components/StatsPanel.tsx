@@ -19,7 +19,7 @@ export default function StatsPanel({ metadata }: Props) {
       mapped: [
         { label: "Power plants", value: c.power_plants_mapped },
         { label: "Submarine cables", value: cablesMapped },
-        { label: "Data centers", value: c.data_centers_mapped },
+        { label: "PeeringDB facilities", value: c.data_centers_mapped },
       ],
       metadataOnly: [
         { label: "Cables (unmapped)", value: cablesUnmapped },
@@ -33,6 +33,12 @@ export default function StatsPanel({ metadata }: Props) {
         { label: "Cables (source)", value: cablesTotal },
         { label: "Data centers (source)", value: c.data_centers_total },
       ],
+      geometrySource: c.cable_geometry_source,
+      geometryLicense: c.cable_geometry_license_status,
+      geometryReview: c.cable_geometry_review_required,
+      dcSource: c.data_center_source,
+      dcLicense: c.data_center_license_status,
+      dcReview: c.data_center_review_required,
     };
   }, [metadata]);
 
@@ -83,6 +89,43 @@ export default function StatsPanel({ metadata }: Props) {
           <span className="stat-value">{s.value.toLocaleString()}</span>
         </div>
       ))}
+
+      {sections.geometrySource && sections.geometrySource !== "legacy_lookup" && (
+        <div className="stats-section-label" style={{ marginTop: 8 }}>Cable geometry source</div>
+      )}
+      {sections.geometrySource && sections.geometrySource !== "legacy_lookup" && (
+        <div className="stat-row">
+          <span className="stat-label">Source</span>
+          <span className="stat-value">{sections.geometrySource}</span>
+        </div>
+      )}
+      {sections.geometryLicense && sections.geometrySource !== "legacy_lookup" && (
+        <div className="stat-row">
+          <span className="stat-label">License</span>
+          <span className="stat-value">{sections.geometryLicense}</span>
+        </div>
+      )}
+      {sections.geometryReview && (
+        <div className="license-warning" style={{ marginTop: 6, fontSize: 10, color: "#f59e0b" }}>
+          Cable geometry source requires license review before production/commercial use.
+        </div>
+      )}
+
+      {sections.dcSource && sections.dcSource !== "Epoch AI + manual lookup" && (
+        <div className="stats-section-label" style={{ marginTop: 8 }}>Data center source</div>
+      )}
+      {sections.dcSource && sections.dcSource !== "Epoch AI + manual lookup" && (
+        <div className="stat-row">
+          <span className="stat-label">Source</span>
+          <span className="stat-value">{sections.dcSource}</span>
+        </div>
+      )}
+      {sections.dcLicense && sections.dcSource !== "Epoch AI + manual lookup" && (
+        <div className="stat-row">
+          <span className="stat-label">License</span>
+          <span className="stat-value">{sections.dcLicense}</span>
+        </div>
+      )}
     </div>
   );
 }

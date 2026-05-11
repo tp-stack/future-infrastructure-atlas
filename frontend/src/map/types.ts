@@ -8,14 +8,17 @@ export interface PowerPlant {
   mapped_status?: "mapped";
 }
 
+export type CableGeometry = number[][] | number[][][];
+
 export interface Cable {
   n: string;
   source: string;
-  geometry: number[][];
+  geometry: CableGeometry;
   geometry_precision?: string;
   mapped_status: "mapped" | "unmapped";
   coordinate_source?: string;
   source_license?: string;
+  source_url?: string;
   confidence?: number;
   operators?: string;
   landing_points?: string;
@@ -24,21 +27,25 @@ export interface Cable {
 }
 
 export interface DataCenter {
+  id?: string;
   n: string;
   op: string;
   c: string;
   city: string;
   lat: number;
   lon: number;
-  mw: number | null;
+  mw?: number | null;
   source: string;
   coordinate_precision?: string;
   mapped_status: "mapped" | "unmapped";
   coordinate_source?: string;
   source_license?: string;
+  source_url?: string;
   confidence?: number;
   address?: string;
   unmapped_reason?: string;
+  net_count?: number;
+  ix_count?: number;
 }
 
 export type Asset = PowerPlant | Cable | DataCenter;
@@ -78,6 +85,12 @@ export interface AtlasCounts {
   data_centers_total: number;
   data_centers_mapped: number;
   data_centers_unmapped: number;
+  cable_geometry_source?: string;
+  cable_geometry_license_status?: string;
+  cable_geometry_review_required?: boolean;
+  data_center_source?: string;
+  data_center_license_status?: string;
+  data_center_review_required?: boolean;
 }
 
 export interface LayerInfo {

@@ -161,6 +161,9 @@ def test_build_web_data_from_fixtures(tmp_path, monkeypatch):
     monkeypatch.setattr(
         "scripts.build_web_map_data.PROCESSED_WEB", tmp_path / "processed_web"
     )
+    monkeypatch.setattr(
+        "scripts.build_web_map_data.PEERINGDB_COORDS_CSV", tmp_path / "nonexistent_peeringdb.csv"
+    )
 
     build_web_data(max_public_mb=5)
 
@@ -369,11 +372,15 @@ def test_build_metadata_has_generated_at(tmp_path, monkeypatch):
     monkeypatch.setattr("scripts.build_web_map_data.DATACENTERS_CSV", dcs_csv)
     monkeypatch.setattr("scripts.build_web_map_data.FRONTEND_DATA", tmp_path / "frontend_data")
     monkeypatch.setattr("scripts.build_web_map_data.PROCESSED_WEB", tmp_path / "processed_web")
+    monkeypatch.setattr("scripts.build_web_map_data.PEERINGDB_COORDS_CSV", tmp_path / "nonexistent_peeringdb.csv")
 
     build_web_data(max_public_mb=5)
     output = tmp_path / "frontend_data" / "atlas_web_data.json"
     data = json.loads(output.read_text(encoding="utf-8"))
     assert "generated_at" in data["metadata"]
     assert data["metadata"]["generated_at"].endswith("Z")
-    assert len(data["metadata"]["sources"]) == 3
+    source_keys = {s["key"] for s in data["metadata"]["sources"]}
+    assert "wri_global_power_plant_database" in source_keys
+    assert "scn_submarine_cables" in source_keys
+    assert "epoch_ai_data_centers" in source_keys
     assert "disclaimer" in data["metadata"]

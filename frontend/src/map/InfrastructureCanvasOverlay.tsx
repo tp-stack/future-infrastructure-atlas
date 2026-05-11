@@ -210,27 +210,34 @@ export default function InfrastructureCanvasOverlay({
         ctx.globalAlpha = 0.8;
         for (const c of mappedCables) {
           if (!c.geometry || c.geometry.length < 2) continue;
+          const isMultiLine = Array.isArray(c.geometry[0]) && Array.isArray(c.geometry[0][0]);
+          const lines = isMultiLine ? (c.geometry as number[][][]) : [c.geometry as number[][]];
+          let totalVisible = 0;
           ctx.beginPath();
-          let started = false;
-          let visibleCount = 0;
-          for (const coord of c.geometry) {
-            const px = coord[0];
-            const py = coord[1];
-            if (px == null || py == null) { started = false; continue; }
-            const [x, y] = projectEquirectangular(px, py, cssW, cssH);
-            if (x < -200 || x > cssW + 200 || y < -200 || y > cssH + 200) {
-              started = false;
-              continue;
+          for (const line of lines) {
+            if (line.length < 2) continue;
+            let started = false;
+            let visibleCount = 0;
+            for (const coord of line) {
+              const px = coord[0];
+              const py = coord[1];
+              if (px == null || py == null) { started = false; continue; }
+              const [x, y] = projectEquirectangular(px, py, cssW, cssH);
+              if (x < -200 || x > cssW + 200 || y < -200 || y > cssH + 200) {
+                started = false;
+                continue;
+              }
+              if (!started) {
+                ctx.moveTo(x, y);
+                started = true;
+              } else {
+                ctx.lineTo(x, y);
+              }
+              visibleCount++;
             }
-            if (!started) {
-              ctx.moveTo(x, y);
-              started = true;
-            } else {
-              ctx.lineTo(x, y);
-            }
-            visibleCount++;
+            if (visibleCount >= 2) totalVisible++;
           }
-          if (visibleCount >= 2) {
+          if (totalVisible > 0) {
             ctx.stroke();
             diag.cableLinesDrawn++;
           }

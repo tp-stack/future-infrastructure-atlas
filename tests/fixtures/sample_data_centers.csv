@@ -1,0 +1,5 @@
+name,operator,country,city,longitude,latitude,capacity_mw,coordinate_precision
+CSV DC Gamma,CloudInc,US,Boardman,-119.68,45.84,250,metro_level
+CSV DC Delta,NetCo,GB,London,-0.13,51.51,150,metro_level
+CSV DC No Coords,TestCo,FR,Paris,,,,
+CSV DC Bad Lon,TestCo,DE,Berlin,200.0,52.52,50,

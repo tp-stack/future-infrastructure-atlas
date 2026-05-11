@@ -231,6 +231,101 @@ This script:
 
 **5 MB frontend payload limit:** If the generated JSON exceeds 5 MB, it is written to the Git-ignored `data/processed/web/` directory instead of `frontend/public/data/`. This prevents large data files from being committed to the repository.
 
+### Adding All Submarine Cables and Data Centers (Geospatial Sources)
+
+The build pipeline supports source-backed ingestion of submarine cable geometries and data center coordinates from GeoJSON or CSV files, replacing the minimal lookup-based mapping with full geospatial coverage.
+
+**Source file placement:**
+
+GeoJSON files are auto-discovered under:
+- `data/raw/submarine_cables/` for cables
+- `data/raw/data_centers/` for data centers
+
+Or provide explicit paths via `--cable-geo-path` and `--datacenter-geo-path`.
+
+**Build with geospatial sources:**
+
+```powershell
+python scripts/build_web_map_data.py --cable-geo-path data/raw/submarine_cables/my_cables.geojson --datacenter-geo-path data/raw/data_centers/my_dcs.geojson --max-public-mb 5
+```
+
+**License review gate:**
+
+All cable and data center sources are flagged `requires_license_review: true` in `config/sources.yaml` by default. Ingestion from licensed sources requires the `--allow-licensed-sources` flag:
+
+```powershell
+python scripts/build_web_map_data.py --cable-geo-path data/raw/submarine_cables/my_cables.geojson --allow-licensed-sources
+```
+
+Run without the flag to verify which sources trigger the gate.
+
+**Fallback behavior:**
+
+When no geospatial source files are found, the build falls back to the existing lookup-based mapping (`config/cable_geometries.json` and `config/datacenter_locations.yaml`), preserving the current mapped cables and data centers.
+
+**Config files:**
+
+- `config/sources.yaml` — source entries with `requires_license_review` flags
+- `config/datasets.yaml` — dataset entries with accepted field aliases for GeoJSON properties
+- `atlas/ingestion/geometry_utils.py` — coordinate parsing, validation, normalization
+- `atlas/ingestion/geojson_loader.py` — load and normalize GeoJSON features
+- `atlas/ingestion/cable_loader.py` — load cable geometries from GeoJSON
+- `atlas/ingestion/datacenter_loader.py` — load data center coordinates from GeoJSON or CSV
+
+**Tests:**
+
+```powershell
+pytest -q tests/test_geometry_utils.py tests/test_geojson_loader.py tests/test_cable_loader.py tests/test_datacenter_loader.py
+```
+
+### Adding Source-Backed Submarine Cable Geometries
+
+The build pipeline supports loading cable geometries from a structured CSV derived from the **KMCD Internet Infrastructure Map** GeoJSON dataset, which contains 693 cable features with LineString and MultiLineString geometries.
+
+**Source URL:** https://map.kmcd.dev/data/all_cables.json
+
+**License status:** `to_verify` — requires license review before production/commercial use. The source page cites TeleGeography and Submarine Networks. Use for internal/prototype only until license is verified.
+
+**Generate the geometry CSV:**
+
+```powershell
+python scripts/fetch_and_build_cable_geometry_csv.py --output-csv data/raw/submarine_cable_geometries/kmcd_manual_20260511/world_submarine_cable_geometries_kmcd.csv
+```
+
+Or from a local GeoJSON file:
+
+```powershell
+python scripts/fetch_and_build_cable_geometry_csv.py --input-geojson data/raw/submarine_cable_geometries/kmcd_manual_20260511/all_cables.json --output-csv data/raw/submarine_cable_geometries/kmcd_manual_20260511/world_submarine_cable_geometries_kmcd.csv
+```
+
+**Build map data with cable geometries:**
+
+```powershell
+python scripts/build_web_map_data.py --cable-geometry-csv data/raw/submarine_cable_geometries/kmcd_manual_20260511/world_submarine_cable_geometries_kmcd.csv --allow-license-review --max-public-mb 5
+```
+
+**Validate:**
+
+```powershell
+python scripts/check_frontend_data.py
+```
+
+**License review gate:** The CSV includes `license_review_required=true` and `source_license=to_verify`. The build script requires `--allow-license-review` to proceed. Without it, the build exits with:
+
+> Cable geometry source requires license review. Re-run with --allow-license-review only for internal/prototype use.
+
+**Pipeline summary:**
+
+1. `fetch_and_build_cable_geometry_csv.py` — downloads/reads KMCD GeoJSON, validates geometry, strips altitude, produces CSV with 693 rows
+2. `build_web_map_data.py --cable-geometry-csv ... --allow-license-review` — reads CSV, enriches cable inventory with geometry, produces `atlas_web_data.json`
+3. Frontend canvas renderer draws LineString and MultiLineString geometries in cyan
+
+**Tests:**
+
+```powershell
+pytest -q tests/test_cable_geometry_build.py
+```
+
 ### Frontend Install
 
 ```powershell

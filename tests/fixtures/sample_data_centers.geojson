@@ -1,0 +1,81 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "DC Alpha",
+        "operator": "OpCorp",
+        "country": "US",
+        "city": "Ashburn",
+        "capacity_mw": 500
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-77.5, 39.0]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "DC Beta",
+        "owner": "DataCo",
+        "country_code": "IE",
+        "location": "Dublin",
+        "current_power_mw": 100
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-6.25, 53.35]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "",
+        "owner": "GhostCo",
+        "country": "US"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-75.0, 40.0]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Bad Coord DC"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [200.0, 45.0]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Duplicate DC",
+        "operator": "OpCorp",
+        "country": "US"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-77.5, 39.0]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "DC With Precision",
+        "operator": "PreciseCo",
+        "country": "NL",
+        "city": "Amsterdam",
+        "coordinate_precision": "exact_address"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [4.89, 52.37]
+      }
+    }
+  ]
+}

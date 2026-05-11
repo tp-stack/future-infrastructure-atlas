@@ -1,0 +1,90 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Cable Alpha",
+        "source_dataset": "scn_data",
+        "cable_system_name": "Cable Alpha",
+        "length_km": "12000"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-5.0, 35.0],
+          [0.0, 40.0],
+          [5.0, 45.0]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Cable Beta",
+        "source_dataset": "telegeography",
+        "cable_system_name": "Cable Beta"
+      },
+      "geometry": {
+        "type": "MultiLineString",
+        "coordinates": [
+          [[-10.0, 30.0], [-5.0, 32.0], [0.0, 35.0]],
+          [[0.0, 35.0], [5.0, 38.0], [10.0, 40.0]]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "",
+        "source_dataset": "empty_name"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [0.0, 0.0],
+          [1.0, 1.0]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Bad Coord Cable",
+        "description": "has out-of-range coordinates"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [200.0, 45.0],
+          [205.0, 50.0]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Single Point Cable"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [0.0, 0.0]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "MultiLine All Invalid"
+      },
+      "geometry": {
+        "type": "MultiLineString",
+        "coordinates": [
+          [[200.0, 45.0], [205.0, 50.0]],
+          [[300.0, 90.0], [310.0, 95.0]]
+        ]
+      }
+    }
+  ]
+}

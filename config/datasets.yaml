@@ -267,6 +267,80 @@ datasets:
     validation_required: true
     notes: Metadata placeholder only. Country-level indicators must retain source year and methodology references.
 
+  - dataset_key: submarine_cables_geospatial
+    display_name: Submarine Cables — Geospatial Source
+    source_key: copernicus_telegeography_submarine_cables
+    category: internet_infrastructure
+    target_layer: submarine_cables
+    expected_geometry_type: LineString
+    expected_format: geojson
+    update_frequency: ad_hoc
+    license: to_verify
+    sensitivity_level: medium
+    allowed_precision: generalized
+    ingestion_status: metadata_ready
+    raw_storage_policy: data_raw_or_object_storage_only
+    processed_storage_policy: data_processed_or_object_storage_only
+    checksum_required: false
+    validation_required: true
+    required_fields: []
+    accepted_field_aliases:
+      name: [name, cable_name, cable_system_name, title]
+      source: [source, source_dataset, provider]
+    notes: "Geospatial cable source loaded from user-provided GeoJSON. Geometry precision set per source."
+
+  - dataset_key: data_centers_geospatial
+    display_name: Data Centers — Geospatial Source
+    source_key: licensed_data_center_source
+    category: compute_infrastructure
+    target_layer: data_centers
+    expected_geometry_type: Point
+    expected_format: geojson
+    update_frequency: ad_hoc
+    license: to_verify
+    sensitivity_level: medium
+    allowed_precision: metro_level
+    ingestion_status: metadata_ready
+    raw_storage_policy: data_raw_or_object_storage_only
+    processed_storage_policy: data_processed_or_object_storage_only
+    checksum_required: false
+    validation_required: true
+    required_fields: []
+    accepted_field_aliases:
+      name: [name, facility_name, title]
+      operator: [operator, owner, op]
+      country: [country, country_code, nation]
+      city: [city, location, metro]
+      latitude: [latitude, lat, y]
+      longitude: [longitude, lon, lng, x]
+    notes: "Geospatial DC source loaded from user-provided GeoJSON. Coordinate precision must be explicit."
+
+  - dataset_key: kmcd_submarine_cable_geometries
+    display_name: KMCD submarine cable geometries
+    source_key: kmcd_internet_infrastructure_cables
+    category: internet_infrastructure
+    target_layer: submarine_cables
+    expected_geometry_type: LineStringOrMultiLineString
+    expected_format: csv
+    update_frequency: to_verify
+    license: to_verify
+    sensitivity_level: medium
+    allowed_precision: generalized
+    ingestion_status: metadata_ready
+    raw_storage_policy: data_raw_only
+    processed_storage_policy: frontend_compact_json_only
+    checksum_required: true
+    validation_required: true
+    license_review_required: true
+    required_fields:
+      - cable_name
+      - geometry_type
+      - geometry_json
+      - source_license
+      - license_review_required
+      - geometry_precision
+    notes: "Local CSV generated from KMCD all_cables GeoJSON. License requires review."
+
   - dataset_key: cloud_provider_regions
     display_name: Cloud Provider Regions
     source_key: cloud_provider_official_regions
