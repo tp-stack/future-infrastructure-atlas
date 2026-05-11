@@ -27,20 +27,36 @@ export interface UnmappedDataCenter {
   source: string;
 }
 
+export interface AtlasCounts {
+  power_plants_total?: number;
+  power_plants_mapped: number;
+  power_plants_rejected: number;
+  submarine_cables_total: number;
+  submarine_cables_mapped: number;
+  submarine_cables_unmapped: number;
+  cables_total?: number;
+  cables_mapped?: number;
+  cables_unmapped?: number;
+  data_centers_total: number;
+  data_centers_mapped: number;
+  data_centers_unmapped: number;
+}
+
+export interface LayerInfo {
+  key: string;
+  name: string;
+  dotColor: string;
+  mapped: number;
+  total: number;
+  status: "mapped" | "metadata_only" | "missing_geometry" | "disabled";
+  tooltip: string;
+}
+
 export interface AtlasMetadata {
   generated_at: string;
   sources: { key: string; name: string; url: string; license: string }[];
   disclaimer: string;
-  counts: {
-    power_plants_mapped: number;
-    power_plants_rejected: number;
-    submarine_cables_total: number;
-    submarine_cables_mapped: number;
-    submarine_cables_unmapped: number;
-    data_centers_total: number;
-    data_centers_mapped: number;
-    data_centers_unmapped: number;
-  };
+  counts: AtlasCounts;
   unmapped: {
     submarine_cables: UnmappedCable[];
     data_centers: UnmappedDataCenter[];
@@ -59,3 +75,9 @@ export type FilterState = {
   country: string;
   minMw: number;
 };
+
+export interface ActiveFilterSummary {
+  fuelType: boolean;
+  country: boolean;
+  minMw: boolean;
+}

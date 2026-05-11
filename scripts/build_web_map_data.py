@@ -207,11 +207,15 @@ def build_web_data(max_public_mb: int = 5) -> None:
                 "See source documentation for detailed methodology and limitations."
             ),
             "counts": {
+                "power_plants_total": len(pp) + pp_rej,
                 "power_plants_mapped": len(pp),
                 "power_plants_rejected": pp_rej,
                 "submarine_cables_total": len(cables),
                 "submarine_cables_mapped": 0,
                 "submarine_cables_unmapped": len(cables),
+                "cables_total": len(cables),
+                "cables_mapped": 0,
+                "cables_unmapped": len(cables),
                 "data_centers_total": len(dcs),
                 "data_centers_mapped": 0,
                 "data_centers_unmapped": len(dcs),

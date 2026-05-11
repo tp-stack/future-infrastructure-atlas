@@ -2,7 +2,7 @@ import { useRef, useEffect, useState, useCallback } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { AtlasData, FilterState, PowerPlant } from "./types";
-import { LAYER_IDS, POWER_PAINT, DATA_CENTER_PAINT, CABLE_PAINT } from "./layers";
+import { LAYER_IDS, POWER_PAINT, DATA_CENTER_PAINT, CABLE_PAINT, CLUSTER_PAINT, CLUSTER_COUNT_PAINT } from "./layers";
 
 interface Props {
   data: AtlasData;
@@ -58,8 +58,21 @@ export default function AtlasMap({ data, filters, visibleLayers, onPopup }: Prop
     m.on("load", () => {
       addPowerPlantLayer(m, data.power_plants);
       addCableLayer(m, data.cables);
-      addDataCenterLayer(m, data.data_centers);
+      addDataCenterLayer(m, data.data_centers, data.metadata);
       setLoaded(true);
+    });
+
+    m.on("click", LAYER_IDS.POWER_CLUSTERS, (e) => {
+      const features = m.queryRenderedFeatures(e.point, { layers: [LAYER_IDS.POWER_CLUSTERS] });
+      if (!features.length) return;
+      const clusterId = features[0].properties?.cluster_id as number | undefined;
+      const source = m.getSource(LAYER_IDS.POWER_PLANTS) as maplibregl.GeoJSONSource;
+      if (clusterId != null && source) {
+        const geometry = features[0].geometry as GeoJSON.Point;
+        source.getClusterExpansionZoom(clusterId).then((zoom: number) => {
+          m.easeTo({ center: geometry.coordinates as [number, number], zoom: zoom + 1 });
+        });
+      }
     });
 
     m.on("click", LAYER_IDS.POWER_PLANTS, (e) => {
@@ -79,10 +92,10 @@ export default function AtlasMap({ data, filters, visibleLayers, onPopup }: Prop
       onPopup(plant);
     });
 
-    m.on("mouseenter", LAYER_IDS.POWER_PLANTS, () => {
+    m.on("mouseenter", [LAYER_IDS.POWER_CLUSTERS, LAYER_IDS.POWER_PLANTS], () => {
       m.getCanvas().style.cursor = "pointer";
     });
-    m.on("mouseleave", LAYER_IDS.POWER_PLANTS, () => {
+    m.on("mouseleave", [LAYER_IDS.POWER_CLUSTERS, LAYER_IDS.POWER_PLANTS], () => {
       m.getCanvas().style.cursor = "";
     });
   }, [data, onPopup]);
@@ -97,11 +110,10 @@ export default function AtlasMap({ data, filters, visibleLayers, onPopup }: Prop
 
   useEffect(() => {
     if (!map.current || !loaded) return;
-    map.current.setLayoutProperty(
-      LAYER_IDS.POWER_PLANTS,
-      "visibility",
-      (visibleLayers.power_plants ? "visible" : "none") as unknown as string
-    );
+    const toggleCluster = visibleLayers.power_plants ? "visible" : "none" as unknown as string;
+    map.current.setLayoutProperty(LAYER_IDS.POWER_CLUSTERS, "visibility", toggleCluster);
+    map.current.setLayoutProperty(LAYER_IDS.POWER_CLUSTER_COUNT, "visibility", toggleCluster);
+    map.current.setLayoutProperty(LAYER_IDS.POWER_PLANTS, "visibility", toggleCluster);
   }, [visibleLayers.power_plants, loaded]);
 
   useEffect(() => {
@@ -140,11 +152,36 @@ function addPowerPlantLayer(m: maplibregl.Map, plants: PowerPlant[]) {
     })),
   };
 
-  m.addSource(LAYER_IDS.POWER_PLANTS, { type: "geojson", data: geojson });
+  m.addSource(LAYER_IDS.POWER_PLANTS, {
+    type: "geojson",
+    data: geojson,
+    cluster: true,
+    clusterMaxZoom: 14,
+    clusterRadius: 50,
+  });
+
+  m.addLayer({
+    id: LAYER_IDS.POWER_CLUSTERS,
+    type: "circle",
+    source: LAYER_IDS.POWER_PLANTS,
+    filter: ["has", "point_count"],
+    paint: CLUSTER_PAINT as unknown as maplibregl.CircleLayerSpecification["paint"],
+  });
+
+  m.addLayer({
+    id: LAYER_IDS.POWER_CLUSTER_COUNT,
+    type: "symbol",
+    source: LAYER_IDS.POWER_PLANTS,
+    filter: ["has", "point_count"],
+    layout: CLUSTER_COUNT_PAINT as unknown as maplibregl.SymbolLayerSpecification["layout"],
+    paint: {},
+  });
+
   m.addLayer({
     id: LAYER_IDS.POWER_PLANTS,
     type: "circle",
     source: LAYER_IDS.POWER_PLANTS,
+    filter: ["!", ["has", "point_count"]],
     paint: POWER_PAINT as unknown as maplibregl.CircleLayerSpecification["paint"],
   });
 }
@@ -170,7 +207,7 @@ function addCableLayer(m: maplibregl.Map, cables: { n: string; source: string; g
   });
 }
 
-function addDataCenterLayer(m: maplibregl.Map, dcs: { n: string; lat: number; lon: number }[]) {
+function addDataCenterLayer(m: maplibregl.Map, dcs: { n: string; lat: number; lon: number }[], metadata: { counts: { data_centers_mapped: number } }) {
   const withCoords = dcs.filter((d) => d.lat != null && d.lon != null);
   const geojson: GeoJSON.FeatureCollection = {
     type: "FeatureCollection",
@@ -228,6 +265,6 @@ function applyFilters(m: maplibregl.Map, filters: FilterState) {
   if (filtersArr.length > 0) {
     m.setFilter(LAYER_IDS.POWER_PLANTS, ["all" as never, ...filtersArr] as unknown as maplibregl.FilterSpecification);
   } else {
-    m.setFilter(LAYER_IDS.POWER_PLANTS, null);
+    m.setFilter(LAYER_IDS.POWER_PLANTS, ["!", ["has", "point_count"]]);
   }
 }

@@ -172,8 +172,12 @@ def test_build_web_data_from_fixtures(tmp_path, monkeypatch):
 
     assert len(data["power_plants"]) == 2
     assert data["metadata"]["counts"]["power_plants_rejected"] == 1
+    assert data["metadata"]["counts"]["power_plants_total"] == 3
     assert data["metadata"]["counts"]["submarine_cables_unmapped"] == 1
     assert data["metadata"]["counts"]["data_centers_unmapped"] == 1
+    assert data["metadata"]["counts"]["cables_unmapped"] == 1
+    assert data["metadata"]["counts"]["cables_mapped"] == 0
+    assert data["metadata"]["counts"]["cables_total"] == 1
 
     assert len(data["metadata"]["unmapped"]["submarine_cables"]) == 1
     assert data["metadata"]["unmapped"]["submarine_cables"][0]["n"] == "Alpha Cable"

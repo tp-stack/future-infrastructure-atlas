@@ -16,25 +16,30 @@ export const FUEL_COLORS: Record<string, string> = {
 
 export const LAYER_IDS = {
   POWER_PLANTS: "power-plants",
+  POWER_CLUSTERS: "power-plants-clusters",
+  POWER_CLUSTER_COUNT: "power-plants-cluster-count",
   CABLES: "submarine-cables",
   DATA_CENTERS: "data-centers",
 } as const;
 
+export const CLUSTER_PAINT = {
+  "circle-color": "#f59e0b",
+  "circle-radius": ["step", ["get", "point_count"], 20, 50, 30, 200, 40],
+  "circle-opacity": 0.7,
+  "circle-stroke-width": 2,
+  "circle-stroke-color": "#fbbf24",
+};
+
+export const CLUSTER_COUNT_PAINT = {
+  "text-field": ["get", "point_count_abbreviated"],
+  "text-size": 12,
+  "text-color": "#0a0a0f",
+  "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
+};
+
 export const POWER_PAINT = {
-  "circle-radius": [
-    "interpolate",
-    ["linear"],
-    ["get", "mw"],
-    0, 3,
-    100, 6,
-    500, 10,
-    2000, 14,
-    10000, 20,
-  ],
-  "circle-color": ["case",
-    ["has", "f"], ["coalesce", ["get", "f"], "#bdbdbd"],
-    "#bdbdbd"
-  ],
+  "circle-radius": ["interpolate", ["linear"], ["zoom"], 3, 3, 8, 6, 12, 10],
+  "circle-color": ["case", ["has", "f"], ["coalesce", ["get", "f"], "#bdbdbd"], "#bdbdbd"],
   "circle-opacity": 0.8,
   "circle-stroke-width": 1,
   "circle-stroke-color": "rgba(0,0,0,0.3)",
