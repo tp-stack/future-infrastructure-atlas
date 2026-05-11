@@ -61,12 +61,12 @@ blocked_missing_fields:
   - confidence_policy
   - source_dataset_keys
 
-allowed_source_types: [official, open, community, premium, inferred]
+allowed_source_types: [official, open, community, premium, research, inferred]
 allowed_reliability_classes: [A, B, C, D, P]
 allowed_access_methods: [api, direct_download, manual_download, web_reference, licensed_export, derived]
 allowed_ingestion_statuses: [not_started, metadata_ready, ingestion_ready, ingested, blocked_license, blocked_quality, deprecated]
 allowed_sensitivity_levels: [low, medium, high, restricted]
-allowed_precision_values: [exact_public, generalized, regional, inferred, city, country, source_native]
+allowed_precision_values: [exact_public, generalized, regional, inferred, city, country, metro_level, source_native]
 
 checksum_algorithm: sha256
 require_license: true

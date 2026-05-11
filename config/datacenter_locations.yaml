@@ -1,0 +1,32 @@
+anthropic_amazon_new_carlisle:
+  name: "Anthropic-Amazon New Carlisle"
+  latitude: 41.70
+  longitude: -86.51
+  coordinate_precision: "metro_level"
+  coordinate_source: "Public permit applications and press releases"
+  source_url: "https://www.aboutamazon.com/news/aws/aws-project-rainier-ai-trainium-chips-compute-cluster"
+  source_license: "Public disclosure"
+  confidence: 0.80
+  notes: "New Carlisle, IN campus area. Metro-level coordinate derived from permit application disclosures."
+
+microsoft_fairwater_wisconsin:
+  name: "Microsoft Fairwater Wisconsin"
+  latitude: 42.70
+  longitude: -87.87
+  coordinate_precision: "metro_level"
+  coordinate_source: "Microsoft public blog and construction permit applications"
+  source_url: "https://blogs.microsoft.com/blog/2025/09/18/inside-the-worlds-most-powerful-ai-datacenter/"
+  source_license: "Public disclosure"
+  confidence: 0.80
+  notes: "Mount Pleasant, WI campus area. Metro-level coordinate based on public blog post and permit filings."
+
+meta_prometheus:
+  name: "Meta Prometheus"
+  latitude: 40.08
+  longitude: -82.81
+  coordinate_precision: "metro_level"
+  coordinate_source: "Meta public engineering blog and land use maps"
+  source_url: "https://engineering.fb.com/2025/09/29/data-infrastructure/metas-infrastructure-evolution-and-the-advent-of-ai/"
+  source_license: "Public disclosure"
+  confidence: 0.80
+  notes: "New Albany, OH business park area. Metro-level coordinate based on Meta public blog and local land use permits."

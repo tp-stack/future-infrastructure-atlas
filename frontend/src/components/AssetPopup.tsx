@@ -1,11 +1,11 @@
-import type { PowerPlant } from "../map/types";
+import type { Asset } from "../map/types";
 
 interface Props {
-  plant: PowerPlant | null;
+  asset: Asset | null;
 }
 
-export default function AssetPopup({ plant }: Props) {
-  if (!plant) {
+export default function AssetPopup({ asset }: Props) {
+  if (!asset) {
     return (
       <div className="panel-section">
         <h2>Selected Asset</h2>
@@ -16,15 +16,44 @@ export default function AssetPopup({ plant }: Props) {
     );
   }
 
+  if ("f" in asset) {
+    return (
+      <div className="panel-section">
+        <h2>Selected Asset</h2>
+        <div style={{ fontSize: 13, marginBottom: 4 }}>{asset.n}</div>
+        <div style={{ fontSize: 11, color: "#71717a" }}>
+          <div>Type: Power Plant</div>
+          <div>Fuel: {asset.f}</div>
+          <div>Capacity: {asset.mw.toLocaleString()} MW</div>
+          <div>Country: {asset.c}</div>
+        </div>
+      </div>
+    );
+  }
+
+  if ("op" in asset) {
+    return (
+      <div className="panel-section">
+        <h2>Selected Asset</h2>
+        <div style={{ fontSize: 13, marginBottom: 4 }}>{asset.n}</div>
+        <div style={{ fontSize: 11, color: "#71717a" }}>
+          <div>Type: Data Center</div>
+          <div>Owner: {asset.op || "N/A"}</div>
+          <div>Country: {asset.c}</div>
+          <div>Capacity: {asset.mw ? `${asset.mw.toLocaleString()} MW` : "N/A"}</div>
+          <div>Precision: {asset.coordinate_precision || "N/A"}</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="panel-section">
       <h2>Selected Asset</h2>
-      <div style={{ fontSize: 13, marginBottom: 4 }}>{plant.n}</div>
+      <div style={{ fontSize: 13, marginBottom: 4 }}>{asset.n}</div>
       <div style={{ fontSize: 11, color: "#71717a" }}>
-        <div>Type: Power Plant</div>
-        <div>Fuel: {plant.f}</div>
-        <div>Capacity: {plant.mw.toLocaleString()} MW</div>
-        <div>Country: {plant.c}</div>
+        <div>Type: Submarine Cable</div>
+        <div>Precision: {"geometry_precision" in asset ? asset.geometry_precision : "N/A"}</div>
       </div>
     </div>
   );

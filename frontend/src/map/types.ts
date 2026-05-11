@@ -5,7 +5,43 @@ export interface PowerPlant {
   mw: number;
   lat: number;
   lon: number;
+  mapped_status?: "mapped";
 }
+
+export interface Cable {
+  n: string;
+  source: string;
+  geometry: number[][];
+  geometry_precision?: string;
+  mapped_status: "mapped" | "unmapped";
+  coordinate_source?: string;
+  source_license?: string;
+  confidence?: number;
+  operators?: string;
+  landing_points?: string;
+  length_km?: string;
+  unmapped_reason?: string;
+}
+
+export interface DataCenter {
+  n: string;
+  op: string;
+  c: string;
+  city: string;
+  lat: number;
+  lon: number;
+  mw: number | null;
+  source: string;
+  coordinate_precision?: string;
+  mapped_status: "mapped" | "unmapped";
+  coordinate_source?: string;
+  source_license?: string;
+  confidence?: number;
+  address?: string;
+  unmapped_reason?: string;
+}
+
+export type Asset = PowerPlant | Cable | DataCenter;
 
 export interface UnmappedRecord {
   n: string;
@@ -16,6 +52,7 @@ export interface UnmappedCable extends UnmappedRecord {
   operators: string;
   landing_points: string;
   length_km: string;
+  unmapped_reason: string;
 }
 
 export interface UnmappedDataCenter {
@@ -25,6 +62,7 @@ export interface UnmappedDataCenter {
   address: string;
   mw: number | null;
   source: string;
+  unmapped_reason: string;
 }
 
 export interface AtlasCounts {
@@ -66,8 +104,8 @@ export interface AtlasMetadata {
 export interface AtlasData {
   metadata: AtlasMetadata;
   power_plants: PowerPlant[];
-  cables: { n: string; source: string; geometry: number[][] }[];
-  data_centers: { n: string; op: string; c: string; city: string; lat: number; lon: number; source: string }[];
+  cables: Cable[];
+  data_centers: DataCenter[];
 }
 
 export type FilterState = {

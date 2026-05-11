@@ -10,12 +10,17 @@ from scripts.build_web_map_data import (
     PROCESSED_WEB,
     WRI_CSV,
     _find_country_col,
+    _load_cable_geom_lookup,
+    _load_dc_coord_lookup,
+    _enrich_cable_geometry,
+    _enrich_dc_coordinates,
     _normalize_fuel,
     _read_cables,
     _read_datacenters,
     _read_wri,
     _valid_lat,
     _valid_lng,
+    _valid_coord_pair,
     build_web_data,
 )
 
@@ -95,9 +100,8 @@ def test_read_cables_empty_fixture(tmp_path):
         "record_type,cable_system_name,operators,landing_points,segment_endpoints\n",
         encoding="utf-8",
     )
-    records, rejected = _read_cables(csv_path)
+    records = _read_cables(csv_path)
     assert records == []
-    assert rejected == 0
 
 
 def test_read_datacenters_empty_fixture(tmp_path):
@@ -106,9 +110,8 @@ def test_read_datacenters_empty_fixture(tmp_path):
         "name,country,owner,address,current_power_mw\n",
         encoding="utf-8",
     )
-    records, rejected = _read_datacenters(csv_path)
+    records = _read_datacenters(csv_path)
     assert records == []
-    assert rejected == 0
 
 
 def test_datacenter_missing_file():
@@ -262,6 +265,95 @@ def test_power_plant_rejected_invalid_coords(tmp_path, monkeypatch):
     assert len(data["power_plants"]) == 1
     assert data["power_plants"][0]["n"] == "Good Plant"
     assert data["metadata"]["counts"]["power_plants_rejected"] == 3
+
+
+def test_valid_coord_pair():
+    assert _valid_coord_pair(0, 0) is True
+    assert _valid_coord_pair(180, 90) is True
+    assert _valid_coord_pair(-180, -90) is True
+    assert _valid_coord_pair(181, 0) is False
+    assert _valid_coord_pair(0, 91) is False
+
+
+def test_load_cable_geom_lookup_missing(tmp_path):
+    lookup = _load_cable_geom_lookup(tmp_path / "nonexistent.json")
+    assert lookup == {}
+
+
+def test_load_dc_coord_lookup_missing(tmp_path):
+    lookup = _load_dc_coord_lookup(tmp_path / "nonexistent.yaml")
+    assert lookup == {}
+
+
+def test_load_cable_geom_lookup_valid(tmp_path):
+    path = tmp_path / "cables.json"
+    path.write_text('{"2africa": {"geometry": [[-5, 35], [0, 40], [5, 45]], "geometry_precision": "generalized_public_geometry", "confidence": 0.85}}', encoding="utf-8")
+    lookup = _load_cable_geom_lookup(path)
+    assert "2africa" in lookup
+    assert len(lookup["2africa"]["geometry"]) == 3
+
+
+def test_load_cable_geom_lookup_invalid_geom(tmp_path):
+    path = tmp_path / "cables.json"
+    path.write_text('{"bad_cable": {"geometry": [[200, 0]]}}', encoding="utf-8")
+    lookup = _load_cable_geom_lookup(path)
+    assert lookup == {}
+
+
+def test_load_dc_coord_lookup_valid(tmp_path):
+    path = tmp_path / "dc.yaml"
+    path.write_text("test_dc:\n  latitude: 40.0\n  longitude: -75.0\n  coordinate_precision: metro_level\n  confidence: 0.8", encoding="utf-8")
+    lookup = _load_dc_coord_lookup(path)
+    assert "test_dc" in lookup
+    assert lookup["test_dc"]["latitude"] == 40.0
+
+
+def test_enrich_cable_geometry_mapped():
+    cables = [{"n": "2Africa", "source": "scn", "operators": "", "landing_points": "", "length_km": ""}]
+    lookup = {"2africa": {"geometry": [[-5, 35], [0, 40]], "geometry_precision": "generalized_public_geometry", "confidence": 0.85, "source_name": "OSM", "source_license": "ODbL"}}
+    enriched = _enrich_cable_geometry(cables, lookup)
+    assert len(enriched) == 1
+    assert enriched[0]["mapped_status"] == "mapped"
+    assert enriched[0]["geometry_precision"] == "generalized_public_geometry"
+    assert enriched[0]["confidence"] == 0.85
+    assert len(enriched[0]["geometry"]) == 2
+
+
+def test_enrich_cable_geometry_unmapped():
+    cables = [{"n": "Unknown Cable", "source": "scn", "operators": "", "landing_points": "", "length_km": ""}]
+    lookup = {}
+    enriched = _enrich_cable_geometry(cables, lookup)
+    assert enriched[0]["mapped_status"] == "unmapped"
+    assert enriched[0]["unmapped_reason"] == "no_verified_geometry_in_lookup"
+    assert enriched[0]["geometry"] == []
+
+
+def test_enrich_dc_coordinates_mapped():
+    dcs = [{"n": "Test DC", "op": "OpCo", "c": "US", "address": "123 St", "mw": 500, "source": "epoch"}]
+    lookup = {"test_dc": {"latitude": 40.0, "longitude": -75.0, "coordinate_precision": "metro_level", "confidence": 0.8, "coordinate_source": "public_disclosure", "source_license": "CC BY 4.0"}}
+    enriched = _enrich_dc_coordinates(dcs, lookup)
+    assert len(enriched) == 1
+    assert enriched[0]["mapped_status"] == "mapped"
+    assert enriched[0]["lat"] == 40.0
+    assert enriched[0]["lon"] == -75.0
+    assert enriched[0]["coordinate_precision"] == "metro_level"
+    assert enriched[0]["confidence"] == 0.8
+
+
+def test_enrich_dc_coordinates_unmapped():
+    dcs = [{"n": "Unknown DC", "op": "OpCo", "c": "US", "address": "", "mw": None, "source": "epoch"}]
+    lookup = {}
+    enriched = _enrich_dc_coordinates(dcs, lookup)
+    assert enriched[0]["mapped_status"] == "unmapped"
+    assert enriched[0]["unmapped_reason"] == "no_verified_coordinates_in_lookup"
+    assert enriched[0]["coordinate_precision"] == "none"
+
+
+def test_enrich_normalize_key_matching():
+    cables = [{"n": "2Africa Cable System", "source": "scn", "operators": "", "landing_points": "", "length_km": ""}]
+    lookup = {"2africa_cable_system": {"geometry": [[0, 0], [1, 1]], "geometry_precision": "generalized", "confidence": 0.8, "source_name": "", "source_license": ""}}
+    enriched = _enrich_cable_geometry(cables, lookup)
+    assert enriched[0]["mapped_status"] == "mapped"
 
 
 def test_build_metadata_has_generated_at(tmp_path, monkeypatch):

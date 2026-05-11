@@ -26,6 +26,49 @@ datasets:
       primary_fuel: fuel_type
     notes: Metadata placeholder only. No source data has been downloaded or ingested.
 
+  - dataset_key: scn_submarine_cables
+    display_name: SCN Submarine Cable Network Segments
+    source_key: miaw_net_scn_data
+    category: internet_infrastructure
+    target_layer: submarine_cables
+    expected_geometry_type: LineString
+    expected_format: csv
+    update_frequency: to_verify
+    license: public_research
+    sensitivity_level: medium
+    allowed_precision: generalized
+    ingestion_status: metadata_ready
+    raw_storage_policy: data_raw_or_object_storage_only
+    processed_storage_policy: data_processed_or_object_storage_only
+    checksum_required: false
+    validation_required: true
+    field_map:
+      cable_system_name: name
+    geometry_lookup: config/cable_geometries.json
+    geometry_precision_default: generalized_public_geometry
+    notes: SCN segment data. Geometry enriched from OSM-derived lookup or landing-point interpolation.
+
+  - dataset_key: epoch_ai_data_centers
+    display_name: Epoch AI Frontier Data Centers
+    source_key: epoch_ai
+    category: compute_infrastructure
+    target_layer: data_centers
+    expected_geometry_type: Point
+    expected_format: csv
+    update_frequency: to_verify
+    license: cc_by_4.0
+    sensitivity_level: medium
+    allowed_precision: metro_level
+    ingestion_status: metadata_ready
+    raw_storage_policy: data_raw_or_object_storage_only
+    processed_storage_policy: data_processed_or_object_storage_only
+    checksum_required: false
+    validation_required: true
+    field_map: {}
+    coordinate_lookup: config/datacenter_locations.yaml
+    coordinate_precision_default: metro_level
+    notes: 43 frontier AI DCs. Coordinates from curated public-disclosure lookup.
+
   - dataset_key: peeringdb_ixps
     display_name: PeeringDB IXPs
     source_key: peeringdb

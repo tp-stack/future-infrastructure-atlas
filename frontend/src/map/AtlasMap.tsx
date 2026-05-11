@@ -1,14 +1,14 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import type { AtlasData, FilterState, PowerPlant } from "./types";
+import type { AtlasData, FilterState, Asset, PowerPlant } from "./types";
 import { LAYER_IDS, POWER_PAINT, DATA_CENTER_PAINT, CABLE_PAINT, CLUSTER_PAINT, CLUSTER_COUNT_PAINT } from "./layers";
 
 interface Props {
   data: AtlasData;
   filters: FilterState;
   visibleLayers: Record<string, boolean>;
-  onPopup: (plant: PowerPlant | null) => void;
+  onPopup: (asset: Asset | null) => void;
 }
 
 const DARK_STYLE: maplibregl.StyleSpecification = {
@@ -58,7 +58,7 @@ export default function AtlasMap({ data, filters, visibleLayers, onPopup }: Prop
     m.on("load", () => {
       addPowerPlantLayer(m, data.power_plants);
       addCableLayer(m, data.cables);
-      addDataCenterLayer(m, data.data_centers, data.metadata);
+      addDataCenterLayer(m, data.data_centers);
       setLoaded(true);
     });
 
@@ -80,22 +80,61 @@ export default function AtlasMap({ data, filters, visibleLayers, onPopup }: Prop
       const f = e.features[0];
       const props = f.properties as Record<string, unknown>;
       const coords = (f.geometry as GeoJSON.Point).coordinates;
-      const plant: PowerPlant = {
+      const plant: Asset = {
         n: (props.n as string) || "",
         c: (props.c as string) || "",
         f: (props.f as string) || "",
         mw: (props.mw as number) || 0,
         lat: coords[1],
         lon: coords[0],
+        mapped_status: "mapped",
       };
       showPopup(m, popupRef, plant);
       onPopup(plant);
     });
 
-    m.on("mouseenter", [LAYER_IDS.POWER_CLUSTERS, LAYER_IDS.POWER_PLANTS], () => {
+    m.on("click", LAYER_IDS.DATA_CENTERS, (e) => {
+      if (!e.features || e.features.length === 0) return;
+      const f = e.features[0];
+      const props = f.properties as Record<string, unknown>;
+      const coords = (f.geometry as GeoJSON.Point).coordinates;
+      const dc: Asset = {
+        n: (props.n as string) || "",
+        op: (props.op as string) || "",
+        c: (props.c as string) || "",
+        city: (props.city as string) || "",
+        lat: coords[1],
+        lon: coords[0],
+        mw: (props.mw as number) ?? null,
+        source: (props.source as string) || "",
+        mapped_status: (props.mapped_status as "mapped") || "mapped",
+        coordinate_precision: (props.coordinate_precision as string) || "",
+        confidence: (props.confidence as number) || undefined,
+      };
+      showDCPopup(m, popupRef, dc);
+      onPopup(dc);
+    });
+
+    m.on("click", LAYER_IDS.CABLES, (e) => {
+      if (!e.features || e.features.length === 0) return;
+      const f = e.features[0];
+      const props = f.properties as Record<string, unknown>;
+      const cable: Asset = {
+        n: (props.n as string) || "",
+        source: (props.source as string) || "",
+        geometry: [],
+        mapped_status: (props.mapped_status as "mapped") || "mapped",
+        geometry_precision: (props.geometry_precision as string) || "",
+        confidence: (props.confidence as number) || undefined,
+      };
+      showCablePopup(m, popupRef, cable, e.lngLat);
+      onPopup(cable);
+    });
+
+    m.on("mouseenter", [LAYER_IDS.POWER_CLUSTERS, LAYER_IDS.POWER_PLANTS, LAYER_IDS.DATA_CENTERS, LAYER_IDS.CABLES], () => {
       m.getCanvas().style.cursor = "pointer";
     });
-    m.on("mouseleave", [LAYER_IDS.POWER_CLUSTERS, LAYER_IDS.POWER_PLANTS], () => {
+    m.on("mouseleave", [LAYER_IDS.POWER_CLUSTERS, LAYER_IDS.POWER_PLANTS, LAYER_IDS.DATA_CENTERS, LAYER_IDS.CABLES], () => {
       m.getCanvas().style.cursor = "";
     });
   }, [data, onPopup]);
@@ -186,17 +225,16 @@ function addPowerPlantLayer(m: maplibregl.Map, plants: PowerPlant[]) {
   });
 }
 
-function addCableLayer(m: maplibregl.Map, cables: { n: string; source: string; geometry: number[][] }[]) {
-  const withGeom = cables.filter((c) => c.geometry && c.geometry.length >= 2);
+function addCableLayer(m: maplibregl.Map, cables: { n: string; source: string; geometry: number[][]; mapped_status?: string; geometry_precision?: string; confidence?: number; operators?: string; landing_points?: string; length_km?: string }[]) {
+  const withGeom = cables.filter((c) => c.mapped_status === "mapped" && c.geometry && c.geometry.length >= 2);
   const geojson: GeoJSON.FeatureCollection = {
     type: "FeatureCollection",
     features: withGeom.map((c) => ({
       type: "Feature" as const,
       geometry: { type: "LineString" as const, coordinates: c.geometry },
-      properties: { n: c.n, source: c.source },
+      properties: { n: c.n, source: c.source, mapped_status: c.mapped_status, geometry_precision: c.geometry_precision, confidence: c.confidence },
     })),
   };
-
   m.addSource(LAYER_IDS.CABLES, { type: "geojson", data: geojson });
   m.addLayer({
     id: LAYER_IDS.CABLES,
@@ -207,17 +245,16 @@ function addCableLayer(m: maplibregl.Map, cables: { n: string; source: string; g
   });
 }
 
-function addDataCenterLayer(m: maplibregl.Map, dcs: { n: string; lat: number; lon: number }[], metadata: { counts: { data_centers_mapped: number } }) {
-  const withCoords = dcs.filter((d) => d.lat != null && d.lon != null);
+function addDataCenterLayer(m: maplibregl.Map, dcs: { n: string; op: string; c: string; city: string; lat: number; lon: number; mw: number | null; source: string; mapped_status?: string; coordinate_precision?: string; confidence?: number }[]) {
+  const withCoords = dcs.filter((d) => d.mapped_status === "mapped" && d.lat != null && d.lon != null);
   const geojson: GeoJSON.FeatureCollection = {
     type: "FeatureCollection",
     features: withCoords.map((d) => ({
       type: "Feature" as const,
       geometry: { type: "Point" as const, coordinates: [d.lon, d.lat] },
-      properties: { n: d.n },
+      properties: { n: d.n, op: d.op, c: d.c, city: d.city, mw: d.mw, source: d.source, mapped_status: d.mapped_status, coordinate_precision: d.coordinate_precision, confidence: d.confidence },
     })),
   };
-
   m.addSource(LAYER_IDS.DATA_CENTERS, { type: "geojson", data: geojson });
   m.addLayer({
     id: LAYER_IDS.DATA_CENTERS,
@@ -228,18 +265,75 @@ function addDataCenterLayer(m: maplibregl.Map, dcs: { n: string; lat: number; lo
   });
 }
 
-function showPopup(m: maplibregl.Map, popupRef: React.MutableRefObject<maplibregl.Popup | null>, plant: PowerPlant) {
+function showPopup(m: maplibregl.Map, popupRef: React.MutableRefObject<maplibregl.Popup | null>, asset: Asset) {
   if (popupRef.current) popupRef.current.remove();
+  if ("f" in asset) {
+    const plant = asset;
+    const html = `
+      <div class="popup-content">
+        <h3>${escapeHtml(plant.n)}</h3>
+        <div><span class="label">Type</span> Power Plant</div>
+        <div><span class="label">Fuel</span> ${escapeHtml(plant.f)}</div>
+        <div><span class="label">Capacity</span> ${plant.mw.toLocaleString()} MW</div>
+        <div><span class="label">Country</span> ${escapeHtml(plant.c)}</div>
+      </div>
+    `;
+    popupRef.current = new maplibregl.Popup({ closeButton: true, maxWidth: "280px" })
+      .setLngLat([plant.lon, plant.lat])
+      .setHTML(html)
+      .addTo(m);
+  } else {
+    showGenericPopup(m, popupRef, asset);
+  }
+}
+
+function showDCPopup(m: maplibregl.Map, popupRef: React.MutableRefObject<maplibregl.Popup | null>, dc: Asset) {
+  if (popupRef.current) popupRef.current.remove();
+  if (!("op" in dc)) return;
   const html = `
     <div class="popup-content">
-      <h3>${escapeHtml(plant.n)}</h3>
-      <div><span class="label">Fuel</span> ${escapeHtml(plant.f)}</div>
-      <div><span class="label">Capacity</span> ${plant.mw.toLocaleString()} MW</div>
-      <div><span class="label">Country</span> ${escapeHtml(plant.c)}</div>
+      <h3>${escapeHtml(dc.n)}</h3>
+      <div><span class="label">Type</span> Data Center</div>
+      <div><span class="label">Owner</span> ${escapeHtml(dc.op)}</div>
+      <div><span class="label">Country</span> ${escapeHtml(dc.c)}</div>
+      <div><span class="label">Capacity</span> ${dc.mw ? dc.mw.toLocaleString() + " MW" : "N/A"}</div>
+      <div><span class="label">Precision</span> ${dc.coordinate_precision || ""}</div>
+      <div><span class="label">Confidence</span> ${dc.confidence ?? "N/A"}</div>
     </div>
   `;
   popupRef.current = new maplibregl.Popup({ closeButton: true, maxWidth: "280px" })
-    .setLngLat([plant.lon, plant.lat])
+    .setLngLat([dc.lon, dc.lat])
+    .setHTML(html)
+    .addTo(m);
+}
+
+function showCablePopup(m: maplibregl.Map, popupRef: React.MutableRefObject<maplibregl.Popup | null>, cable: Asset, lngLat: maplibregl.LngLat) {
+  if (popupRef.current) popupRef.current.remove();
+  const html = `
+    <div class="popup-content">
+      <h3>${escapeHtml(cable.n)}</h3>
+      <div><span class="label">Type</span> Submarine Cable</div>
+      <div><span class="label">Precision</span> ${"geometry_precision" in cable ? cable.geometry_precision : ""}</div>
+      <div><span class="label">Confidence</span> ${"confidence" in cable && cable.confidence ? cable.confidence : "N/A"}</div>
+    </div>
+  `;
+  popupRef.current = new maplibregl.Popup({ closeButton: true, maxWidth: "280px" })
+    .setLngLat(lngLat)
+    .setHTML(html)
+    .addTo(m);
+}
+
+function showGenericPopup(m: maplibregl.Map, popupRef: React.MutableRefObject<maplibregl.Popup | null>, asset: Asset) {
+  if (popupRef.current) popupRef.current.remove();
+  const status = asset.mapped_status ?? "mapped";
+  const html = `
+    <div class="popup-content">
+      <h3>${escapeHtml(asset.n)}</h3>
+      <div><span class="label">Status</span> ${status}</div>
+    </div>
+  `;
+  popupRef.current = new maplibregl.Popup({ closeButton: true, maxWidth: "280px" })
+    .setLngLat([0, 0])
     .setHTML(html)
     .addTo(m);
 }

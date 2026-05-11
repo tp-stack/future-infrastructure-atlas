@@ -11,7 +11,18 @@ interface Props {
   visibleCount: number;
 }
 
-const LAYER_CONFIG = [
+type LayerConfig = {
+  key: string;
+  label: string;
+  dotColor: string;
+  getMapped: (c: AtlasCounts) => number;
+  getTotal: (c: AtlasCounts) => number;
+  getStatus: (c: AtlasCounts) => "mapped" | "metadata_only" | "missing_geometry" | "disabled";
+  tooltip: string;
+  statusLabel: string | ((c: AtlasCounts) => string);
+};
+
+const LAYER_CONFIG: LayerConfig[] = [
   {
     key: "power_plants",
     label: "Power Plants",
@@ -28,9 +39,9 @@ const LAYER_CONFIG = [
     dotColor: "#4dd0e1",
     getMapped: (c: AtlasCounts) => c.cables_mapped ?? c.submarine_cables_mapped,
     getTotal: (c: AtlasCounts) => c.cables_total ?? c.submarine_cables_total,
-    getStatus: () => "metadata_only" as const,
-    tooltip: "Metadata available. Cable geometry is not available in the current CSV.",
-    statusLabel: "metadata only",
+    getStatus: (c: AtlasCounts) => (c.cables_mapped ?? c.submarine_cables_mapped) > 0 ? "mapped" as const : "metadata_only" as const,
+    tooltip: "Cable geometry enriched from OSM-derived lookup or landing-point interpolation.",
+    statusLabel: (c: AtlasCounts) => (c.cables_mapped ?? c.submarine_cables_mapped) > 0 ? "mapped" : "metadata only",
   },
   {
     key: "data_centers",
@@ -38,9 +49,9 @@ const LAYER_CONFIG = [
     dotColor: "#e0e0e0",
     getMapped: (c: AtlasCounts) => c.data_centers_mapped,
     getTotal: (c: AtlasCounts) => c.data_centers_total,
-    getStatus: () => "metadata_only" as const,
-    tooltip: "Metadata available. Coordinates are not available in the current CSV.",
-    statusLabel: "metadata only",
+    getStatus: (c: AtlasCounts) => c.data_centers_mapped > 0 ? "mapped" as const : "metadata_only" as const,
+    tooltip: "Coordinates enriched from curated public-disclosure lookup at metro-level precision.",
+    statusLabel: (c: AtlasCounts) => c.data_centers_mapped > 0 ? "mapped" : "metadata only",
   },
 ];
 
@@ -66,6 +77,7 @@ export default function LayerPanel({
         const status = cfg.getStatus(c);
         const isDisabled = mapped === 0;
         const checked = visibleLayers[cfg.key] && !isDisabled;
+        const statusLabel = typeof cfg.statusLabel === "function" ? cfg.statusLabel(c) : cfg.statusLabel;
 
         return (
           <div key={cfg.key} className="layer-row" title={cfg.tooltip}>
@@ -81,7 +93,7 @@ export default function LayerPanel({
                 <span className="layer-name">{cfg.label}</span>
                 <span className="layer-counts">{mapped.toLocaleString()} / {total.toLocaleString()}</span>
               </div>
-              <span className={`layer-badge layer-badge--${status}`}>{cfg.statusLabel}</span>
+              <span className={`layer-badge layer-badge--${status}`}>{statusLabel}</span>
             </label>
             {isDisabled && <div className="layer-note">{cfg.tooltip}</div>}
           </div>

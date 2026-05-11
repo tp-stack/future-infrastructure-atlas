@@ -16,6 +16,38 @@ sources:
     to_verify: true
     notes: Initial placeholder. Verify official dataset URL, license, update cadence, and continued maintenance before ingestion.
 
+  - source_id: miaw_net_scn_data
+    source_key: miaw_net_scn_data
+    source_name: SCN Submarine Cable Network Data
+    category: internet_infrastructure
+    source_type: research
+    reliability_class: P
+    license: public_research
+    url: "https://github.com/miaw-net/scn-data"
+    update_frequency: ad_hoc
+    allowed_usage: redistribution_safe
+    access_method: direct_download
+    requires_license_review: false
+    expected_formats: [csv]
+    geographic_scope: global
+    notes: Research dataset from NINeS 2026 publication. Segment-level metadata. Geometry enriched from OSM reference.
+
+  - source_id: epoch_ai
+    source_key: epoch_ai
+    source_name: Epoch AI Frontier Data Centers
+    category: compute_infrastructure
+    source_type: research
+    reliability_class: P
+    license: cc_by_4.0
+    url: "https://epoch.ai/data/data-centers"
+    update_frequency: ad_hoc
+    allowed_usage: redistribution_safe
+    access_method: direct_download
+    requires_license_review: false
+    expected_formats: [csv]
+    geographic_scope: global
+    notes: 43 frontier AI data centers documented from public disclosures. CC BY 4.0.
+
   - source_id: peeringdb
     source_key: peeringdb
     source_name: PeeringDB

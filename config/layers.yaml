@@ -5,13 +5,13 @@ layers:
     geometry_type: LineString
     min_zoom: 2
     max_zoom: 12
-    sensitivity_level: high
+    sensitivity_level: medium
     allowed_precision: generalized
     required_fields: [asset_id, source_id, asset_name, confidence_score]
-    optional_fields: [operator, status, landing_points, source_timestamp]
-    source_dataset_keys: [osm_telecom_infrastructure]
+    optional_fields: [operator, status, landing_points, source_timestamp, mapped_status, geometry_precision]
+    source_dataset_keys: [osm_telecom_infrastructure, scn_submarine_cables]
     confidence_policy: source_reliability_plus_spatial_precision_required
-    public_visibility: false
+    public_visibility: true
     enterprise_visibility: true
 
   - layer_id: landing_stations
@@ -65,13 +65,13 @@ layers:
     geometry_type: Point
     min_zoom: 4
     max_zoom: 12
-    sensitivity_level: high
-    allowed_precision: generalized
+    sensitivity_level: medium
+    allowed_precision: metro_level
     required_fields: [asset_id, source_id, asset_name, confidence_score]
-    optional_fields: [operator, campus_name, power_capacity_mw, source_timestamp]
-    source_dataset_keys: [cloud_provider_regions]
+    optional_fields: [operator, campus_name, power_capacity_mw, source_timestamp, mapped_status, coordinate_precision]
+    source_dataset_keys: [cloud_provider_regions, epoch_ai_data_centers]
     confidence_policy: public_disclosure_or_verified_source_required
-    public_visibility: false
+    public_visibility: true
     enterprise_visibility: true
 
   - layer_id: power_plants

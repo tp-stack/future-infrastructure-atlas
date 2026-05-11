@@ -6,7 +6,7 @@ import SourcePanel from "./components/SourcePanel";
 import StatsPanel from "./components/StatsPanel";
 import UnmappedPanel from "./components/UnmappedPanel";
 import AssetPopup from "./components/AssetPopup";
-import type { AtlasData, FilterState, PowerPlant } from "./map/types";
+import type { AtlasData, FilterState, Asset } from "./map/types";
 
 export default function App() {
   const [data, setData] = useState<AtlasData | null>(null);
@@ -22,7 +22,7 @@ export default function App() {
     country: "",
     minMw: 0,
   });
-  const [selectedPlant, setSelectedPlant] = useState<PowerPlant | null>(null);
+  const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -132,7 +132,7 @@ export default function App() {
         <Legend />
         <StatsPanel metadata={data.metadata} />
         <UnmappedPanel metadata={data.metadata} />
-        <AssetPopup plant={selectedPlant} />
+        <AssetPopup asset={selectedAsset} />
         <SourcePanel metadata={data.metadata} />
         <div className="status-bar">
           Generated {new Date(data.metadata.generated_at).toLocaleString()} — {data.power_plants.length.toLocaleString()} power plants mapped
@@ -142,7 +142,7 @@ export default function App() {
         data={data}
         filters={filters}
         visibleLayers={visibleLayers}
-        onPopup={setSelectedPlant}
+        onPopup={setSelectedAsset}
       />
     </div>
   );
