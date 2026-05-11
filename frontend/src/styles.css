@@ -136,7 +136,6 @@ html, body, #root {
   color: #f4efe6;
 }
 
-.panel-header .subtitle,
 .panel-subtitle {
   font-size: 10px;
   color: #6a6a72;
@@ -424,24 +423,18 @@ html, body, #root {
   flex-direction: column;
   position: relative;
   min-width: 0;
+  min-height: 0;
 }
 
 .map-container {
   flex: 1;
   position: relative;
+  min-height: 0;
 }
 
-.map-canvas {
-  width: 100%;
-  height: 100%;
-  position: absolute;
-  top: 0;
-  left: 0;
-}
-
-.map-canvas .maplibregl-map {
-  width: 100%;
-  height: 100%;
+.map-container :global(.maplibregl-map) {
+  width: 100% !important;
+  height: 100% !important;
 }
 
 .map-overlay-controls {
@@ -598,6 +591,38 @@ html, body, #root {
   padding: 2px 8px;
   background: rgba(200, 100, 50, 0.1);
   border-radius: 10px;
+}
+
+/* ─── Diagnostics ─── */
+
+.diag-summary {
+  font-size: 9px;
+  color: #3a3a42;
+  line-height: 1.5;
+  padding: 2px 0;
+}
+
+.diag-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 1px 0;
+  font-size: 9px;
+}
+
+.diag-label {
+  color: #3a3a42;
+}
+
+.diag-val {
+  color: #5a5a62;
+}
+
+.diag-val.ok {
+  color: #5a8;
+}
+
+.diag-val.fail {
+  color: #d07070;
 }
 
 /* ─── Footer ─── */

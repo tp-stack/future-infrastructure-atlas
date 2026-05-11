@@ -66,3 +66,5 @@ frontend/dist/
 # Tiny fixtures are allowed for tests only
 !tests/fixtures/
 !tests/fixtures/**
+
+.vercel

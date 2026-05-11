@@ -24,10 +24,10 @@ export const LAYER_IDS = {
 
 export const CLUSTER_PAINT = {
   "circle-color": "#d69a13",
-  "circle-radius": ["step", ["get", "point_count"], 14, 50, 20, 200, 28],
-  "circle-opacity": 0.6,
-  "circle-stroke-width": 1.5,
-  "circle-stroke-color": "#f0c040",
+  "circle-radius": ["step", ["get", "point_count"], 20, 50, 28, 200, 36],
+  "circle-opacity": 0.85,
+  "circle-stroke-width": 2,
+  "circle-stroke-color": "#fce488",
 };
 
 export const CLUSTER_COUNT_PAINT = {
@@ -40,9 +40,9 @@ export const CLUSTER_COUNT_PAINT = {
 export const POWER_PAINT = {
   "circle-radius": [
     "interpolate", ["linear"], ["zoom"],
-    2, 1.5,
-    5, 3,
-    8, 5,
+    2, 3,
+    5, 4.5,
+    8, 6,
     12, 10,
     16, 14,
   ],
@@ -54,17 +54,17 @@ export const POWER_PAINT = {
   ],
   "circle-opacity": [
     "interpolate", ["linear"], ["zoom"],
-    2, 0.35,
-    8, 0.5,
-    14, 0.65,
+    2, 0.5,
+    8, 0.6,
+    14, 0.75,
   ],
   "circle-stroke-width": [
     "interpolate", ["linear"], ["zoom"],
-    2, 0.3,
-    8, 0.5,
+    2, 0.5,
+    8, 0.7,
     14, 1,
   ],
-  "circle-stroke-color": "rgba(255,255,255,0.15)",
+  "circle-stroke-color": "rgba(255,255,255,0.2)",
 };
 
 export const DATA_CENTER_PAINT = {

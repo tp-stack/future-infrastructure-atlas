@@ -9,19 +9,29 @@ interface Props {
   filters: FilterState;
   visibleLayers: Record<string, boolean>;
   onPopup: (asset: Asset | null) => void;
+  onDiagnostics?: (diag: MapDiagnostics) => void;
+}
+
+export interface MapDiagnostics {
+  basemap: string;
+  layers_ok: string[];
+  layers_failed: { layer: string; error: string }[];
+  total_points: number;
+  data_bounds: string;
+  status: "ok" | "partial" | "failed";
 }
 
 const DARK_BG = "#050609";
 
-const DARK_STYLE: maplibregl.StyleSpecification = {
+const CARTO_DARK_STYLE: maplibregl.StyleSpecification = {
   version: 8,
   name: "Dark Atlas",
   sources: {
-    "osm-tiles": {
+    "basemap-dark": {
       type: "raster",
-      tiles: ["https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png"],
+      tiles: ["https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"],
       tileSize: 256,
-      attribution: '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a>',
+      attribution: '&copy; <a href="https://carto.com/">CARTO</a>',
     },
   },
   layers: [
@@ -31,38 +41,102 @@ const DARK_STYLE: maplibregl.StyleSpecification = {
       paint: { "background-color": DARK_BG },
     },
     {
-      id: "osm-tiles-layer",
+      id: "basemap-dark-layer",
       type: "raster" as const,
-      source: "osm-tiles",
+      source: "basemap-dark",
       minzoom: 0,
       maxzoom: 20,
     },
   ],
 };
 
-export default function AtlasMap({ data, filters, visibleLayers, onPopup }: Props) {
+type SourceSpec = maplibregl.SourceSpecification | maplibregl.CanvasSourceSpecification;
+type LayerSpec = maplibregl.LayerSpecification;
+
+function safeAddSource(m: maplibregl.Map, id: string, source: SourceSpec): boolean {
+  try {
+    if (m.getSource(id)) return true;
+    m.addSource(id, source);
+    return true;
+  } catch (e) {
+    console.warn(`[AtlasMap] Failed to add source "${id}":`, e);
+    return false;
+  }
+}
+
+function safeAddLayer(m: maplibregl.Map, layer: LayerSpec): boolean {
+  try {
+    if (m.getLayer(layer.id)) return true;
+    m.addLayer(layer);
+    return true;
+  } catch (e) {
+    console.warn(`[AtlasMap] Failed to add layer "${layer.id}":`, e);
+    return false;
+  }
+}
+
+function computeDataBounds(data: AtlasData): maplibregl.LngLatBounds | null {
+  const bounds = new maplibregl.LngLatBounds();
+  let hasData = false;
+  for (const p of data.power_plants) {
+    bounds.extend([p.lon, p.lat]);
+    hasData = true;
+  }
+  for (const d of data.data_centers) {
+    if (d.lat != null && d.lon != null) {
+      bounds.extend([d.lon, d.lat]);
+      hasData = true;
+    }
+  }
+  return hasData ? bounds : null;
+}
+
+export default function AtlasMap({ data, filters, visibleLayers, onPopup, onDiagnostics }: Props) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const popupRef = useRef<maplibregl.Popup | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
 
   const initMap = useCallback(() => {
     if (!mapContainer.current || map.current) return;
     const m = new maplibregl.Map({
       container: mapContainer.current,
-      style: DARK_STYLE,
+      style: CARTO_DARK_STYLE,
       center: [10, 30],
       zoom: 1.8,
       renderWorldCopies: false,
       maxBounds: [[-180, -85], [180, 85]],
     });
     m.addControl(new maplibregl.NavigationControl(), "top-right");
+    m.addControl(new maplibregl.ScaleControl({ unit: "metric", maxWidth: 120 }), "bottom-left");
     map.current = m;
 
     m.on("load", () => {
-      addPowerPlantLayer(m, data.power_plants);
-      addCableLayer(m, data.cables);
-      addDataCenterLayer(m, data.data_centers);
+      const diag: MapDiagnostics = {
+        basemap: "CARTO dark",
+        layers_ok: [],
+        layers_failed: [],
+        total_points: data.power_plants.length + data.data_centers.filter((d) => d.lat != null && d.lon != null).length,
+        data_bounds: "",
+        status: "ok",
+      };
+      addPowerPlantLayer(m, data, diag);
+      addCableLayer(m, data, diag);
+      addDataCenterLayer(m, data, diag);
+
+      const diagFails = diag.layers_failed.length;
+      if (diagFails > 0) {
+        diag.status = diag.layers_ok.length > 0 ? "partial" : "failed";
+      }
+
+      const bounds = computeDataBounds(data);
+      if (bounds) {
+        diag.data_bounds = `${bounds.getWest().toFixed(1)},${bounds.getSouth().toFixed(1)} to ${bounds.getEast().toFixed(1)},${bounds.getNorth().toFixed(1)}`;
+        m.fitBounds(bounds, { padding: 60, maxZoom: 8, animate: false });
+      }
+
+      onDiagnostics?.(diag);
       setLoaded(true);
     });
 
@@ -141,11 +215,20 @@ export default function AtlasMap({ data, filters, visibleLayers, onPopup }: Prop
     m.on("mouseleave", [LAYER_IDS.POWER_CLUSTERS, LAYER_IDS.POWER_PLANTS, LAYER_IDS.DATA_CENTERS, LAYER_IDS.CABLES], () => {
       m.getCanvas().style.cursor = "";
     });
-  }, [data, onPopup]);
+  }, [data, onPopup, onDiagnostics]);
 
   useEffect(() => {
     initMap();
+
+    if (mapContainer.current) {
+      resizeObserverRef.current = new ResizeObserver(() => {
+        map.current?.resize();
+      });
+      resizeObserverRef.current.observe(mapContainer.current.parentElement!);
+    }
+
     return () => {
+      resizeObserverRef.current?.disconnect();
       map.current?.remove();
       map.current = null;
     };
@@ -189,19 +272,8 @@ export default function AtlasMap({ data, filters, visibleLayers, onPopup }: Prop
 
   const handleFitData = useCallback(() => {
     if (!map.current) return;
-    const bounds = new maplibregl.LngLatBounds();
-    let hasData = false;
-    for (const p of data.power_plants) {
-      bounds.extend([p.lon, p.lat]);
-      hasData = true;
-    }
-    for (const d of data.data_centers) {
-      if (d.lat != null && d.lon != null) {
-        bounds.extend([d.lon, d.lat]);
-        hasData = true;
-      }
-    }
-    if (hasData) {
+    const bounds = computeDataBounds(data);
+    if (bounds) {
       map.current.fitBounds(bounds, { padding: 60, maxZoom: 10 });
     }
   }, [data]);
@@ -221,52 +293,67 @@ export default function AtlasMap({ data, filters, visibleLayers, onPopup }: Prop
   );
 }
 
-function addPowerPlantLayer(m: maplibregl.Map, plants: PowerPlant[]) {
+function addPowerPlantLayer(m: maplibregl.Map, data: AtlasData, diag: MapDiagnostics) {
   const geojson: GeoJSON.FeatureCollection = {
     type: "FeatureCollection",
-    features: plants.map((p) => ({
+    features: data.power_plants.map((p) => ({
       type: "Feature" as const,
       geometry: { type: "Point" as const, coordinates: [p.lon, p.lat] },
       properties: { n: p.n, c: p.c, f: p.f, mw: p.mw },
     })),
   };
 
-  m.addSource(LAYER_IDS.POWER_PLANTS, {
+  if (!safeAddSource(m, LAYER_IDS.POWER_PLANTS, {
     type: "geojson",
     data: geojson,
     cluster: true,
     clusterMaxZoom: 14,
     clusterRadius: 40,
-  });
+  })) {
+    diag.layers_failed.push({ layer: "power_plants", error: "Failed to add source" });
+    return;
+  }
 
-  m.addLayer({
+  if (safeAddLayer(m, {
     id: LAYER_IDS.POWER_CLUSTERS,
     type: "circle",
     source: LAYER_IDS.POWER_PLANTS,
     filter: ["has", "point_count"],
     paint: CLUSTER_PAINT as unknown as maplibregl.CircleLayerSpecification["paint"],
-  });
+  })) {
+    diag.layers_ok.push("power_plants_clusters");
+  } else {
+    diag.layers_failed.push({ layer: "power_plants_clusters", error: "Failed to add cluster layer" });
+  }
 
-  m.addLayer({
+  if (safeAddLayer(m, {
     id: LAYER_IDS.POWER_CLUSTER_COUNT,
     type: "symbol",
     source: LAYER_IDS.POWER_PLANTS,
     filter: ["has", "point_count"],
     layout: CLUSTER_COUNT_PAINT as unknown as maplibregl.SymbolLayerSpecification["layout"],
     paint: {},
-  });
+  })) {
+    diag.layers_ok.push("power_plants_cluster_count");
+  } else {
+    diag.layers_failed.push({ layer: "power_plants_cluster_count", error: "Failed to add cluster count layer" });
+  }
 
-  m.addLayer({
+  if (safeAddLayer(m, {
     id: LAYER_IDS.POWER_PLANTS,
     type: "circle",
     source: LAYER_IDS.POWER_PLANTS,
     filter: ["!", ["has", "point_count"]],
     paint: POWER_PAINT as unknown as maplibregl.CircleLayerSpecification["paint"],
-  });
+  })) {
+    diag.layers_ok.push("power_plants");
+  } else {
+    diag.layers_failed.push({ layer: "power_plants", error: "Failed to add plant layer" });
+  }
 }
 
-function addCableLayer(m: maplibregl.Map, cables: { n: string; source: string; geometry: number[][]; mapped_status?: string; geometry_precision?: string; confidence?: number }[]) {
-  const withGeom = cables.filter((c) => c.mapped_status === "mapped" && c.geometry && c.geometry.length >= 2);
+function addCableLayer(m: maplibregl.Map, data: AtlasData, diag: MapDiagnostics) {
+  const withGeom = data.cables.filter((c) => c.mapped_status === "mapped" && c.geometry && c.geometry.length >= 2);
   const geojson: GeoJSON.FeatureCollection = {
     type: "FeatureCollection",
     features: withGeom.map((c) => ({
@@ -275,18 +362,27 @@ function addCableLayer(m: maplibregl.Map, cables: { n: string; source: string; g
       properties: { n: c.n, source: c.source, mapped_status: c.mapped_status, geometry_precision: c.geometry_precision, confidence: c.confidence },
     })),
   };
-  m.addSource(LAYER_IDS.CABLES, { type: "geojson", data: geojson });
-  m.addLayer({
+
+  if (!safeAddSource(m, LAYER_IDS.CABLES, { type: "geojson", data: geojson })) {
+    diag.layers_failed.push({ layer: "cables", error: "Failed to add source" });
+    return;
+  }
+
+  if (safeAddLayer(m, {
     id: LAYER_IDS.CABLES,
     type: "line",
     source: LAYER_IDS.CABLES,
     paint: CABLE_PAINT as unknown as maplibregl.LineLayerSpecification["paint"],
-    layout: { visibility: "none" as const },
-  });
+    layout: { visibility: "visible" as const },
+  })) {
+    diag.layers_ok.push("cables");
+  } else {
+    diag.layers_failed.push({ layer: "cables", error: "Failed to add cable layer" });
+  }
 }
 
-function addDataCenterLayer(m: maplibregl.Map, dcs: { n: string; op: string; c: string; city: string; lat: number; lon: number; mw: number | null; source: string; mapped_status?: string; coordinate_precision?: string; confidence?: number }[]) {
-  const withCoords = dcs.filter((d) => d.mapped_status === "mapped" && d.lat != null && d.lon != null);
+function addDataCenterLayer(m: maplibregl.Map, data: AtlasData, diag: MapDiagnostics) {
+  const withCoords = data.data_centers.filter((d) => d.mapped_status === "mapped" && d.lat != null && d.lon != null);
   const geojson: GeoJSON.FeatureCollection = {
     type: "FeatureCollection",
     features: withCoords.map((d) => ({
@@ -295,14 +391,23 @@ function addDataCenterLayer(m: maplibregl.Map, dcs: { n: string; op: string; c: 
       properties: { n: d.n, op: d.op, c: d.c, city: d.city, mw: d.mw, source: d.source, mapped_status: d.mapped_status, coordinate_precision: d.coordinate_precision, confidence: d.confidence },
     })),
   };
-  m.addSource(LAYER_IDS.DATA_CENTERS, { type: "geojson", data: geojson });
-  m.addLayer({
+
+  if (!safeAddSource(m, LAYER_IDS.DATA_CENTERS, { type: "geojson", data: geojson })) {
+    diag.layers_failed.push({ layer: "data_centers", error: "Failed to add source" });
+    return;
+  }
+
+  if (safeAddLayer(m, {
     id: LAYER_IDS.DATA_CENTERS,
     type: "circle",
     source: LAYER_IDS.DATA_CENTERS,
     paint: DATA_CENTER_PAINT as unknown as maplibregl.CircleLayerSpecification["paint"],
-    layout: { visibility: "none" as const },
-  });
+    layout: { visibility: "visible" as const },
+  })) {
+    diag.layers_ok.push("data_centers");
+  } else {
+    diag.layers_failed.push({ layer: "data_centers", error: "Failed to add DC layer" });
+  }
 }
 
 function showPlantPopup(m: maplibregl.Map, popupRef: React.MutableRefObject<maplibregl.Popup | null>, plant: Asset, event?: MouseEvent | PointerEvent) {
