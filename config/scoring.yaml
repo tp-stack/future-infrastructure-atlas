@@ -1,0 +1,9 @@
+scoring:
+  version: 0.1.0
+  status: placeholder
+  notes: Scoring methodology will be defined in a later step. No production weights are established in Step 1.
+  required_principles:
+    - every_score_must_have_source_traceability
+    - every_score_must_have_confidence_score
+    - every_score_version_must_be_reproducible
+    - sensitive_infrastructure_must_be_generalized

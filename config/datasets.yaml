@@ -1,0 +1,234 @@
+datasets:
+  - dataset_key: wri_global_power_plants
+    display_name: WRI Global Power Plants
+    source_key: wri_global_power_plant_database
+    category: energy
+    target_layer: power_plants
+    expected_geometry_type: Point
+    expected_format: csv
+    update_frequency: to_verify
+    license: to_verify
+    sensitivity_level: medium
+    allowed_precision: source_native
+    ingestion_status: metadata_ready
+    raw_storage_policy: data_raw_or_object_storage_only
+    processed_storage_policy: data_processed_or_object_storage_only
+    checksum_required: true
+    validation_required: true
+    notes: Metadata placeholder only. No source data has been downloaded or ingested.
+
+  - dataset_key: peeringdb_ixps
+    display_name: PeeringDB IXPs
+    source_key: peeringdb
+    category: internet_infrastructure
+    target_layer: ixps
+    expected_geometry_type: Point
+    expected_format: api_json
+    update_frequency: to_verify
+    license: to_verify
+    sensitivity_level: medium
+    allowed_precision: city
+    ingestion_status: metadata_ready
+    raw_storage_policy: data_raw_or_object_storage_only
+    processed_storage_policy: data_processed_or_object_storage_only
+    checksum_required: true
+    validation_required: true
+    notes: Metadata placeholder only. Verify API terms and location precision before ingestion.
+
+  - dataset_key: pch_ixp_directory
+    display_name: Packet Clearing House IXP Directory
+    source_key: pch_ixp_directory
+    category: internet_infrastructure
+    target_layer: ixps
+    expected_geometry_type: Point
+    expected_format: to_verify
+    update_frequency: to_verify
+    license: to_verify
+    sensitivity_level: medium
+    allowed_precision: city
+    ingestion_status: metadata_ready
+    raw_storage_policy: data_raw_or_object_storage_only
+    processed_storage_policy: data_processed_or_object_storage_only
+    checksum_required: true
+    validation_required: true
+    notes: Metadata placeholder only. Verify directory format and redistribution terms before ingestion.
+
+  - dataset_key: osm_power_networks
+    display_name: OSM / OpenInfraMap Power Networks
+    source_key: osm_openinframap
+    category: energy
+    target_layer: transmission_lines
+    expected_geometry_type: Mixed
+    expected_format: pbf
+    update_frequency: to_verify
+    license: to_verify
+    sensitivity_level: high
+    allowed_precision: generalized
+    ingestion_status: metadata_ready
+    raw_storage_policy: data_raw_or_object_storage_only
+    processed_storage_policy: data_processed_or_object_storage_only
+    checksum_required: true
+    validation_required: true
+    notes: Metadata placeholder only. Output layers must generalize sensitive power network geometry.
+
+  - dataset_key: osm_telecom_infrastructure
+    display_name: OSM / OpenInfraMap Telecom Infrastructure
+    source_key: osm_openinframap
+    category: internet_infrastructure
+    target_layer: submarine_cables
+    expected_geometry_type: Mixed
+    expected_format: pbf
+    update_frequency: to_verify
+    license: to_verify
+    sensitivity_level: high
+    allowed_precision: generalized
+    ingestion_status: metadata_ready
+    raw_storage_policy: data_raw_or_object_storage_only
+    processed_storage_policy: data_processed_or_object_storage_only
+    checksum_required: true
+    validation_required: true
+    notes: Metadata placeholder only. Sensitive telecom assets must be generalized before publication.
+
+  - dataset_key: global_energy_monitor_gas_infrastructure
+    display_name: Global Energy Monitor Gas Infrastructure
+    source_key: global_energy_monitor
+    category: energy
+    target_layer: gas_pipelines
+    expected_geometry_type: Mixed
+    expected_format: to_verify
+    update_frequency: to_verify
+    license: to_verify
+    sensitivity_level: high
+    allowed_precision: generalized
+    ingestion_status: metadata_ready
+    raw_storage_policy: data_raw_or_object_storage_only
+    processed_storage_policy: data_processed_or_object_storage_only
+    checksum_required: true
+    validation_required: true
+    notes: Metadata placeholder only. Verify tracker-specific terms before ingestion.
+
+  - dataset_key: global_energy_monitor_coal_plants
+    display_name: Global Energy Monitor Coal Plants
+    source_key: global_energy_monitor
+    category: energy
+    target_layer: power_plants
+    expected_geometry_type: Point
+    expected_format: to_verify
+    update_frequency: to_verify
+    license: to_verify
+    sensitivity_level: medium
+    allowed_precision: generalized
+    ingestion_status: metadata_ready
+    raw_storage_policy: data_raw_or_object_storage_only
+    processed_storage_policy: data_processed_or_object_storage_only
+    checksum_required: true
+    validation_required: true
+    notes: Metadata placeholder only. Verify tracker-specific terms before ingestion.
+
+  - dataset_key: global_energy_monitor_oil_gas_extraction
+    display_name: Global Energy Monitor Oil and Gas Extraction
+    source_key: global_energy_monitor
+    category: primary_resources
+    target_layer: oil_gas_extraction
+    expected_geometry_type: Point
+    expected_format: to_verify
+    update_frequency: to_verify
+    license: to_verify
+    sensitivity_level: high
+    allowed_precision: generalized
+    ingestion_status: metadata_ready
+    raw_storage_policy: data_raw_or_object_storage_only
+    processed_storage_policy: data_processed_or_object_storage_only
+    checksum_required: true
+    validation_required: true
+    notes: Metadata placeholder only. Verify tracker-specific terms before ingestion.
+
+  - dataset_key: usgs_mineral_commodity_summaries
+    display_name: USGS Mineral Commodity Summaries
+    source_key: usgs_mineral_commodity_summaries
+    category: primary_resources
+    target_layer: critical_minerals
+    expected_geometry_type: Tabular
+    expected_format: pdf_or_table
+    update_frequency: to_verify
+    license: to_verify
+    sensitivity_level: medium
+    allowed_precision: regional
+    ingestion_status: metadata_ready
+    raw_storage_policy: data_raw_or_object_storage_only
+    processed_storage_policy: data_processed_or_object_storage_only
+    checksum_required: true
+    validation_required: true
+    notes: Metadata placeholder only. Regional representation is expected unless exact locations are separately validated.
+
+  - dataset_key: wri_aqueduct_water_risk
+    display_name: WRI Aqueduct Water Risk
+    source_key: wri_aqueduct
+    category: water_risk
+    target_layer: water_risk
+    expected_geometry_type: Polygon
+    expected_format: geo_or_raster
+    update_frequency: to_verify
+    license: to_verify
+    sensitivity_level: low
+    allowed_precision: source_native
+    ingestion_status: metadata_ready
+    raw_storage_policy: data_raw_or_object_storage_only
+    processed_storage_policy: data_processed_or_object_storage_only
+    checksum_required: true
+    validation_required: true
+    notes: Metadata placeholder only. Verify indicator definitions before ingestion.
+
+  - dataset_key: hydrosheds_hydrography
+    display_name: HydroSHEDS Hydrography
+    source_key: hydrosheds
+    category: water_risk
+    target_layer: water_risk
+    expected_geometry_type: Mixed
+    expected_format: raster_or_vector
+    update_frequency: to_verify
+    license: to_verify
+    sensitivity_level: low
+    allowed_precision: source_native
+    ingestion_status: metadata_ready
+    raw_storage_policy: data_raw_or_object_storage_only
+    processed_storage_policy: data_processed_or_object_storage_only
+    checksum_required: true
+    validation_required: true
+    notes: Metadata placeholder only. Verify distribution terms and product version before ingestion.
+
+  - dataset_key: world_bank_wgi
+    display_name: World Bank Worldwide Governance Indicators
+    source_key: world_bank_wgi
+    category: geopolitical_risk
+    target_layer: geopolitical_risk
+    expected_geometry_type: Tabular
+    expected_format: csv_or_api
+    update_frequency: to_verify
+    license: to_verify
+    sensitivity_level: low
+    allowed_precision: country
+    ingestion_status: metadata_ready
+    raw_storage_policy: data_raw_or_object_storage_only
+    processed_storage_policy: data_processed_or_object_storage_only
+    checksum_required: true
+    validation_required: true
+    notes: Metadata placeholder only. Country-level indicators must retain source year and methodology references.
+
+  - dataset_key: cloud_provider_regions
+    display_name: Cloud Provider Regions
+    source_key: cloud_provider_official_regions
+    category: cloud_infrastructure
+    target_layer: cloud_regions
+    expected_geometry_type: Point
+    expected_format: manual_registry
+    update_frequency: to_verify
+    license: to_verify
+    sensitivity_level: medium
+    allowed_precision: regional
+    ingestion_status: metadata_ready
+    raw_storage_policy: data_raw_or_object_storage_only
+    processed_storage_policy: data_processed_or_object_storage_only
+    checksum_required: true
+    validation_required: true
+    notes: Metadata placeholder only. Locations must reflect official public region disclosures, not inferred facility coordinates.

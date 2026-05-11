@@ -1,0 +1,42 @@
+local_storage_root: data/
+raw_dir: data/raw
+staging_dir: data/staging
+processed_dir: data/processed
+tiles_dir: data/tiles
+cache_dir: data/cache
+reports_dir: data/reports
+logs_dir: data/logs
+
+max_git_file_size_mb: 5
+max_test_fixture_size_mb: 1
+max_api_response_size_mb: 5
+
+allowed_large_file_locations:
+  - data/raw/
+  - data/staging/
+  - data/processed/
+  - data/tiles/
+  - data/cache/
+  - data/reports/
+  - data/logs/
+
+blocked_file_extensions:
+  - .geojson
+  - .gpkg
+  - .shp
+  - .dbf
+  - .shx
+  - .prj
+  - .pbf
+  - .mbtiles
+  - .pmtiles
+  - .tif
+  - .tiff
+  - .nc
+  - .grib
+  - .parquet
+  - .duckdb
+  - .sqlite
+
+atomic_write_required: true
+checksum_algorithm: sha256

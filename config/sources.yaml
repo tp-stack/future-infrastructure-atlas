@@ -1,0 +1,170 @@
+sources:
+  - source_id: wri_global_power_plant_database
+    source_key: wri_global_power_plant_database
+    source_name: WRI Global Power Plant Database
+    category: energy
+    source_type: open
+    reliability_class: P
+    license: to_verify
+    url: "to_verify: https://datasets.wri.org/"
+    update_frequency: to_verify
+    allowed_usage: metadata_registry_only_until_license_verified
+    access_method: direct_download
+    requires_license_review: true
+    expected_formats: [csv, xlsx, geo]
+    geographic_scope: global
+    to_verify: true
+    notes: Initial placeholder. Verify official dataset URL, license, update cadence, and continued maintenance before ingestion.
+
+  - source_id: peeringdb
+    source_key: peeringdb
+    source_name: PeeringDB
+    category: internet_infrastructure
+    source_type: community
+    reliability_class: P
+    license: to_verify
+    url: "to_verify: https://www.peeringdb.com/"
+    update_frequency: to_verify
+    allowed_usage: metadata_registry_only_until_license_verified
+    access_method: api
+    requires_license_review: true
+    expected_formats: [json, api]
+    geographic_scope: global
+    to_verify: true
+    notes: Initial placeholder. Verify API terms, redistribution permissions, and attribution requirements before ingestion.
+
+  - source_id: pch_ixp_directory
+    source_key: pch_ixp_directory
+    source_name: Packet Clearing House IXP Directory
+    category: internet_infrastructure
+    source_type: open
+    reliability_class: P
+    license: to_verify
+    url: "to_verify: https://www.pch.net/"
+    update_frequency: to_verify
+    allowed_usage: metadata_registry_only_until_license_verified
+    access_method: web_reference
+    requires_license_review: true
+    expected_formats: [html, csv, json]
+    geographic_scope: global
+    to_verify: true
+    notes: Initial placeholder. Verify directory URL, license, and permitted use before ingestion.
+
+  - source_id: osm_openinframap
+    source_key: osm_openinframap
+    source_name: OpenStreetMap / OpenInfraMap
+    category: infrastructure_basemap
+    source_type: community
+    reliability_class: P
+    license: to_verify
+    url: "to_verify: https://www.openstreetmap.org/ and https://openinframap.org/"
+    update_frequency: to_verify
+    allowed_usage: metadata_registry_only_until_license_verified
+    access_method: derived
+    requires_license_review: true
+    expected_formats: [pbf, osm, geojson]
+    geographic_scope: global
+    to_verify: true
+    notes: Initial placeholder. Verify ODbL obligations, derived database treatment, and OpenInfraMap data access path before ingestion.
+
+  - source_id: global_energy_monitor
+    source_key: global_energy_monitor
+    source_name: Global Energy Monitor
+    category: energy
+    source_type: open
+    reliability_class: P
+    license: to_verify
+    url: "to_verify: https://globalenergymonitor.org/"
+    update_frequency: to_verify
+    allowed_usage: metadata_registry_only_until_license_verified
+    access_method: manual_download
+    requires_license_review: true
+    expected_formats: [csv, xlsx, geo]
+    geographic_scope: global
+    to_verify: true
+    notes: Initial placeholder. Verify tracker-specific licenses and download terms before ingestion.
+
+  - source_id: usgs_mineral_commodity_summaries
+    source_key: usgs_mineral_commodity_summaries
+    source_name: USGS Mineral Commodity Summaries
+    category: primary_resources
+    source_type: official
+    reliability_class: P
+    license: to_verify
+    url: "to_verify: https://www.usgs.gov/"
+    update_frequency: to_verify
+    allowed_usage: metadata_registry_only_until_license_verified
+    access_method: web_reference
+    requires_license_review: true
+    expected_formats: [pdf, csv, xlsx]
+    geographic_scope: global
+    to_verify: true
+    notes: Initial placeholder. Verify exact publication URL, public-domain status, and citation requirements before ingestion.
+
+  - source_id: wri_aqueduct
+    source_key: wri_aqueduct
+    source_name: WRI Aqueduct
+    category: water_risk
+    source_type: open
+    reliability_class: P
+    license: to_verify
+    url: "to_verify: https://www.wri.org/aqueduct"
+    update_frequency: to_verify
+    allowed_usage: metadata_registry_only_until_license_verified
+    access_method: direct_download
+    requires_license_review: true
+    expected_formats: [geo, raster, csv]
+    geographic_scope: global
+    to_verify: true
+    notes: Initial placeholder. Verify download endpoints, license, and indicator definitions before ingestion.
+
+  - source_id: hydrosheds
+    source_key: hydrosheds
+    source_name: HydroSHEDS
+    category: water_risk
+    source_type: open
+    reliability_class: P
+    license: to_verify
+    url: "to_verify: https://www.hydrosheds.org/"
+    update_frequency: to_verify
+    allowed_usage: metadata_registry_only_until_license_verified
+    access_method: direct_download
+    requires_license_review: true
+    expected_formats: [raster, shapefile, geo]
+    geographic_scope: global
+    to_verify: true
+    notes: Initial placeholder. Verify HydroSHEDS version, license, and raster/vector distribution terms before ingestion.
+
+  - source_id: world_bank_wgi
+    source_key: world_bank_wgi
+    source_name: World Bank Worldwide Governance Indicators
+    category: geopolitical_risk
+    source_type: official
+    reliability_class: P
+    license: to_verify
+    url: "to_verify: https://www.worldbank.org/"
+    update_frequency: to_verify
+    allowed_usage: metadata_registry_only_until_license_verified
+    access_method: api
+    requires_license_review: true
+    expected_formats: [csv, json, api]
+    geographic_scope: global
+    to_verify: true
+    notes: Initial placeholder. Verify exact API or download source, license, and indicator methodology before ingestion.
+
+  - source_id: cloud_provider_official_regions
+    source_key: cloud_provider_official_regions
+    source_name: Cloud provider official region pages
+    category: cloud_infrastructure
+    source_type: official
+    reliability_class: P
+    license: to_verify
+    url: "to_verify: provider-specific official region pages"
+    update_frequency: to_verify
+    allowed_usage: metadata_registry_only_until_license_verified
+    access_method: web_reference
+    requires_license_review: true
+    expected_formats: [html, json, manual_registry]
+    geographic_scope: global
+    to_verify: true
+    notes: Initial placeholder. Verify provider-by-provider terms and whether locations are region-level, zone-level, or marketing-level disclosures.

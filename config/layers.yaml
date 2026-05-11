@@ -1,0 +1,240 @@
+layers:
+  - layer_id: submarine_cables
+    display_name: Submarine Cables
+    category: internet_infrastructure
+    geometry_type: LineString
+    min_zoom: 2
+    max_zoom: 12
+    sensitivity_level: high
+    allowed_precision: generalized
+    required_fields: [asset_id, source_id, asset_name, confidence_score]
+    optional_fields: [operator, status, landing_points, source_timestamp]
+    source_dataset_keys: [osm_telecom_infrastructure]
+    confidence_policy: source_reliability_plus_spatial_precision_required
+    public_visibility: false
+    enterprise_visibility: true
+
+  - layer_id: landing_stations
+    display_name: Landing Stations
+    category: internet_infrastructure
+    geometry_type: Point
+    min_zoom: 4
+    max_zoom: 12
+    sensitivity_level: high
+    allowed_precision: generalized
+    required_fields: [asset_id, source_id, asset_name, confidence_score]
+    optional_fields: [country, operator, status, source_timestamp]
+    source_dataset_keys: [osm_telecom_infrastructure]
+    confidence_policy: source_reliability_plus_spatial_precision_required
+    public_visibility: false
+    enterprise_visibility: true
+
+  - layer_id: ixps
+    display_name: Internet Exchange Points
+    category: internet_infrastructure
+    geometry_type: Point
+    min_zoom: 3
+    max_zoom: 13
+    sensitivity_level: medium
+    allowed_precision: city
+    required_fields: [asset_id, source_id, asset_name, confidence_score]
+    optional_fields: [city, country, operator, source_timestamp]
+    source_dataset_keys: [peeringdb_ixps, pch_ixp_directory]
+    confidence_policy: source_reliability_plus_location_precision_required
+    public_visibility: true
+    enterprise_visibility: true
+
+  - layer_id: cloud_regions
+    display_name: Cloud Regions
+    category: cloud_infrastructure
+    geometry_type: Point
+    min_zoom: 2
+    max_zoom: 10
+    sensitivity_level: medium
+    allowed_precision: regional
+    required_fields: [asset_id, source_id, provider, region_name, confidence_score]
+    optional_fields: [country, city_label, availability_zones, source_timestamp]
+    source_dataset_keys: [cloud_provider_regions]
+    confidence_policy: official_public_region_reference_required
+    public_visibility: true
+    enterprise_visibility: true
+
+  - layer_id: data_centers
+    display_name: Data Centers
+    category: compute_infrastructure
+    geometry_type: Point
+    min_zoom: 4
+    max_zoom: 12
+    sensitivity_level: high
+    allowed_precision: generalized
+    required_fields: [asset_id, source_id, asset_name, confidence_score]
+    optional_fields: [operator, campus_name, power_capacity_mw, source_timestamp]
+    source_dataset_keys: [cloud_provider_regions]
+    confidence_policy: public_disclosure_or_verified_source_required
+    public_visibility: false
+    enterprise_visibility: true
+
+  - layer_id: power_plants
+    display_name: Power Plants
+    category: energy
+    geometry_type: Point
+    min_zoom: 3
+    max_zoom: 13
+    sensitivity_level: medium
+    allowed_precision: source_native
+    required_fields: [asset_id, source_id, asset_name, confidence_score]
+    optional_fields: [fuel_type, capacity_mw, operator, status, source_timestamp]
+    source_dataset_keys: [wri_global_power_plants, global_energy_monitor_coal_plants]
+    confidence_policy: source_reliability_plus_recency_required
+    public_visibility: true
+    enterprise_visibility: true
+
+  - layer_id: transmission_lines
+    display_name: Transmission Lines
+    category: energy
+    geometry_type: LineString
+    min_zoom: 4
+    max_zoom: 12
+    sensitivity_level: high
+    allowed_precision: generalized
+    required_fields: [asset_id, source_id, asset_name, confidence_score]
+    optional_fields: [voltage_kv, operator, status, source_timestamp]
+    source_dataset_keys: [osm_power_networks]
+    confidence_policy: source_reliability_plus_spatial_precision_required
+    public_visibility: false
+    enterprise_visibility: true
+
+  - layer_id: substations
+    display_name: Substations
+    category: energy
+    geometry_type: Point
+    min_zoom: 5
+    max_zoom: 12
+    sensitivity_level: high
+    allowed_precision: generalized
+    required_fields: [asset_id, source_id, asset_name, confidence_score]
+    optional_fields: [voltage_kv, operator, status, source_timestamp]
+    source_dataset_keys: [osm_power_networks]
+    confidence_policy: source_reliability_plus_spatial_precision_required
+    public_visibility: false
+    enterprise_visibility: true
+
+  - layer_id: gas_pipelines
+    display_name: Gas Pipelines
+    category: energy
+    geometry_type: LineString
+    min_zoom: 4
+    max_zoom: 12
+    sensitivity_level: high
+    allowed_precision: generalized
+    required_fields: [asset_id, source_id, asset_name, confidence_score]
+    optional_fields: [operator, status, source_timestamp]
+    source_dataset_keys: [global_energy_monitor_gas_infrastructure]
+    confidence_policy: source_reliability_plus_spatial_precision_required
+    public_visibility: false
+    enterprise_visibility: true
+
+  - layer_id: lng_terminals
+    display_name: LNG Terminals
+    category: energy
+    geometry_type: Point
+    min_zoom: 4
+    max_zoom: 12
+    sensitivity_level: high
+    allowed_precision: generalized
+    required_fields: [asset_id, source_id, asset_name, confidence_score]
+    optional_fields: [operator, status, capacity_label, source_timestamp]
+    source_dataset_keys: [global_energy_monitor_gas_infrastructure]
+    confidence_policy: source_reliability_plus_spatial_precision_required
+    public_visibility: false
+    enterprise_visibility: true
+
+  - layer_id: oil_gas_extraction
+    display_name: Oil and Gas Extraction
+    category: primary_resources
+    geometry_type: Point
+    min_zoom: 4
+    max_zoom: 11
+    sensitivity_level: high
+    allowed_precision: generalized
+    required_fields: [asset_id, source_id, asset_name, confidence_score]
+    optional_fields: [resource_type, operator, status, source_timestamp]
+    source_dataset_keys: [global_energy_monitor_oil_gas_extraction]
+    confidence_policy: source_reliability_plus_spatial_precision_required
+    public_visibility: false
+    enterprise_visibility: true
+
+  - layer_id: coal_mines
+    display_name: Coal Mines
+    category: primary_resources
+    geometry_type: Point
+    min_zoom: 4
+    max_zoom: 11
+    sensitivity_level: medium
+    allowed_precision: generalized
+    required_fields: [asset_id, source_id, asset_name, confidence_score]
+    optional_fields: [operator, status, production_label, source_timestamp]
+    source_dataset_keys: [global_energy_monitor_coal_plants]
+    confidence_policy: source_reliability_plus_recency_required
+    public_visibility: false
+    enterprise_visibility: true
+
+  - layer_id: critical_minerals
+    display_name: Critical Minerals
+    category: primary_resources
+    geometry_type: Point
+    min_zoom: 3
+    max_zoom: 10
+    sensitivity_level: medium
+    allowed_precision: regional
+    required_fields: [asset_id, source_id, mineral_group, confidence_score]
+    optional_fields: [country, deposit_name, development_stage, source_timestamp]
+    source_dataset_keys: [usgs_mineral_commodity_summaries]
+    confidence_policy: source_reliability_plus_regional_method_required
+    public_visibility: false
+    enterprise_visibility: true
+
+  - layer_id: water_risk
+    display_name: Water Risk
+    category: environmental_risk
+    geometry_type: Polygon
+    min_zoom: 2
+    max_zoom: 10
+    sensitivity_level: low
+    allowed_precision: source_native
+    required_fields: [area_id, source_id, risk_class, confidence_score]
+    optional_fields: [indicator_name, scenario, source_timestamp]
+    source_dataset_keys: [wri_aqueduct_water_risk, hydrosheds_hydrography]
+    confidence_policy: source_methodology_and_indicator_version_required
+    public_visibility: true
+    enterprise_visibility: true
+
+  - layer_id: geopolitical_risk
+    display_name: Geopolitical Risk
+    category: regional_risk
+    geometry_type: Polygon
+    min_zoom: 1
+    max_zoom: 8
+    sensitivity_level: low
+    allowed_precision: country
+    required_fields: [area_id, source_id, risk_class, confidence_score]
+    optional_fields: [indicator_name, year, source_timestamp]
+    source_dataset_keys: [world_bank_wgi]
+    confidence_policy: source_methodology_and_year_required
+    public_visibility: true
+    enterprise_visibility: true
+
+  - layer_id: ai_compute_score
+    display_name: AI Compute Score
+    category: derived_score
+    geometry_type: Polygon
+    min_zoom: 2
+    max_zoom: 8
+    sensitivity_level: medium
+    allowed_precision: regional
+    required_fields: [area_id, score_version, score_value, confidence_score]
+    optional_fields: [power_score, fiber_score, water_score, governance_score, source_timestamp]
+    source_dataset_keys: [wri_global_power_plants, peeringdb_ixps, cloud_provider_regions, wri_aqueduct_water_risk, world_bank_wgi]
+    confidence_policy: derived_score_inputs_and_model_version_required
+    public_visibility: true
+    enterprise_visibility: true
