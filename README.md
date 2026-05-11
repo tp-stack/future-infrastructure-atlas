@@ -195,3 +195,107 @@ python scripts/ingest_dataset.py --dataset-key wri_global_power_plants --file-pa
 ```
 
 The WRI fixture has 3 rows: 2 valid, 1 with an invalid latitude (rejected during validation). PostGIS loading remains optional and skips gracefully when unavailable.
+
+## Step 6: Deployable Global Infrastructure Map
+
+Step 6 adds a deployable interactive map frontend and a Web data build pipeline.
+
+### Raw CSV Placement
+
+Place the real CSV files in the following Git-ignored locations:
+
+- WRI Global Power Plant Database: `data/raw/wri_global_power_plants/manual_20260511/global_power_plant_database_wri_all.csv`
+- Submarine cable lines: `data/raw/submarine_cable_lines/manual_20260511/global_submarine_cable_lines_scn_segments.csv`
+- Frontier AI data centers: `data/raw/data_centers/manual_20260511/frontier_ai_data_centers_epoch_public.csv`
+
+**Never commit raw CSV files.** They are already ignored by `.gitignore` under `data/raw/**`.
+
+### Build Web Map Data
+
+```powershell
+python scripts/build_web_map_data.py --max-public-mb 5
+```
+
+or:
+
+```powershell
+make build-map-data
+```
+
+This script:
+1. Reads all three CSVs (streaming as needed)
+2. Validates coordinates
+3. Normalizes into compact frontend JSON
+4. Writes to `frontend/public/data/atlas_web_data.json` if under 5 MB
+5. Otherwise writes to `data/processed/web/atlas_web_data.json` and exits non-zero
+
+**5 MB frontend payload limit:** If the generated JSON exceeds 5 MB, it is written to the Git-ignored `data/processed/web/` directory instead of `frontend/public/data/`. This prevents large data files from being committed to the repository.
+
+### Frontend Install
+
+```powershell
+make frontend-install
+```
+
+### Frontend Development
+
+```powershell
+make frontend-dev
+```
+
+Then open http://localhost:5173 in a browser.
+
+### Frontend Build
+
+```powershell
+make frontend-build
+```
+
+### Frontend Preview
+
+```powershell
+make frontend-preview
+```
+
+### Deploy to Vercel
+
+```powershell
+make deploy-vercel
+```
+
+If the Vercel CLI is not installed:
+
+```powershell
+npm install -g vercel
+vercel login
+cd frontend
+vercel --prod
+```
+
+### Frontend Map
+
+The map uses:
+- React + TypeScript + Vite
+- MapLibre GL JS with dark atlas style
+- Power plant points colored by fuel type (amber/orange theme)
+- Data center points in white/silver
+- Submarine cable lines in cyan/blue
+- Layer toggles, fuel/country/capacity filters
+- Click popups with asset details
+- Stats panel (loaded counts, rejected records)
+- Source attribution and disclaimer panel
+- Museum-grade institutional dark theme
+
+### Safety Warnings
+
+- Never commit raw CSVs or large generated data files
+- Always verify `git status` before committing
+- The build script enforces a 5 MB limit on frontend data
+- If the limit is exceeded, data goes to `data/processed/web/` (Git-ignored)
+- Test before deploying: `python scripts/build_web_map_data.py --max-public-mb 5`
+
+### Tests
+
+```powershell
+pytest -q tests/test_build_web_map_data.py
+```

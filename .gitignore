@@ -58,6 +58,11 @@ data/logs/**
 *.duckdb
 *.sqlite
 
+# Frontend dependencies and builds
+node_modules/
+frontend/node_modules/
+frontend/dist/
+
 # Tiny fixtures are allowed for tests only
 !tests/fixtures/
 !tests/fixtures/**
