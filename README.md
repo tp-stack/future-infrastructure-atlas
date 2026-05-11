@@ -117,3 +117,45 @@ pytest -q
 ```
 
 The sample manifest is written under `data/cache/`, which is ignored by Git. It is a local generated artifact, not a committed dataset or ingestion result.
+
+## Step 4: Safe Fixture Ingestion Framework
+
+Step 4 adds a safe fixture ingestion framework that validates, normalizes, and writes processed output for registered datasets without downloading real data or requiring external services.
+
+The ingestion pipeline:
+
+1. **Read** a registered dataset from a local CSV file
+2. **Create or require** a raw provenance manifest
+3. **Validate** required CSV fields, latitude, and longitude
+4. **Normalize** valid records into canonical asset-like JSONL with confidence metadata
+5. **Write** processed output atomically to `data/processed/{dataset_key}/`
+6. **Write** an ingestion manifest to `data/cache/`
+7. **Optionally load** processed records into PostGIS if the database is available
+
+Ingest the sample fixture:
+
+```powershell
+python scripts/ingest_dataset.py --dataset-key wri_global_power_plants --file-path tests/fixtures/sample_power_plants.csv
+```
+
+or:
+
+```powershell
+make ingest-fixture
+```
+
+Optionally load processed records to PostGIS:
+
+```powershell
+python scripts/load_processed_to_postgis.py --processed-path data/processed/wri_global_power_plants/<run_id>.jsonl
+```
+
+or:
+
+```powershell
+make load-postgis
+```
+
+PostGIS loading is optional and skips gracefully if the database is unavailable.
+
+All generated outputs are written to Git-ignored `data/` directories. No real datasets are downloaded, ingested, or committed.

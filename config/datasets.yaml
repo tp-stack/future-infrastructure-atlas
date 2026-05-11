@@ -15,6 +15,13 @@ datasets:
     processed_storage_policy: data_processed_or_object_storage_only
     checksum_required: true
     validation_required: true
+    required_fields:
+      - name
+      - country
+      - fuel_type
+      - capacity_mw
+      - latitude
+      - longitude
     notes: Metadata placeholder only. No source data has been downloaded or ingested.
 
   - dataset_key: peeringdb_ixps
