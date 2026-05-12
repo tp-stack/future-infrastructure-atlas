@@ -6,6 +6,15 @@ import InfrastructureCanvasOverlay from "./InfrastructureCanvasOverlay";
 import type { CanvasDiagnostics } from "./InfrastructureCanvasOverlay";
 import { registerPMTilesProtocol, getPMTilesStyle, type TileStatus } from "./pmtiles";
 import { findNearest, buildPickIndex, type PickIndex } from "./interaction";
+import {
+  getValidAssetCoordinates,
+  computeLonLatBounds,
+  expandBounds,
+  getDefaultGlobalBounds,
+  boundsToFitBounds,
+  isZoomPathological,
+  describeZoomLevel,
+} from "./viewport";
 
 interface Props {
   data: AtlasData;
@@ -53,10 +62,41 @@ export default function AtlasMap({
   const filtersRef = useRef(filters);
   const visibleLayersRef = useRef(visibleLayers);
   const hoveredIdRef = useRef<string | null>(null);
+  const initialFitDoneRef = useRef(false);
+  const autoResetDoneRef = useRef(false);
+  const userInteractedRef = useRef(false);
 
   dataRef.current = data;
   filtersRef.current = filters;
   visibleLayersRef.current = visibleLayers;
+
+  const fitToData = useCallback((opts?: { maxZoom?: number; padding?: number }) => {
+    const m = map.current;
+    if (!m) return;
+    const d = dataRef.current;
+    const fl = filtersRef.current;
+    const vl = visibleLayersRef.current;
+
+    const coords = getValidAssetCoordinates(d, fl, vl);
+    if (coords.length > 0) {
+      const rawBounds = computeLonLatBounds(coords);
+      if (rawBounds) {
+        const padded = expandBounds(rawBounds, 5);
+        const fb = boundsToFitBounds(padded);
+        m.fitBounds(fb, { padding: opts?.padding ?? 60, maxZoom: opts?.maxZoom ?? 2.2 });
+        return;
+      }
+    }
+    // Fallback to global
+    m.fitBounds(boundsToFitBounds(getDefaultGlobalBounds()), { padding: opts?.padding ?? 20, maxZoom: 2.2 });
+  }, []);
+
+  const resetToGlobalView = useCallback(() => {
+    const m = map.current;
+    if (!m) return;
+    m.fitBounds(boundsToFitBounds(getDefaultGlobalBounds()), { padding: 20, maxZoom: 2.2 });
+    userInteractedRef.current = false;
+  }, []);
 
   const rebuildPickIndex = useCallback(() => {
     const m = map.current;
@@ -128,11 +168,31 @@ export default function AtlasMap({
     const m = map.current;
     if (!m) return;
 
+    const onMapLoad = () => {
+      m.resize();
+      if (!initialFitDoneRef.current) {
+        initialFitDoneRef.current = true;
+        setTimeout(() => fitToData({ maxZoom: 2.2 }), 50);
+      }
+    };
+
+    if (m.loaded()) {
+      onMapLoad();
+    } else {
+      m.once("load", onMapLoad);
+    }
+  }, [fitToData]);
+
+  useEffect(() => {
+    const m = map.current;
+    if (!m) return;
+
     const handleIdle = () => rebuildPickIndex();
     m.on("idle", handleIdle);
     m.on("moveend", handleIdle);
 
     const handleClick = (e: maplibregl.MapMouseEvent) => {
+      userInteractedRef.current = true;
       const idx = pickIndexRef.current;
       const hit = findNearest(e.point.x, e.point.y, idx, 12);
       if (hit) {
@@ -171,9 +231,14 @@ export default function AtlasMap({
       m.getCanvas().style.cursor = "";
     };
 
+    const handleZoom = () => {
+      userInteractedRef.current = true;
+    };
+
     m.on("click", handleClick);
     m.on("mousemove", handleMouseMove);
     m.on("mouseleave", handleMouseLeave);
+    m.on("zoomend", handleZoom);
 
     setTimeout(() => rebuildPickIndex(), 500);
 
@@ -183,22 +248,37 @@ export default function AtlasMap({
       m.off("click", handleClick);
       m.off("mousemove", handleMouseMove);
       m.off("mouseleave", handleMouseLeave);
+      m.off("zoomend", handleZoom);
     };
   }, [onPopup, onHoveredAsset, onSelectedAsset, rebuildPickIndex]);
 
+  const handleCanvasDiagnostics = useCallback((d: CanvasDiagnostics) => {
+    onCanvasDiagnostics?.(d);
+
+    if (
+      d.powerPlantsDrawn === 0 &&
+      d.recordsReceived > 1000 &&
+      !autoResetDoneRef.current &&
+      !userInteractedRef.current
+    ) {
+      const m = map.current;
+      if (m) {
+        const zoom = m.getZoom();
+        if (isZoomPathological(zoom) || zoom < 0) {
+          autoResetDoneRef.current = true;
+          setTimeout(() => resetToGlobalView(), 50);
+        }
+      }
+    }
+  }, [onCanvasDiagnostics, resetToGlobalView]);
+
   const handleResetView = useCallback(() => {
-    if (!map.current) return;
-    map.current.flyTo({ center: [10, 30], zoom: 1.8 });
-  }, []);
+    resetToGlobalView();
+  }, [resetToGlobalView]);
 
   const handleFitData = useCallback(() => {
-    if (!map.current) return;
-    const bounds = new maplibregl.LngLatBounds();
-    let hasData = false;
-    for (const p of data.power_plants) { bounds.extend([p.lon, p.lat]); hasData = true; }
-    for (const d of data.data_centers) { if (d.lat != null && d.lon != null) { bounds.extend([d.lon, d.lat]); hasData = true; } }
-    if (hasData) map.current.fitBounds(bounds, { padding: 60, maxZoom: 10 });
-  }, [data]);
+    fitToData({ maxZoom: 4 });
+  }, [fitToData]);
 
   return (
     <div className="map-container">
@@ -209,16 +289,16 @@ export default function AtlasMap({
         visibleLayers={visibleLayers}
         mapInstance={mapInstance}
         showTestPoints={showTestPoints}
-        onCanvasDiagnostics={onCanvasDiagnostics}
+        onCanvasDiagnostics={handleCanvasDiagnostics}
         hoveredAssetId={hoveredIdRef.current}
         selectedAssetId={selectedAssetId}
         graticuleVisible={graticuleVisible}
       />
       <div className="map-overlay-controls">
-        <button className="map-ctrl-btn" onClick={handleResetView} title="Reset view">
+        <button className="map-ctrl-btn" onClick={handleResetView} title="Reset global view">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
         </button>
-        <button className="map-ctrl-btn" onClick={handleFitData} title="Fit to data">
+        <button className="map-ctrl-btn" onClick={handleFitData} title="Fit to visible data">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
         </button>
       </div>

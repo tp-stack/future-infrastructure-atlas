@@ -275,7 +275,7 @@ export default function App() {
           {hasZeroCanvasPoints && (
             <div className="coverage-warning" style={{ borderTop: "1px solid rgba(200,50,50,0.2)" }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 9v2m0 4h.01M12 2l10 18H2L12 2z"/></svg>
-              <span>Data loaded ({canvasDiag?.recordsReceived?.toLocaleString()} records, {canvasDiag?.validCoords?.toLocaleString()} valid coords) but renderer drew 0 points.</span>
+              <span>Visible points in current viewport: 0. Valid coordinates loaded: {canvasDiag?.validCoords?.toLocaleString()}. Camera may be outside data bounds. Use Reset Global View.</span>
             </div>
           )}
 
@@ -341,15 +341,21 @@ function DiagnosticsPanel({
           <span className="diag-val">{canvasDiag.canvasWidth} &times; {canvasDiag.canvasHeight}</span>
         </div>
         <div className="diag-row">
+          <span className="diag-label">Zoom level</span>
+          <span className={`diag-val ${canvasDiag.currentZoom > 0 && canvasDiag.currentZoom < 8 ? "ok" : "fail"}`}>
+            {canvasDiag.currentZoom.toFixed(1)}
+          </span>
+        </div>
+        <div className="diag-row">
           <span className="diag-label">Records received</span>
           <span className="diag-val">{canvasDiag.recordsReceived.toLocaleString()}</span>
         </div>
         <div className="diag-row">
-          <span className="diag-label">Valid coords</span>
+          <span className="diag-label">Valid coordinates</span>
           <span className={`diag-val ${canvasDiag.validCoords > 1000 ? "ok" : "fail"}`}>{canvasDiag.validCoords.toLocaleString()}</span>
         </div>
         <div className="diag-row">
-          <span className="diag-label">Power plants drawn</span>
+          <span className="diag-label">Visible in viewport</span>
           <span className={`diag-val ${canvasDiag.powerPlantsDrawn > 1000 ? "ok" : "fail"}`}>{canvasDiag.powerPlantsDrawn.toLocaleString()}</span>
         </div>
         <div className="diag-row">

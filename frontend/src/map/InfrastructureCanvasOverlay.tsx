@@ -1,4 +1,5 @@
 import { useRef, useEffect, useCallback } from "react";
+import type maplibregl from "maplibre-gl";
 import type { AtlasData, FilterState, PowerPlant, Cable, DataCenter } from "./types";
 
 interface Props {
@@ -26,6 +27,7 @@ export interface CanvasDiagnostics {
   lastDrawTime: string;
   lastError: string | null;
   projectionMode: string;
+  currentZoom: number;
 }
 
 const FUEL_COLORS: Record<string, string> = {
@@ -140,6 +142,7 @@ export default function InfrastructureCanvasOverlay({
         lastDrawTime: new Date().toISOString(),
         lastError: null,
         projectionMode: useMapProject ? "mercator (map)" : "equirectangular (fallback)",
+        currentZoom: useMapProject ? (mapInstance as maplibregl.Map).getZoom() : 0,
       };
 
       if (graticuleVisible) {
