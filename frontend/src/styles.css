@@ -424,17 +424,28 @@ html, body, #root {
   position: relative;
   min-width: 0;
   min-height: 0;
+  overflow: hidden;
 }
 
 .map-container {
   flex: 1;
   position: relative;
   min-height: 0;
+  overflow: hidden;
 }
 
-.map-container :global(.maplibregl-map) {
+.map-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.map-canvas .maplibregl-map,
+.map-canvas :global(.maplibregl-map) {
   width: 100% !important;
   height: 100% !important;
+  position: absolute;
+  inset: 0;
 }
 
 .infrastructure-canvas {
@@ -451,7 +462,7 @@ html, body, #root {
 
 .map-overlay-controls {
   position: absolute;
-  top: 12px;
+  top: 50px;
   right: 12px;
   display: flex;
   flex-direction: column;
@@ -647,6 +658,174 @@ html, body, #root {
   text-align: center;
   margin-top: auto;
   letter-spacing: 0.2px;
+}
+
+/* ─── Toolbar ─── */
+
+.toolbar-btn {
+  width: 28px;
+  height: 28px;
+  background: #14161c;
+  border: 1px solid #1e2028;
+  color: #6a6a72;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.toolbar-btn:hover {
+  color: #f4efe6;
+  border-color: #3a3a42;
+  background: #1a1c24;
+}
+.toolbar-btn.active {
+  color: #4cc9e8;
+  border-color: #4cc9e8;
+  background: rgba(76, 201, 232, 0.08);
+}
+
+/* ─── Asset Details Overlay ─── */
+
+.asset-details-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  background: rgba(0, 0, 0, 0.3);
+  pointer-events: auto;
+}
+
+.asset-details-panel {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 380px;
+  max-width: 90vw;
+  max-height: 80vh;
+  overflow-y: auto;
+  background: #0e1016;
+  border: 1px solid #1e2028;
+  border-radius: 10px;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.8);
+  padding: 20px;
+  pointer-events: auto;
+}
+
+.asset-details-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 4px;
+}
+
+.asset-details-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #f4efe6;
+  line-height: 1.3;
+  flex: 1;
+  padding-right: 12px;
+}
+
+.asset-details-close {
+  background: none;
+  border: none;
+  color: #5a5a62;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.asset-details-close:hover {
+  color: #f4efe6;
+  background: #181a22;
+}
+
+.asset-details-type {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #4cc9e8;
+  margin-bottom: 14px;
+}
+
+.asset-details-body {
+  margin-bottom: 4px;
+}
+
+.asset-details-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.asset-details-field {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  border-bottom: 1px solid #16181f;
+  font-size: 11px;
+  gap: 12px;
+}
+
+.asset-details-label {
+  color: #5a5a62;
+  white-space: nowrap;
+}
+
+.asset-details-value {
+  color: #f4efe6;
+  text-align: right;
+  word-break: break-word;
+}
+
+.asset-details-warning {
+  margin-top: 10px;
+  padding: 8px 10px;
+  background: #2d1f00;
+  border: 1px solid #78350f;
+  border-radius: 4px;
+  font-size: 10px;
+  color: #f59e0b;
+  line-height: 1.4;
+}
+
+/* ─── Diagnostics Floating Panel ─── */
+
+.diag-panel {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  z-index: 30;
+  background: rgba(14, 16, 22, 0.92);
+  backdrop-filter: blur(8px);
+  border: 1px solid #1a1c24;
+  border-radius: 8px;
+  padding: 10px 14px;
+  min-width: 220px;
+  pointer-events: auto;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+}
+
+.diag-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #5a5a62;
+  margin-bottom: 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #1a1c24;
+}
+
+.diag-panel-close {
+  display: flex;
+  align-items: center;
 }
 
 /* ─── Responsive ─── */

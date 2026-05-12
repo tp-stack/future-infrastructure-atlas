@@ -5,6 +5,7 @@ import type { AtlasData, FilterState, Asset } from "./types";
 import InfrastructureCanvasOverlay from "./InfrastructureCanvasOverlay";
 import type { CanvasDiagnostics } from "./InfrastructureCanvasOverlay";
 import { registerPMTilesProtocol, getPMTilesStyle, type TileStatus } from "./pmtiles";
+import { findNearest, buildPickIndex, type PickIndex } from "./interaction";
 
 interface Props {
   data: AtlasData;
@@ -14,6 +15,10 @@ interface Props {
   onCanvasDiagnostics?: (d: CanvasDiagnostics) => void;
   showTestPoints?: boolean;
   tileStatus?: TileStatus;
+  graticuleVisible?: boolean;
+  onHoveredAsset?: (id: string | null) => void;
+  onSelectedAsset?: (id: string | null) => void;
+  selectedAssetId?: string | null;
 }
 
 const DARK_BG = "#050609";
@@ -35,13 +40,59 @@ const CARTO_DARK_STYLE: maplibregl.StyleSpecification = {
   ],
 };
 
-export default function AtlasMap({ data, filters, visibleLayers, onPopup, onCanvasDiagnostics, showTestPoints, tileStatus }: Props) {
+export default function AtlasMap({
+  data, filters, visibleLayers, onPopup, onCanvasDiagnostics,
+  showTestPoints, tileStatus, graticuleVisible,
+  onHoveredAsset, onSelectedAsset, selectedAssetId,
+}: Props) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
-  const [pmtilesActive] = useState(() => {
-    if (!tileStatus) return false;
-    return tileStatus.power_plants === "present" || tileStatus.submarine_cables === "present" || tileStatus.data_centers === "present";
-  });
+  const [mapInstance, setMapInstance] = useState<maplibregl.Map | null>(null);
+  const pickIndexRef = useRef<PickIndex>({ powerPlants: [], dataCenters: [], cables: [] });
+  const dataRef = useRef(data);
+  const filtersRef = useRef(filters);
+  const visibleLayersRef = useRef(visibleLayers);
+  const hoveredIdRef = useRef<string | null>(null);
+
+  dataRef.current = data;
+  filtersRef.current = filters;
+  visibleLayersRef.current = visibleLayers;
+
+  const rebuildPickIndex = useCallback(() => {
+    const m = map.current;
+    if (!m || !dataRef.current) return;
+    const d = dataRef.current;
+    const fl = filtersRef.current;
+    const vl = visibleLayersRef.current;
+    const container = m.getContainer();
+    const viewW = container.clientWidth;
+    const viewH = container.clientHeight;
+    if (viewW < 1 || viewH < 1) return;
+
+    const projectFn = (lon: number, lat: number): [number, number] => {
+      const p = m.project([lon, lat]);
+      return [p.x, p.y];
+    };
+
+    const filteredPP = vl.power_plants
+      ? d.power_plants.filter((p) => {
+          if (fl.fuelType && p.f !== fl.fuelType) return false;
+          if (fl.country && p.c !== fl.country) return false;
+          if (fl.minMw > 0 && p.mw < fl.minMw) return false;
+          return true;
+        })
+      : [];
+
+    const filteredDC = vl.data_centers
+      ? d.data_centers.filter((dc) => dc.mapped_status === "mapped" && dc.lat != null && dc.lon != null)
+      : [];
+
+    const filteredCables = vl.cables
+      ? d.cables.filter((c) => c.mapped_status === "mapped" && c.geometry && c.geometry.length >= 2)
+      : [];
+
+    pickIndexRef.current = buildPickIndex(filteredPP, filteredDC, filteredCables, projectFn, viewW, viewH);
+  }, []);
 
   const initMap = useCallback(() => {
     if (!mapContainer.current || map.current) return;
@@ -61,6 +112,7 @@ export default function AtlasMap({ data, filters, visibleLayers, onPopup, onCanv
     m.addControl(new maplibregl.NavigationControl(), "top-right");
     m.addControl(new maplibregl.ScaleControl({ unit: "metric", maxWidth: 120 }), "bottom-left");
     map.current = m;
+    setMapInstance(m);
   }, [tileStatus, visibleLayers]);
 
   useEffect(() => {
@@ -68,8 +120,71 @@ export default function AtlasMap({ data, filters, visibleLayers, onPopup, onCanv
     return () => {
       map.current?.remove();
       map.current = null;
+      setMapInstance(null);
     };
   }, [initMap]);
+
+  useEffect(() => {
+    const m = map.current;
+    if (!m) return;
+
+    const handleIdle = () => rebuildPickIndex();
+    m.on("idle", handleIdle);
+    m.on("moveend", handleIdle);
+
+    const handleClick = (e: maplibregl.MapMouseEvent) => {
+      const idx = pickIndexRef.current;
+      const hit = findNearest(e.point.x, e.point.y, idx, 12);
+      if (hit) {
+        onPopup(hit.asset as Asset);
+        onSelectedAsset?.(hit.id);
+      } else {
+        onPopup(null);
+        onSelectedAsset?.(null);
+      }
+    };
+
+    const handleMouseMove = (e: maplibregl.MapMouseEvent) => {
+      const idx = pickIndexRef.current;
+      const hit = findNearest(e.point.x, e.point.y, idx, 12);
+      const canvas = m.getCanvas();
+      if (hit) {
+        if (hit.id !== hoveredIdRef.current) {
+          hoveredIdRef.current = hit.id;
+          onHoveredAsset?.(hit.id);
+        }
+        canvas.style.cursor = "pointer";
+      } else {
+        if (hoveredIdRef.current !== null) {
+          hoveredIdRef.current = null;
+          onHoveredAsset?.(null);
+        }
+        canvas.style.cursor = "";
+      }
+    };
+
+    const handleMouseLeave = () => {
+      if (hoveredIdRef.current !== null) {
+        hoveredIdRef.current = null;
+        onHoveredAsset?.(null);
+      }
+      m.getCanvas().style.cursor = "";
+    };
+
+    m.on("click", handleClick);
+    m.on("mousemove", handleMouseMove);
+    m.on("mouseleave", handleMouseLeave);
+
+    setTimeout(() => rebuildPickIndex(), 500);
+
+    return () => {
+      m.off("idle", handleIdle);
+      m.off("moveend", handleIdle);
+      m.off("click", handleClick);
+      m.off("mousemove", handleMouseMove);
+      m.off("mouseleave", handleMouseLeave);
+    };
+  }, [onPopup, onHoveredAsset, onSelectedAsset, rebuildPickIndex]);
 
   const handleResetView = useCallback(() => {
     if (!map.current) return;
@@ -92,8 +207,12 @@ export default function AtlasMap({ data, filters, visibleLayers, onPopup, onCanv
         data={data}
         filters={filters}
         visibleLayers={visibleLayers}
+        mapInstance={mapInstance}
         showTestPoints={showTestPoints}
         onCanvasDiagnostics={onCanvasDiagnostics}
+        hoveredAssetId={hoveredIdRef.current}
+        selectedAssetId={selectedAssetId}
+        graticuleVisible={graticuleVisible}
       />
       <div className="map-overlay-controls">
         <button className="map-ctrl-btn" onClick={handleResetView} title="Reset view">
