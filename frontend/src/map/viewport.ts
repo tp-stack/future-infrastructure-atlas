@@ -90,6 +90,25 @@ export function boundsToFitBounds(b: LonLatBounds): [[number, number], [number, 
   return [[b.minLon, b.minLat], [b.maxLon, b.maxLat]];
 }
 
+export function computeFeatureCollectionBounds(fc: GeoJSON.FeatureCollection): LonLatBounds | null {
+  const coords: [number, number][] = [];
+  for (const f of fc.features) {
+    if (f.geometry.type === "Point") {
+      const c = (f.geometry as GeoJSON.Point).coordinates;
+      coords.push([c[0], c[1]]);
+    } else if (f.geometry.type === "LineString") {
+      for (const c of (f.geometry as GeoJSON.LineString).coordinates) {
+        coords.push([c[0], c[1]]);
+      }
+    } else if (f.geometry.type === "MultiLineString") {
+      for (const line of (f.geometry as GeoJSON.MultiLineString).coordinates) {
+        for (const c of line) coords.push([c[0], c[1]]);
+      }
+    }
+  }
+  return computeLonLatBounds(coords);
+}
+
 export function isZoomPathological(zoom: number): boolean {
   return zoom > 8;
 }

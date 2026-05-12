@@ -39,6 +39,7 @@ export default function App() {
   const [showTestPoints, setShowTestPoints] = useState(false);
   const [graticuleVisible, setGraticuleVisible] = useState(true);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
+  const [canvasEnabled, setCanvasEnabled] = useState(false);
   const [hoveredAssetId, setHoveredAssetId] = useState<string | null>(null);
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [selectedAssetType, setSelectedAssetType] = useState<InteractableType | null>(null);
@@ -291,6 +292,7 @@ export default function App() {
             onHoveredAsset={setHoveredAssetId}
             onSelectedAsset={handleSelectedAsset}
             selectedAssetId={selectedAssetId}
+            canvasEnabled={canvasEnabled}
           />
 
           <AssetDetailsPanel
@@ -304,6 +306,8 @@ export default function App() {
             showTestPoints={showTestPoints}
             onToggleTestPoints={setShowTestPoints}
             visible={showDiagnostics}
+            canvasEnabled={canvasEnabled}
+            onToggleCanvas={setCanvasEnabled}
           />
         </div>
       </div>
@@ -316,11 +320,15 @@ function DiagnosticsPanel({
   showTestPoints,
   onToggleTestPoints,
   visible,
+  canvasEnabled,
+  onToggleCanvas,
 }: {
   canvasDiag: CanvasDiagnostics | null;
   showTestPoints: boolean;
   onToggleTestPoints: (v: boolean) => void;
   visible: boolean;
+  canvasEnabled: boolean;
+  onToggleCanvas: (v: boolean) => void;
 }) {
   if (!canvasDiag || !visible) return null;
   return (
@@ -384,6 +392,19 @@ function DiagnosticsPanel({
             <span className="diag-val fail">{canvasDiag.lastError}</span>
           </div>
         )}
+        <div className="diag-row">
+          <span className="diag-label">Renderer</span>
+          <span className="diag-val ok" style={{ fontSize: 9 }}>MapLibre layers</span>
+        </div>
+        <div className="diag-row">
+          <span className="diag-label">Canvas fallback</span>
+          <span className="diag-val">
+            <label style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+              <input type="checkbox" checked={canvasEnabled} onChange={(e) => onToggleCanvas(e.target.checked)} style={{ accentColor: "#d69a13", width: 11, height: 11 }} />
+              <span style={{ color: canvasEnabled ? "#d69a13" : "#5a5a62", fontSize: 9 }}>{canvasEnabled ? "enabled" : "disabled"}</span>
+            </label>
+          </span>
+        </div>
         <div className="diag-row">
           <span className="diag-label">Test mode</span>
           <span className="diag-val">
