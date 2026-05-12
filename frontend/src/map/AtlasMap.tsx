@@ -4,6 +4,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import type { AtlasData, FilterState, Asset } from "./types";
 import InfrastructureCanvasOverlay from "./InfrastructureCanvasOverlay";
 import type { CanvasDiagnostics } from "./InfrastructureCanvasOverlay";
+import { registerPMTilesProtocol, getPMTilesStyle, type TileStatus } from "./pmtiles";
 
 interface Props {
   data: AtlasData;
@@ -12,6 +13,7 @@ interface Props {
   onPopup: (asset: Asset | null) => void;
   onCanvasDiagnostics?: (d: CanvasDiagnostics) => void;
   showTestPoints?: boolean;
+  tileStatus?: TileStatus;
 }
 
 const DARK_BG = "#050609";
@@ -33,15 +35,24 @@ const CARTO_DARK_STYLE: maplibregl.StyleSpecification = {
   ],
 };
 
-export default function AtlasMap({ data, filters, visibleLayers, onPopup, onCanvasDiagnostics, showTestPoints }: Props) {
+export default function AtlasMap({ data, filters, visibleLayers, onPopup, onCanvasDiagnostics, showTestPoints, tileStatus }: Props) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
+  const [pmtilesActive] = useState(() => {
+    if (!tileStatus) return false;
+    return tileStatus.power_plants === "present" || tileStatus.submarine_cables === "present" || tileStatus.data_centers === "present";
+  });
 
   const initMap = useCallback(() => {
     if (!mapContainer.current || map.current) return;
+    const hasPMTiles = tileStatus && (tileStatus.power_plants === "present" || tileStatus.submarine_cables === "present" || tileStatus.data_centers === "present");
+    if (hasPMTiles) {
+      registerPMTilesProtocol();
+    }
+    const style = hasPMTiles ? getPMTilesStyle(tileStatus!, visibleLayers) : CARTO_DARK_STYLE;
     const m = new maplibregl.Map({
       container: mapContainer.current,
-      style: CARTO_DARK_STYLE,
+      style,
       center: [10, 30],
       zoom: 1.8,
       renderWorldCopies: false,
@@ -50,7 +61,7 @@ export default function AtlasMap({ data, filters, visibleLayers, onPopup, onCanv
     m.addControl(new maplibregl.NavigationControl(), "top-right");
     m.addControl(new maplibregl.ScaleControl({ unit: "metric", maxWidth: 120 }), "bottom-left");
     map.current = m;
-  }, []);
+  }, [tileStatus, visibleLayers]);
 
   useEffect(() => {
     initMap();

@@ -3,9 +3,11 @@ import { useMemo } from "react";
 
 interface Props {
   metadata: AtlasMetadata | null;
+  tileStatus?: { power_plants: string; submarine_cables: string; data_centers: string };
+  pmtilesMode?: boolean;
 }
 
-export default function StatsPanel({ metadata }: Props) {
+export default function StatsPanel({ metadata, tileStatus, pmtilesMode }: Props) {
   const sections = useMemo(() => {
     if (!metadata) return null;
 
@@ -125,6 +127,24 @@ export default function StatsPanel({ metadata }: Props) {
           <span className="stat-label">License</span>
           <span className="stat-value">{sections.dcLicense}</span>
         </div>
+      )}
+
+      {pmtilesMode && tileStatus && (
+        <>
+          <div className="stats-section-label" style={{ marginTop: 8 }}>Tile availability</div>
+          <div className="stat-row">
+            <span className="stat-label">Power plants</span>
+            <span className="stat-value" style={{ color: tileStatus.power_plants === "present" ? "#62c370" : "#d95c5c" }}>{tileStatus.power_plants}</span>
+          </div>
+          <div className="stat-row">
+            <span className="stat-label">Cables</span>
+            <span className="stat-value" style={{ color: tileStatus.submarine_cables === "present" ? "#62c370" : "#d95c5c" }}>{tileStatus.submarine_cables}</span>
+          </div>
+          <div className="stat-row">
+            <span className="stat-label">Data centers</span>
+            <span className="stat-value" style={{ color: tileStatus.data_centers === "present" ? "#62c370" : "#d95c5c" }}>{tileStatus.data_centers}</span>
+          </div>
+        </>
       )}
     </div>
   );

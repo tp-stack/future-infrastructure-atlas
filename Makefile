@@ -57,4 +57,13 @@ frontend-preview:
 deploy-vercel:
 	cd frontend && vercel --prod
 
-validate-all: init-storage check-registry build-map-data check-frontend-data test check-storage frontend-build
+build-atlas-core:
+	python scripts/build_atlas_core.py
+
+build-pmtiles:
+	python scripts/build_pmtiles.py --all --max-public-mb 25
+
+check-atlas-core:
+	python scripts/check_atlas_core.py
+
+validate-all: init-storage check-registry build-map-data check-frontend-data build-atlas-core test check-storage frontend-build

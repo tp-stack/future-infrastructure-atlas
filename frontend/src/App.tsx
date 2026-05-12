@@ -9,10 +9,29 @@ import StatsPanel from "./components/StatsPanel";
 import UnmappedPanel from "./components/UnmappedPanel";
 import AssetPopup from "./components/AssetPopup";
 import type { AtlasData, FilterState, Asset } from "./map/types";
+import type { TileStatus } from "./map/pmtiles";
+
+interface AtlasCore {
+  generated_at: string;
+  architecture: string;
+  counts: Record<string, unknown>;
+  sources: { key: string; name: string; url: string; license: string }[];
+  disclaimer: string;
+  tile_registry: Record<string, { url: string; status: string; layer_name: string }>;
+  license_warnings: { layer: string; message: string; active: boolean }[];
+  data_gaps: Record<string, unknown>;
+}
 
 export default function App() {
   const [data, setData] = useState<AtlasData | null>(null);
+  const [core, setCore] = useState<AtlasCore | null>(null);
+  const [tileStatus, setTileStatus] = useState<TileStatus>({
+    power_plants: "unknown",
+    submarine_cables: "unknown",
+    data_centers: "unknown",
+  });
   const [loading, setLoading] = useState(true);
+  const [pmtilesMode, setPmtilesMode] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [canvasDiag, setCanvasDiag] = useState<CanvasDiagnostics | null>(null);
@@ -31,24 +50,49 @@ export default function App() {
 
   useEffect(() => {
     const controller = new AbortController();
-    fetch("/data/atlas_web_data.json", { signal: controller.signal })
-      .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}${r.status === 404 ? " — file not found" : ""}`);
-        return r.json();
-      })
-      .then((d: AtlasData) => {
-        if (!d.metadata || !d.power_plants) {
+
+    async function load() {
+      // Try atlas_core.json first
+      let ts: TileStatus = { power_plants: "unknown", submarine_cables: "unknown", data_centers: "unknown" };
+      try {
+        const coreResp = await fetch("/data/atlas_core.json", { signal: controller.signal });
+        if (coreResp.ok) {
+          const coreData: AtlasCore = await coreResp.json();
+          setCore(coreData);
+          const reg = coreData.tile_registry;
+          ts = {
+            power_plants: reg.power_plants?.status?.startsWith("present") ? "present" : "missing",
+            submarine_cables: reg.submarine_cables?.status?.startsWith("present") ? "present" : "missing",
+            data_centers: reg.data_centers?.status?.startsWith("present") ? "present" : "missing",
+          };
+          setTileStatus(ts);
+          if (ts.power_plants === "present" || ts.submarine_cables === "present" || ts.data_centers === "present") {
+            setPmtilesMode(true);
+          }
+        }
+      } catch {
+        // atlas_core.json unavailable, continue with fallback
+      }
+
+      // Load atlas_web_data.json for canvas fallback (always needed for metadata/counts)
+      try {
+        const webResp = await fetch("/data/atlas_web_data.json", { signal: controller.signal });
+        if (!webResp.ok) throw new Error(`HTTP ${webResp.status}${webResp.status === 404 ? " — file not found" : ""}`);
+        const webData: AtlasData = await webResp.json();
+        if (!webData.metadata || !webData.power_plants) {
           throw new Error("Invalid data structure: missing metadata or power_plants");
         }
-        setData(d);
+        setData(webData);
         setLoading(false);
-      })
-      .catch((err) => {
-        if (err.name !== "AbortError") {
-          setError(err.message);
+      } catch (err: unknown) {
+        if ((err as Error).name !== "AbortError") {
+          setError((err as Error).message);
           setLoading(false);
         }
-      });
+      }
+    }
+
+    load();
     return () => controller.abort();
   }, []);
 
@@ -75,6 +119,14 @@ export default function App() {
       return true;
     }).length;
   }, [data, filters]);
+
+  const counts = data ? data.metadata.counts : (core?.counts as Record<string, number> | null) || {};
+  const cablesMapped = (counts?.cables_mapped ?? counts?.submarine_cables_mapped ?? 0) as number;
+  const cablesTotal = (counts?.cables_total ?? counts?.submarine_cables_total ?? 0) as number;
+  const dcsMapped = (counts?.data_centers_mapped ?? 0) as number;
+  const dcsTotal = (counts?.data_centers_total ?? 0) as number;
+  const ppTotal = (counts?.power_plants_mapped ?? 0) as number;
+  const hasCoverageWarning = cablesMapped < cablesTotal || dcsMapped < dcsTotal;
 
   const activeFilterCount = useMemo(
     () => [filters.fuelType, filters.country, filters.minMw > 0 ? `${filters.minMw}+ MW` : ""].filter(Boolean).length,
@@ -113,13 +165,6 @@ export default function App() {
     );
   }
 
-  const counts = data.metadata.counts;
-  const cablesMapped = counts.cables_mapped ?? counts.submarine_cables_mapped;
-  const cablesTotal = counts.cables_total ?? counts.submarine_cables_total;
-  const dcsMapped = counts.data_centers_mapped;
-  const dcsTotal = counts.data_centers_total;
-  const hasCoverageWarning = cablesMapped < cablesTotal || dcsMapped < dcsTotal;
-
   return (
     <ErrorBoundary>
       <div className="app">
@@ -144,11 +189,11 @@ export default function App() {
             visibleCount={visibleCount}
           />
           <Legend />
-          <StatsPanel metadata={data.metadata} />
+          <StatsPanel metadata={data.metadata} tileStatus={pmtilesMode ? tileStatus : undefined} pmtilesMode={pmtilesMode} />
           <UnmappedPanel metadata={data.metadata} />
           <AssetPopup asset={selectedAsset} />
           <DiagnosticsPanel canvasDiag={canvasDiag} showTestPoints={showTestPoints} onToggleTestPoints={setShowTestPoints} />
-          <SourcePanel metadata={data.metadata} />
+          <SourcePanel metadata={data.metadata} tileStatus={pmtilesMode ? tileStatus : undefined} pmtilesMode={pmtilesMode} />
           <div className="panel-footer">
             Generated {new Date(data.metadata.generated_at).toLocaleString()}
           </div>
@@ -164,9 +209,10 @@ export default function App() {
           <div className="top-bar">
             <div className="top-bar-left">
               <span className="top-bar-title">Global Infrastructure Atlas</span>
-              <span className="top-bar-stat">{data.power_plants.length.toLocaleString()} power plants</span>
+              <span className="top-bar-stat">{ppTotal.toLocaleString()} power plants</span>
               <span className="top-bar-stat">{cablesMapped.toLocaleString()} / {cablesTotal.toLocaleString()} cables</span>
               <span className="top-bar-stat">{dcsMapped.toLocaleString()} / {dcsTotal.toLocaleString()} data centers</span>
+              {pmtilesMode && <span className="top-bar-stat" style={{ color: "#4cc9e8" }}>PMTiles</span>}
             </div>
             <div className="top-bar-right">
               {activeFilterCount > 0 && (
@@ -199,6 +245,7 @@ export default function App() {
             onPopup={setSelectedAsset}
             onCanvasDiagnostics={setCanvasDiag}
             showTestPoints={showTestPoints}
+            tileStatus={pmtilesMode ? tileStatus : undefined}
           />
         </div>
       </div>

@@ -1,0 +1,81 @@
+{
+  "generated_at": "2026-05-11T16:10:43.761160Z",
+  "architecture": "atlas_core + PMTiles",
+  "counts": {
+    "power_plants_total": 34936,
+    "power_plants_mapped": 34936,
+    "power_plants_rejected": 0,
+    "submarine_cables_total": 1175,
+    "submarine_cables_mapped": 4,
+    "submarine_cables_unmapped": 1171,
+    "data_centers_total": 5264,
+    "data_centers_mapped": 5264,
+    "data_centers_unmapped": 0,
+    "data_center_source": "PeeringDB public facility data",
+    "data_center_license_status": "PeeringDB terms/AUP review required",
+    "cable_geometry_source": "legacy_lookup",
+    "cable_geometry_license_status": "to_verify",
+    "cable_geometry_review_required": false
+  },
+  "sources": [
+    {
+      "key": "wri_global_power_plant_database",
+      "name": "WRI Global Power Plant Database",
+      "url": "https://datasets.wri.org/dataset/globalpowerplantdatabase",
+      "license": "Creative Commons Attribution 4.0 (CC BY 4.0)"
+    },
+    {
+      "key": "scn_submarine_cables",
+      "name": "SCN Submarine Cable Network Data",
+      "url": "https://github.com/miaw-net/scn-data",
+      "license": "Public research dataset"
+    },
+    {
+      "key": "epoch_ai_data_centers",
+      "name": "Epoch AI Frontier Data Centers",
+      "url": "https://epoch.ai/data/data-centers",
+      "license": "Creative Commons Attribution (CC BY)"
+    },
+    {
+      "key": "peeringdb_facilities",
+      "name": "PeeringDB facilities / interconnection data centers",
+      "url": "https://www.peeringdb.com/",
+      "license": "PeeringDB public/user-maintained facility data — verify terms before commercial redistribution"
+    }
+  ],
+  "disclaimer": "This atlas uses public or redistribution-safe data. Some infrastructure layers are metadata-only where public geometries or coordinates are unavailable. No coordinates are inferred or invented. Submarine cable routes are generalized public geometries or schematic arcs, not exact surveyed trench routes. This layer uses PeeringDB public facility data. It includes interconnection facilities, colocation sites, and data centers with coordinates. It is not exhaustive of every global data center.",
+  "tile_registry": {
+    "power_plants": {
+      "url": "/tiles/power_plants.pmtiles",
+      "status": "missing",
+      "layer_name": "power_plants"
+    },
+    "submarine_cables": {
+      "url": "/tiles/submarine_cables.pmtiles",
+      "status": "missing",
+      "layer_name": "submarine_cables"
+    },
+    "data_centers": {
+      "url": "/tiles/data_centers.pmtiles",
+      "status": "missing",
+      "layer_name": "data_centers"
+    }
+  },
+  "license_warnings": [
+    {
+      "layer": "submarine_cables",
+      "message": "Cable geometry source (KMCD) requires license review before production/commercial use.",
+      "active": false
+    },
+    {
+      "layer": "data_centers",
+      "message": "PeeringDB data center source: verify terms before commercial redistribution.",
+      "active": true
+    }
+  ],
+  "data_gaps": {
+    "cables_unmapped": 1171,
+    "data_centers_unmapped": 0,
+    "note": "Unmapped entries have no public geometry or coordinates. No coordinates are inferred."
+  }
+}
