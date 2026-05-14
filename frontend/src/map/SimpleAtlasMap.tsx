@@ -230,7 +230,9 @@ export default function SimpleAtlasMap({ data }: Props) {
             .getClusterExpansionZoom(clusterId)
             .then((zoom: number) => {
               const geom = feat.geometry as GeoJSON.Point;
-              m.easeTo({ center: [geom.coordinates[0], geom.coordinates[1]], zoom: Math.min(zoom + 1, 14) });
+              const [lon, lat] = geom.coordinates;
+              if (!Number.isFinite(lon) || !Number.isFinite(lat)) return;
+              m.easeTo({ center: [lon, lat], zoom: Math.min(zoom + 1, 8) });
             });
           return;
         }

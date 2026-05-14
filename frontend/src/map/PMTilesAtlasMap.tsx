@@ -131,9 +131,14 @@ export default function PMTilesAtlasMap({ core }: Props) {
       });
 
       const popup = new maplibregl.Popup({ closeButton: true, closeOnClick: true });
+      const getInteractiveTileLayers = () => (
+        ["power_plants_tiles-layer", "submarine_cables_tiles-layer", "data_centers_tiles-layer"]
+          .filter((id) => m.getLayer(id))
+      );
 
       m.on("click", (e: maplibregl.MapMouseEvent) => {
-        const layers = ["power_plants_tiles-layer", "submarine_cables_tiles-layer", "data_centers_tiles-layer"];
+        const layers = getInteractiveTileLayers();
+        if (layers.length === 0) return;
         const features = m.queryRenderedFeatures(e.point, { layers });
         if (!features || features.length === 0) return;
 
@@ -156,8 +161,12 @@ export default function PMTilesAtlasMap({ core }: Props) {
           .addTo(m);
       });
 
-      const interactiveLayers = ["power_plants_tiles-layer", "submarine_cables_tiles-layer", "data_centers_tiles-layer"];
       m.on("mousemove", (e: maplibregl.MapMouseEvent) => {
+        const interactiveLayers = getInteractiveTileLayers();
+        if (interactiveLayers.length === 0) {
+          m.getCanvas().style.cursor = "";
+          return;
+        }
         const features = m.queryRenderedFeatures(e.point, { layers: interactiveLayers });
         m.getCanvas().style.cursor = features && features.length > 0 ? "pointer" : "";
       });

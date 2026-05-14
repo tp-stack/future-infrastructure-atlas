@@ -1,5 +1,14 @@
 # Learnings
 
+## 2026-05-14 - Reliable MapLibre Route And Global Fit
+
+- Issue fixed: `?zoomMap=1` and `?pmtilesMap=1` were not reliable standalone map routes, and MapLibre could open at a pathological street-scale view instead of the global infrastructure view.
+- Root cause: `App.tsx` only routed the debug map, while global bounds could resolve to an exact 360-degree longitude span with `renderWorldCopies: false`, which MapLibre handled poorly and surfaced as empty/black map states.
+- Solution: added explicit MapLibre and PMTiles routes, guarded PMTiles interactions when tile layers are missing, and clamped global fit bounds to an inset world extent shared by viewport helpers and MapLibre max bounds.
+- Validation: `python scripts/init_storage.py`; `python scripts/check_registry.py`; `python scripts/build_web_map_data.py --max-public-mb 5`; `python scripts/check_frontend_data.py`; `python scripts/build_atlas_core.py`; `python scripts/check_atlas_core.py`; `python scripts/check_pmtiles_outputs.py --max-public-mb 25`; `pytest -q`; `python -m atlas.storage .`; `cd frontend && npm.cmd install && npm.cmd run build`; local Chrome route sweep for `/`, `?zoomMap=1`, `?debugMap=1`, `?debugMap=1&proof=1`, and `?pmtilesMap=1`.
+- Deployment: https://frontend-wheat-seven-24.vercel.app/
+- Remaining risk: PMTiles files are still absent by design; `?pmtilesMap=1` now fails gracefully but does not render tiled infrastructure until PMTiles are generated.
+
 ## 2026-05-14 - Ingestion Fixture Validation Baseline
 
 - Issue fixed: `run_fixture_ingestion` fixture tests failed on canonical output fields and Windows path assertions.

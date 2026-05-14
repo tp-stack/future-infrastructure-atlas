@@ -7,6 +7,9 @@ export interface LonLatBounds {
   maxLat: number;
 }
 
+export const FIT_WORLD_MIN_LON = -179.5;
+export const FIT_WORLD_MAX_LON = 179.5;
+
 export function getValidAssetCoordinates(
   data: AtlasData,
   filters: FilterState,
@@ -75,19 +78,25 @@ export function computeLonLatBounds(coords: [number, number][]): LonLatBounds | 
 
 export function expandBounds(bounds: LonLatBounds, padDeg: number): LonLatBounds {
   return {
-    minLon: Math.max(-180, bounds.minLon - padDeg),
+    minLon: Math.max(FIT_WORLD_MIN_LON, bounds.minLon - padDeg),
     minLat: Math.max(-85, bounds.minLat - padDeg),
-    maxLon: Math.min(180, bounds.maxLon + padDeg),
+    maxLon: Math.min(FIT_WORLD_MAX_LON, bounds.maxLon + padDeg),
     maxLat: Math.min(85, bounds.maxLat + padDeg),
   };
 }
 
 export function getDefaultGlobalBounds(): LonLatBounds {
-  return { minLon: -180, minLat: -60, maxLon: 180, maxLat: 85 };
+  return { minLon: FIT_WORLD_MIN_LON, minLat: -60, maxLon: FIT_WORLD_MAX_LON, maxLat: 85 };
 }
 
 export function boundsToFitBounds(b: LonLatBounds): [[number, number], [number, number]] {
-  return [[b.minLon, b.minLat], [b.maxLon, b.maxLat]];
+  let minLon = b.minLon;
+  let maxLon = b.maxLon;
+  if (maxLon - minLon >= 359) {
+    minLon = FIT_WORLD_MIN_LON;
+    maxLon = FIT_WORLD_MAX_LON;
+  }
+  return [[minLon, b.minLat], [maxLon, b.maxLat]];
 }
 
 export function computeFeatureCollectionBounds(fc: GeoJSON.FeatureCollection): LonLatBounds | null {

@@ -13,6 +13,8 @@ import {
   getDefaultGlobalBounds,
   boundsToFitBounds,
   isZoomPathological,
+  FIT_WORLD_MIN_LON,
+  FIT_WORLD_MAX_LON,
   type LonLatBounds,
 } from "./viewport";
 
@@ -287,7 +289,7 @@ export default function AtlasMap({
       center: [10, 30],
       zoom: 1.8,
       renderWorldCopies: false,
-      maxBounds: [[-180, -85], [180, 85]],
+      maxBounds: [[FIT_WORLD_MIN_LON, -85], [FIT_WORLD_MAX_LON, 85]],
     });
     m.addControl(new maplibregl.NavigationControl(), "top-right");
     m.addControl(new maplibregl.ScaleControl({ unit: "metric", maxWidth: 120 }), "bottom-left");
@@ -374,7 +376,9 @@ export default function AtlasMap({
         const source = m.getSource("power-plants-source") as maplibregl.GeoJSONSource;
         source.getClusterExpansionZoom(clusterId).then((zoom: number) => {
           const geom = feat.geometry as GeoJSON.Point;
-          m.easeTo({ center: [geom.coordinates[0], geom.coordinates[1]], zoom: Math.min(zoom + 1, 14) });
+          const [lon, lat] = geom.coordinates;
+          if (!Number.isFinite(lon) || !Number.isFinite(lat)) return;
+          m.easeTo({ center: [lon, lat], zoom: Math.min(zoom + 1, 8) });
         }).catch((error: Error) => setMapError(error.message));
         return;
       }

@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import AtlasMap from "./map/AtlasMap";
 import SimpleAtlasMap from "./map/SimpleAtlasMap";
+import PMTilesAtlasMap from "./map/PMTilesAtlasMap";
 import type { CanvasDiagnostics } from "./map/InfrastructureCanvasOverlay";
 import ErrorBoundary from "./components/ErrorBoundary";
 import LayerPanel from "./components/LayerPanel";
@@ -170,9 +171,31 @@ export default function App() {
     );
   }
 
-  const debugMap = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("debugMap") === "1";
+  const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : new URLSearchParams();
+  const debugMap = params.get("debugMap") === "1";
+  const zoomMap = params.get("zoomMap") === "1";
+  const pmtilesMap = params.get("pmtilesMap") === "1";
+
+  if (pmtilesMap) {
+    if (core) return <PMTilesAtlasMap core={core} />;
+    return (
+      <div className="app">
+        <div className="error-screen">
+          <div className="error-icon">!</div>
+          <div className="error-title">PMTiles metadata unavailable</div>
+          <div className="error-message">atlas_core.json is required for the PMTiles route.</div>
+          <div className="error-hint">Run python scripts/build_atlas_core.py and reload this route.</div>
+        </div>
+      </div>
+    );
+  }
+
   if (debugMap) {
     return <SimpleAtlasMap data={data} />;
+  }
+
+  if (zoomMap) {
+    return <ZoomMapRoute data={data} />;
   }
 
   return (
@@ -288,6 +311,56 @@ export default function App() {
             onToggleCanvas={setCanvasEnabled}
             onClose={() => setShowDiagnostics(false)}
           />
+        </div>
+      </div>
+    </ErrorBoundary>
+  );
+}
+
+function ZoomMapRoute({ data }: { data: AtlasData }) {
+  const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
+  const [selectedAssetType, setSelectedAssetType] = useState<InteractableType | null>(null);
+  const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
+  const [canvasDiag, setCanvasDiag] = useState<CanvasDiagnostics | null>(null);
+  const visibleLayers = useMemo(() => ({ power_plants: true, cables: true, data_centers: true }), []);
+  const filters = useMemo(() => ({ fuelType: "", country: "", minMw: 0 }), []);
+
+  const handlePopup = useCallback((asset: Asset | null) => {
+    setSelectedAsset(asset);
+    if (!asset) {
+      setSelectedAssetType(null);
+      setSelectedAssetId(null);
+    } else if ("f" in asset) {
+      setSelectedAssetType("power_plant");
+    } else if ("op" in asset) {
+      setSelectedAssetType("data_center");
+    } else {
+      setSelectedAssetType("submarine_cable");
+    }
+  }, []);
+
+  return (
+    <ErrorBoundary>
+      <div className="app">
+        <div className="map-area">
+          <AtlasMap
+            data={data}
+            filters={filters}
+            visibleLayers={visibleLayers}
+            onPopup={handlePopup}
+            onCanvasDiagnostics={setCanvasDiag}
+            showTestPoints={false}
+            graticuleVisible={false}
+            onSelectedAsset={setSelectedAssetId}
+            selectedAssetId={selectedAssetId}
+            canvasEnabled={false}
+          />
+          <AssetDetailsPanel asset={selectedAsset} assetType={selectedAssetType} onClose={() => handlePopup(null)} />
+          {canvasDiag?.active && canvasDiag.powerPlantsDrawn === 0 && canvasDiag.recordsReceived > 1000 && (
+            <div className="coverage-warning zoom-route-warning">
+              Visible points in current viewport: 0. Use Reset Global View.
+            </div>
+          )}
         </div>
       </div>
     </ErrorBoundary>
