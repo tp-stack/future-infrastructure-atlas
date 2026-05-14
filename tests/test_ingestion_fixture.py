@@ -9,6 +9,7 @@ from atlas.ingestion.csv_loader import read_csv_records
 from atlas.ingestion.normalize import normalize_record
 from atlas.ingestion.run import run_ingestion
 from atlas.ingestion.validators import validate_records
+from atlas.ingestion.base import run_fixture_ingestion
 from atlas.registry import get_dataset_by_key, load_yaml
 from atlas.storage import get_storage_paths
 
@@ -132,3 +133,72 @@ def test_datset_yaml_has_required_fields():
     wri = next((d for d in datasets if d.get("dataset_key") == "wri_global_power_plants"), None)
     assert wri is not None
     assert wri.get("required_fields") == ["name", "country", "fuel_type", "capacity_mw", "latitude", "longitude"]
+
+
+def test_run_fixture_ingestion_succeeds():
+    """Test run_fixture_ingestion with tiny fixture."""
+    result = run_fixture_ingestion("wri_global_power_plants", SAMPLE_FIXTURE)
+    
+    assert result.status == "succeeded"
+    assert result.dataset_key == "wri_global_power_plants"
+    assert result.records_raw == 1
+    assert result.records_valid == 1
+    assert result.records_rejected == 0
+    assert result.output_path is not None
+    assert result.output_path.exists()
+    assert result.ingestion_manifest_path is not None
+    assert result.ingestion_manifest_path.exists()
+
+
+def test_run_fixture_ingestion_output_is_jsonl():
+    """Test that output is valid JSONL format."""
+    result = run_fixture_ingestion("wri_global_power_plants", SAMPLE_FIXTURE)
+    
+    with open(result.output_path, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+    
+    assert len(lines) == 1
+    record = json.loads(lines[0])
+    assert record["asset_type"] == "energy"
+    assert record["asset_subtype"] == "power_plant"
+
+
+def test_run_fixture_ingestion_normalized_record():
+    """Test that normalized record has correct structure."""
+    result = run_fixture_ingestion("wri_global_power_plants", SAMPLE_FIXTURE)
+    
+    with open(result.output_path, "r", encoding="utf-8") as f:
+        record = json.loads(f.readline())
+    
+    assert record["canonical_name"] == "Example Plant"
+    assert record["raw_name"] == "Example Plant"
+    assert record["country"] == "IT"
+    assert record["longitude"] == 12.4924
+    assert record["latitude"] == 41.8902
+    assert isinstance(record["latitude"], float)
+    assert isinstance(record["longitude"], float)
+    assert record["confidence"] == 0.65
+    assert record["source_dataset_key"] == "wri_global_power_plants"
+    assert record["target_layer"] == "power_plants"
+    assert record["properties"]["fuel_type"] == "solar"
+    assert record["properties"]["capacity_mw"] == 10.5
+
+
+def test_run_fixture_ingestion_output_in_processed_dir():
+    """Test that output is in data/processed/ (Git-ignored safe location)."""
+    result = run_fixture_ingestion("wri_global_power_plants", SAMPLE_FIXTURE)
+    
+    # Check output path is in data/processed/
+    assert "data" in result.output_path.parts
+    assert "processed" in result.output_path.parts
+    assert result.output_path.parent.name == "wri_global_power_plants"
+
+
+def test_run_fixture_ingestion_manifest_in_cache_dir():
+    """Test that manifest is in data/cache/ (Git-ignored safe location)."""
+    result = run_fixture_ingestion("wri_global_power_plants", SAMPLE_FIXTURE)
+    
+    # Check manifest path is in data/cache/
+    assert "data" in result.ingestion_manifest_path.parts
+    assert "cache" in result.ingestion_manifest_path.parts
+    assert "ingestion_manifest.json" in result.ingestion_manifest_path.name
