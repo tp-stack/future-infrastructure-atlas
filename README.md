@@ -56,6 +56,16 @@ To run only the repository file safety check:
 make check-storage
 ```
 
+## Agent Memory
+
+This repo includes optional local `agentmemory` setup for Codex MCP sessions. It stores concise engineering lessons only; raw data, secrets, and restricted source material must not be saved to memory.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/start_agentmemory.ps1
+```
+
+Details are in `docs/agentmemory.md`.
+
 ## Step 2: Local PostGIS Foundation
 
 Step 2 adds a local PostGIS database for normalized metadata and geospatial asset records. Raw source files still stay in `data/raw/` locally or in future object storage. The database is for structured dimensions, normalized infrastructure assets, relationships, ingestion logs, and regional scores.

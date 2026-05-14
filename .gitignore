@@ -26,6 +26,7 @@ env/
 Thumbs.db
 .idea/
 .vscode/
+.agentmemory/
 
 # Heavy local data directories
 data/raw/**
