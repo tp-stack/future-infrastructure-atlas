@@ -124,13 +124,16 @@ Step 4 adds a safe fixture ingestion framework that validates, normalizes, and w
 
 The ingestion pipeline:
 
-1. **Read** a registered dataset from a local CSV file
-2. **Create or require** a raw provenance manifest
-3. **Validate** required CSV fields, latitude, and longitude
-4. **Normalize** valid records into canonical asset-like JSONL with confidence metadata
-5. **Write** processed output atomically to `data/processed/{dataset_key}/`
-6. **Write** an ingestion manifest to `data/cache/`
-7. **Optionally load** processed records into PostGIS if the database is available
+1. **Require dataset** registered in `config/datasets.yaml`
+2. **Read CSV** from a local fixture file
+3. **Create or require** raw provenance manifest via `atlas.provenance`
+4. **Validate** required fields, latitude/longitude range, and data integrity
+5. **Normalize** valid records into canonical JSONL with confidence metadata
+6. **Write output** atomically to `data/processed/{dataset_key}/`
+7. **Create manifest** with results, written to `data/cache/`
+8. **Optionally load** to PostGIS if database is available
+
+### Running Fixture Ingestion
 
 Ingest the sample fixture:
 
@@ -141,13 +144,82 @@ python scripts/ingest_dataset.py --dataset-key wri_global_power_plants --file-pa
 or:
 
 ```powershell
-make ingest-fixture
+make ingest-test-fixture
 ```
 
-Optionally load processed records to PostGIS:
+### Normalized Output Structure
+
+Each processed record contains:
+
+```json
+{
+  "asset_type": "energy",
+  "asset_subtype": "power_plant",
+  "canonical_name": "Example Plant",
+  "raw_name": "Example Plant",
+  "country": "IT",
+  "status": null,
+  "confidence": 0.65,
+  "sensitivity_level": "medium",
+  "geometry_precision": "source_native",
+  "longitude": 12.4924,
+  "latitude": 41.8902,
+  "properties": {
+    "fuel_type": "solar",
+    "capacity_mw": 10.5
+  },
+  "source_dataset_key": "wri_global_power_plants",
+  "source_key": "wri_global_power_plant_database",
+  "target_layer": "power_plants"
+}
+```
+
+### Optional PostGIS Loading
+
+Load processed records to PostGIS (skips gracefully if DB unavailable):
 
 ```powershell
-python scripts/load_processed_to_postgis.py --processed-path data/processed/wri_global_power_plants/<run_id>.jsonl
+python scripts/load_processed_to_postgis.py --processed-path data/processed/wri_global_power_plants/wri_global_power_plants.processed.jsonl --limit 10
+```
+
+or:
+
+```powershell
+make load-test-fixture-db
+```
+
+### Generated Files
+
+All ingestion outputs are Git-ignored:
+
+- **Processed output:** `data/processed/wri_global_power_plants/wri_global_power_plants.processed.jsonl`
+- **Ingestion manifest:** `data/cache/wri_global_power_plants.ingestion_manifest.json`
+
+### Testing
+
+Run all tests including ingestion validators and fixture tests:
+
+```powershell
+pytest -q
+```
+
+DB tests skip automatically when PostGIS is unavailable. Tests verify:
+
+- CSV column validation
+- Latitude/longitude range validation
+- Required field validation
+- Normalized record structure
+- Atomic output writing
+- Git-safe output locations
+
+### Safety Constraints
+
+- No real datasets downloaded
+- No real global data ingested
+- All generated outputs in Git-ignored `data/` directories
+- Fixture remains under 1 KB
+- PostGIS optional and skips gracefully
+- Storage safety policy preserved
 ```
 
 or:
@@ -213,7 +285,7 @@ Place the real CSV files in the following Git-ignored locations:
 ### Build Web Map Data
 
 ```powershell
-python scripts/build_web_map_data.py --max-public-mb 5
+python scripts/build_web_map_data.py --cable-geometry-csv data/raw/submarine_cable_geometries/kmcd_manual_20260511/world_submarine_cable_geometries_kmcd.csv --allow-license-review --max-public-mb 5
 ```
 
 or:
@@ -225,11 +297,14 @@ make build-map-data
 This script:
 1. Reads all three CSVs (streaming as needed)
 2. Validates coordinates
-3. Normalizes into compact frontend JSON
-4. Writes to `frontend/public/data/atlas_web_data.json` if under 5 MB
-5. Otherwise writes to `data/processed/web/atlas_web_data.json` and exits non-zero
+3. Enriches submarine cables with the local KMCD geometry CSV for prototype/internal maps
+4. Normalizes into compact frontend JSON
+5. Writes to `frontend/public/data/atlas_web_data.json` if under 5 MB
+6. Otherwise writes to `data/processed/web/atlas_web_data.json` and exits non-zero
 
 **5 MB frontend payload limit:** If the generated JSON exceeds 5 MB, it is written to the Git-ignored `data/processed/web/` directory instead of `frontend/public/data/`. This prevents large data files from being committed to the repository.
+
+**Prototype cable geometry:** The default `build-map-data` target uses `--allow-license-review` with the local KMCD geometry CSV. This is for internal/prototype use only until the KMCD/underlying cable geometry license is reviewed. Use `make build-map-data-legacy` to rebuild with only the small legacy lookup.
 
 ### Adding All Submarine Cables and Data Centers (Geospatial Sources)
 
@@ -318,7 +393,7 @@ python scripts/check_frontend_data.py
 
 1. `fetch_and_build_cable_geometry_csv.py` — downloads/reads KMCD GeoJSON, validates geometry, strips altitude, produces CSV with 693 rows
 2. `build_web_map_data.py --cable-geometry-csv ... --allow-license-review` — reads CSV, enriches cable inventory with geometry, produces `atlas_web_data.json`
-3. Frontend canvas renderer draws LineString and MultiLineString geometries in cyan
+3. Frontend MapLibre GeoJSON layers draw LineString and MultiLineString geometries in cyan
 
 **Tests:**
 
@@ -369,17 +444,18 @@ vercel --prod
 
 ### Frontend Map
 
-The map uses:
+The default map uses:
 - React + TypeScript + Vite
-- MapLibre GL JS with dark atlas style
+- MapLibre GL JS with a light topographic basemap
+- GeoJSON sources loaded from `frontend/public/data/atlas_web_data.json`
 - Power plant points colored by fuel type (amber/orange theme)
-- Data center points in white/silver
-- Submarine cable lines in cyan/blue
+- Data center points in deep blue
+- Submarine cable lines in blue
 - Layer toggles, fuel/country/capacity filters
 - Click popups with asset details
 - Stats panel (loaded counts, rejected records)
 - Source attribution and disclaimer panel
-- Museum-grade institutional dark theme
+- Dark atlas controls over a light, readable map
 
 ### Safety Warnings
 
@@ -387,16 +463,17 @@ The map uses:
 - Always verify `git status` before committing
 - The build script enforces a 5 MB limit on frontend data
 - If the limit is exceeded, data goes to `data/processed/web/` (Git-ignored)
-- Test before deploying: `python scripts/build_web_map_data.py --max-public-mb 5`
+- Test before deploying: `python scripts/build_web_map_data.py --cable-geometry-csv data/raw/submarine_cable_geometries/kmcd_manual_20260511/world_submarine_cable_geometries_kmcd.csv --allow-license-review --max-public-mb 5`
 
-### PMTiles Vector Tile Architecture
+### Optional PMTiles Vector Tile Architecture
 
-The frontend supports a hybrid rendering model:
+The stable default map is MapLibre rendering GeoJSON from `atlas_web_data.json`. PMTiles are optional future performance infrastructure and should not be treated as the baseline until `.pmtiles` files exist and the Tippecanoe build path is reliable.
 
-- **Canvas fallback** — always renders from `atlas_web_data.json` (points + lines drawn via HTML5 Canvas)
-- **PMTiles vector tiles** — optional MapLibre vector tile layers built with tippecanoe, loaded via the `pmtiles` protocol
+- **Default renderer** - MapLibre GeoJSON sources loaded from `atlas_web_data.json`
+- **Canvas fallback** - disabled by default and available only from the diagnostics panel
+- **PMTiles vector tiles** - optional MapLibre vector tile layers built with Tippecanoe, loaded via the `pmtiles` protocol
 
-`atlas_core.json` (~3 KB) is a metadata-only file that the frontend loads first to determine tile availability. It contains counts, sources, disclaimers, a tile registry with per-layer URLs and status, license warnings, and data gaps. No heavy coordinate arrays are included.
+`atlas_core.json` (~3 KB) is a metadata-only file. It contains counts, sources, disclaimers, a tile registry with per-layer URLs and status, license warnings, and data gaps. No heavy coordinate arrays are included.
 
 #### Build atlas_core.json
 
@@ -446,18 +523,17 @@ make check-atlas-core
 
 #### How It Works
 
-1. `App.tsx` fetches `atlas_core.json` on mount, parses `tile_registry` status per layer
-2. If any layer has tiles present, `registerPMTilesProtocol()` registers the `pmtiles://` protocol handler via `maplibregl.addProtocol`
-3. `AtlasMap.tsx` builds a MapLibre style with PMTiles vector tile sources + layers alongside the CARTO dark basemap
-4. The canvas overlay (`InfrastructureCanvasOverlay`) always renders from `atlas_web_data.json` as a fallback — the map never goes black
-5. `SourcePanel.tsx` shows tile availability (green/red) per layer
-6. `StatsPanel.tsx` shows tile status counts
+1. `App.tsx` fetches `atlas_core.json` for metadata only, then loads `atlas_web_data.json`
+2. `AtlasMap.tsx` builds one MapLibre style with the light topographic basemap and GeoJSON infrastructure layers
+3. Missing PMTiles never change the default renderer
+4. The canvas overlay (`InfrastructureCanvasOverlay`) is available from diagnostics as a fallback/proof layer
+5. `SourcePanel.tsx` and `StatsPanel.tsx` show cable geometry source and license-review status
 
 #### Frontend Files
 
-- `frontend/src/map/pmtiles.ts` — PMTiles protocol registration, source/layer definitions, style builder
-- `frontend/src/map/AtlasMap.tsx` — accepts optional `tileStatus` prop; registers protocol and builds vector tile style
-- `frontend/src/App.tsx` — loads `atlas_core.json` first for tile status; always loads `atlas_web_data.json` for canvas fallback
+- `frontend/src/map/AtlasMap.tsx` - default MapLibre GeoJSON renderer
+- `frontend/src/App.tsx` - loads `atlas_core.json` as metadata and `atlas_web_data.json` as the render source
+- `frontend/src/map/pmtiles.ts` - optional PMTiles protocol registration and source/layer definitions for later use
 
 #### Tests
 
@@ -466,3 +542,125 @@ pytest -q tests/test_build_web_map_data.py
 pytest -q tests/test_build_atlas_core.py
 pytest -q tests/test_build_pmtiles_inputs.py
 ```
+
+#### PMTiles Experiment
+
+The previous `?pmtilesMap=1` route is no longer part of the stable default user path. Re-enable a PMTiles-only route only after `.pmtiles` files are present and the build path is reliable on the target environment.
+
+**Build full PMTiles pipeline:**
+
+```powershell
+python scripts/init_storage.py
+python scripts/check_registry.py
+python scripts/build_web_map_data.py --cable-geometry-csv data/raw/submarine_cable_geometries/kmcd_manual_20260511/world_submarine_cable_geometries_kmcd.csv --allow-license-review --max-public-mb 5
+python scripts/build_pmtiles_inputs.py
+python scripts/build_atlas_core.py
+python scripts/build_pmtiles.py --all --max-public-mb 25
+python scripts/check_atlas_core.py
+python scripts/check_pmtiles_outputs.py --max-public-mb 25
+cd frontend
+npm install
+npm run build
+cd ..
+```
+
+Then test locally:
+
+```powershell
+cd frontend
+npm run dev
+```
+
+Open http://localhost:5173 and verify the default GeoJSON map first:
+- Graticule is visible
+- Power plants render as colored circles (if built)
+- Submarine cables render as lines (if built)
+- Data centers render as points (if built)
+- Zoom/pan works smoothly without lag
+- Click on any asset opens a popup with details
+- Layer toggles work correctly
+- Debug overlay shows map status
+
+#### Build PMTiles Inputs
+
+Generate GeoJSON/NDJSON feature files for tippecanoe:
+
+```powershell
+python scripts/build_pmtiles_inputs.py
+```
+
+or:
+
+```powershell
+make build-pmtiles-inputs
+```
+
+This script reads `atlas_web_data.json` and produces:
+- `data/cache/pmtiles/power_plants.geojson` — point features with name, country, fuel, capacity
+- `data/cache/pmtiles/submarine_cables.geojson` — line/multiline features with name, source, license
+- `data/cache/pmtiles/data_centers.geojson` — point features with name, operator, country, city
+
+All coordinates are validated to be within valid ranges (-180..180 lon, -90..90 lat).
+
+#### Check PMTiles
+
+Validate PMTiles files exist and are within size limits:
+
+```powershell
+python scripts/check_pmtiles_outputs.py --max-public-mb 25
+```
+
+or:
+
+```powershell
+make check-pmtiles
+```
+
+This checks:
+- `frontend/public/tiles/power_plants.pmtiles` exists and is < 25 MB
+- `frontend/public/tiles/submarine_cables.pmtiles` exists and is < 25 MB
+- `frontend/public/tiles/data_centers.pmtiles` exists and is < 25 MB
+
+If a file exceeds the size limit, it is moved to `data/tiles/` and marked for object storage (Cloudflare R2, S3, Vercel Blob, etc.).
+
+#### Deployment with PMTiles
+
+After building PMTiles:
+
+```powershell
+cd frontend
+npm install
+npm run build
+vercel --prod
+cd ..
+```
+
+Then test the production URL:
+
+```
+https://your-frontend-url.vercel.app/
+```
+
+The PMTiles files are served from `frontend/public/tiles/` via the standard HTTP protocol. The frontend's `pmtiles` protocol handler resolves `pmtiles:///tiles/power_plants.pmtiles` to an HTTP GET request for that file relative to the public root.
+
+#### Troubleshooting PMTiles
+
+**Black screen or missing PMTiles experiment layers:**
+1. Check browser console for errors
+2. Verify `atlas_core.json` exists: `python scripts/check_atlas_core.py`
+3. Verify PMTiles files exist: `python scripts/check_pmtiles_outputs.py`
+4. Check network tab for 404s on `.pmtiles` file requests
+
+**Tippecanoe not found:**
+- Install via WSL/Ubuntu: `sudo apt-get install tippecanoe`
+- Or via Homebrew (macOS): `brew install tippecanoe`
+- Or use Docker: `docker run --rm -v $(pwd):/work tippecanoe tippecanoe --version`
+
+**Missing setup instructions dialog:**
+- If all PMTiles files exist but one is missing from the UI, check `atlas_core.json` tile_registry status entries
+- Ensure `python scripts/build_atlas_core.py` was run after building PMTiles
+
+**Performance issues:**
+- PMTiles zoom level range is 0-12 by default; tiles are built with `--drop-densest-as-needed`
+- If render lag is severe, check browser DevTools Performance tab
+- Verify GPU acceleration is enabled in browser settings

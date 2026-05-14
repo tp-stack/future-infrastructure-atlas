@@ -18,6 +18,7 @@ export function buildPowerPlantGeoJSON(
   filters: FilterState,
 ): GeoJSON.FeatureCollection {
   const features: GeoJSON.Feature[] = [];
+  let idx = 0;
 
   for (const p of data.power_plants) {
     if (filters.fuelType && p.f !== filters.fuelType) continue;
@@ -39,6 +40,7 @@ export function buildPowerPlantGeoJSON(
         capacity_mw: p.mw ?? 0,
         lat,
         lon,
+        _idx: idx++,
       },
     });
   }
@@ -86,7 +88,7 @@ export function buildCableGeoJSON(data: AtlasData): GeoJSON.FeatureCollection {
   const seen = new Set<string>();
 
   for (const c of data.cables) {
-    if (c.mapped_status !== "mapped" || !c.geometry || c.geometry.length < 2) continue;
+    if (c.mapped_status !== "mapped" || !c.geometry || c.geometry.length === 0) continue;
 
     const isMulti = Array.isArray(c.geometry[0]) && Array.isArray(c.geometry[0][0]);
     const coords = isMulti ? (c.geometry as number[][][]) : [c.geometry as number[][]];

@@ -82,13 +82,17 @@ def _generate_cables_ndjson(data: dict, path: Path) -> int:
             if cable.get("mapped_status") != "mapped":
                 continue
             geom = cable.get("geometry")
-            if not geom or len(geom) < 2:
+            if not geom:
                 continue
             is_multi = isinstance(geom[0], list) and geom[0] and isinstance(geom[0][0], list)
             if is_multi:
                 gtype = "MultiLineString"
-                coords = geom
+                coords = [line for line in geom if isinstance(line, list) and len(line) >= 2]
+                if not coords:
+                    continue
             else:
+                if len(geom) < 2:
+                    continue
                 gtype = "LineString"
                 coords = geom
             feat = {

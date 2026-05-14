@@ -132,3 +132,14 @@ export interface ActiveFilterSummary {
   country: boolean;
   minMw: boolean;
 }
+
+export interface AtlasCore {
+  generated_at: string;
+  architecture: string;
+  counts: Record<string, unknown>;
+  sources: { key: string; name: string; url: string; license: string }[];
+  disclaimer: string;
+  tile_registry: Record<string, { url: string; status: string; layer_name: string }>;
+  license_warnings: { layer: string; message: string; active: boolean }[];
+  data_gaps: Record<string, unknown>;
+}

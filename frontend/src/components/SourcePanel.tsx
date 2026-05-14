@@ -8,6 +8,8 @@ interface Props {
 
 export default function SourcePanel({ metadata, tileStatus, pmtilesMode }: Props) {
   const needsReview = metadata?.counts?.cable_geometry_review_required;
+  const cableGeometrySource = metadata?.counts?.cable_geometry_source;
+  const cableGeometryLicense = metadata?.counts?.cable_geometry_license_status;
 
   return (
     <div className="panel-section">
@@ -27,9 +29,18 @@ export default function SourcePanel({ metadata, tileStatus, pmtilesMode }: Props
             Generated: {new Date(metadata.generated_at).toLocaleString()}
           </div>
 
+          {cableGeometrySource && (
+            <div className="source-item" style={{ marginTop: 8, fontSize: 10, color: "#71717a" }}>
+              <div>Cable geometry: <span style={{ color: "#a1a1aa" }}>{cableGeometrySource}</span></div>
+              {cableGeometryLicense && (
+                <div>License status: <span style={{ color: needsReview ? "#f59e0b" : "#a1a1aa" }}>{cableGeometryLicense}</span></div>
+              )}
+            </div>
+          )}
+
           {needsReview && (
             <div style={{ marginTop: 8, padding: "6px 8px", background: "#2d1f00", border: "1px solid #78350f", borderRadius: 4, fontSize: 10, color: "#f59e0b" }}>
-              Cable geometry source requires license review before production/commercial use.
+              Prototype cable geometry is enabled for internal use and requires license review before production/commercial use.
             </div>
           )}
 

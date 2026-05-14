@@ -1,5 +1,7 @@
 import { Protocol } from "pmtiles";
 import maplibregl from "maplibre-gl";
+import { getLightTopoLayers, getLightTopoSources, MAPLIBRE_GLYPHS_URL } from "./basemaps";
+import { CABLE_COLOR, DATA_CENTER_COLOR, DATA_CENTER_STROKE_COLOR, FUEL_COLORS } from "./layers";
 
 let registered = false;
 
@@ -53,7 +55,7 @@ export function getPMTilesLayers(
       "source-layer": "power_plants",
       paint: {
         "circle-radius": 2,
-        "circle-color": ["match", ["get", "f"], "Hydro", "#4cc9f0", "Solar", "#f2b705", "Wind", "#62c370", "Natural Gas", "#d99a6c", "Nuclear", "#b985d6", "Coal", "#d95c5c", "#9ca3af"],
+        "circle-color": ["match", ["get", "f"], "Hydro", FUEL_COLORS["Hydro"], "Solar", FUEL_COLORS["Solar"], "Wind", FUEL_COLORS["Wind"], "Natural Gas", FUEL_COLORS["Natural Gas"], "Nuclear", FUEL_COLORS["Nuclear"], "Coal", FUEL_COLORS["Coal"], FUEL_COLORS["Other"]],
         "circle-opacity": 0.85,
       },
     });
@@ -66,9 +68,9 @@ export function getPMTilesLayers(
       source: "submarine_cables_tiles",
       "source-layer": "submarine_cables",
       paint: {
-        "line-color": "#4cc9e8",
+        "line-color": CABLE_COLOR,
         "line-width": 2,
-        "line-opacity": 0.8,
+        "line-opacity": 0.85,
       },
     });
   }
@@ -81,9 +83,9 @@ export function getPMTilesLayers(
       "source-layer": "data_centers",
       paint: {
         "circle-radius": 6,
-        "circle-color": "#e8e5dc",
+        "circle-color": DATA_CENTER_COLOR,
         "circle-opacity": 0.9,
-        "circle-stroke-color": "#4cc9e8",
+        "circle-stroke-color": DATA_CENTER_STROKE_COLOR,
         "circle-stroke-width": 1.5,
       },
     });
@@ -98,19 +100,14 @@ export function getPMTilesStyle(
 ): maplibregl.StyleSpecification {
   return {
     version: 8,
-    name: "Dark Atlas + PMTiles",
+    name: "Light Topographic Atlas + PMTiles",
+    glyphs: MAPLIBRE_GLYPHS_URL,
     sources: {
-      "basemap-dark": {
-        type: "raster",
-        tiles: ["https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"],
-        tileSize: 256,
-        attribution: '&copy; <a href="https://carto.com/">CARTO</a>',
-      },
+      ...getLightTopoSources(),
       ...getPMTilesSources(tileStatus),
     },
     layers: [
-      { id: "background", type: "background", paint: { "background-color": "#050609" } },
-      { id: "basemap-dark-layer", type: "raster", source: "basemap-dark", minzoom: 0, maxzoom: 20 },
+      ...getLightTopoLayers(),
       ...getPMTilesLayers(tileStatus, visibleLayers),
     ],
   };

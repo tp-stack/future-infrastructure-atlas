@@ -441,7 +441,7 @@ html, body, #root {
 }
 
 .map-canvas .maplibregl-map,
-.map-canvas :global(.maplibregl-map) {
+.map-canvas .maplibregl-map {
   width: 100% !important;
   height: 100% !important;
   position: absolute;
@@ -468,6 +468,35 @@ html, body, #root {
   flex-direction: column;
   gap: 4px;
   z-index: 5;
+}
+
+.map-status {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  z-index: 6;
+  max-width: min(420px, calc(100% - 24px));
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  line-height: 1.4;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.28);
+  pointer-events: none;
+}
+
+.map-status-loading {
+  color: #4b5563;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(120, 130, 140, 0.24);
+}
+
+.map-status-error {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: #fee2e2;
+  background: rgba(91, 18, 18, 0.92);
+  border: 1px solid rgba(248, 113, 113, 0.45);
 }
 
 .map-ctrl-btn {
@@ -547,9 +576,13 @@ html, body, #root {
 }
 
 .maplibregl-ctrl-attrib {
-  background: rgba(5,6,9,0.85) !important;
-  color: #3a3a42 !important;
+  background: rgba(255,255,255,0.88) !important;
+  color: #4b5563 !important;
   font-size: 9px !important;
+}
+
+.maplibregl-ctrl-attrib a {
+  color: #1f6f8b !important;
 }
 
 .maplibregl-ctrl-top-right .maplibregl-ctrl {

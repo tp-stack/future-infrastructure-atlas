@@ -1,8 +1,10 @@
 import { useRef, useEffect, useCallback } from "react";
 import type maplibregl from "maplibre-gl";
 import type { AtlasData, FilterState, PowerPlant, Cable, DataCenter } from "./types";
+import { CABLE_COLOR, CABLE_HOVER_COLOR, DATA_CENTER_COLOR, DATA_CENTER_STROKE_COLOR, FUEL_COLORS } from "./layers";
 
 interface Props {
+  enabled?: boolean;
   data: AtlasData;
   filters: FilterState;
   visibleLayers: Record<string, boolean>;
@@ -30,22 +32,7 @@ export interface CanvasDiagnostics {
   currentZoom: number;
 }
 
-const FUEL_COLORS: Record<string, string> = {
-  Hydro: "#4cc9f0",
-  Solar: "#f2b705",
-  Wind: "#62c370",
-  "Natural Gas": "#d99a6c",
-  Nuclear: "#b985d6",
-  Coal: "#d95c5c",
-  Oil: "#c97955",
-  Biomass: "#7ab87a",
-  Geothermal: "#d48a6a",
-  Waste: "#8a8a8a",
-  Cogeneration: "#6a9fd4",
-  "Wave and Tidal": "#4dd0e1",
-};
-
-const OTHER_COLOR = "#9ca3af";
+const OTHER_COLOR = "#8d93a1";
 
 const TEST_POINTS = [
   { n: "New York", lat: 40.7128, lon: -74.006, color: "#ff4444" },
@@ -80,6 +67,7 @@ function projectEquirectangular(lon: number, lat: number, w: number, h: number):
 }
 
 export default function InfrastructureCanvasOverlay({
+  enabled = true,
   data,
   filters,
   visibleLayers,
@@ -121,6 +109,25 @@ export default function InfrastructureCanvasOverlay({
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, cssW, cssH);
 
+      if (!enabled) {
+        onCanvasDiagnostics?.({
+          active: false,
+          canvasWidth: cssW,
+          canvasHeight: cssH,
+          powerPlantsDrawn: 0,
+          cableLinesDrawn: 0,
+          dataCentersDrawn: 0,
+          testPointsDrawn: 0,
+          recordsReceived: data?.power_plants?.length || 0,
+          validCoords: 0,
+          lastDrawTime: new Date().toISOString(),
+          lastError: null,
+          projectionMode: "disabled",
+          currentZoom: mapInstance ? mapInstance.getZoom() : 0,
+        });
+        return;
+      }
+
       const useMapProject = mapInstance && typeof mapInstance.project === "function";
       const project: (lon: number, lat: number) => [number, number] = useMapProject
         ? (lon: number, lat: number) => {
@@ -147,6 +154,11 @@ export default function InfrastructureCanvasOverlay({
 
       if (graticuleVisible) {
         drawGraticule(ctx, cssW, cssH, project);
+      }
+
+      if (!useMapProject) {
+        ctx.globalAlpha = 1;
+        return;
       }
 
       if (visibleLayers.power_plants && data?.power_plants) {
@@ -226,10 +238,10 @@ export default function InfrastructureCanvasOverlay({
 
       if (visibleLayers.cables && data?.cables) {
         const mappedCables = data.cables.filter(
-          (c) => c.mapped_status === "mapped" && c.geometry && c.geometry.length >= 2
+          (c) => c.mapped_status === "mapped" && c.geometry && c.geometry.length > 0
         );
         for (const c of mappedCables) {
-          if (!c.geometry || c.geometry.length < 2) continue;
+          if (!c.geometry || c.geometry.length === 0) continue;
           const isMultiLine = Array.isArray(c.geometry[0]) && Array.isArray(c.geometry[0][0]);
           const lines = isMultiLine ? (c.geometry as number[][][]) : [c.geometry as number[][]];
           const id = `cable-${c.n}`;
@@ -237,7 +249,7 @@ export default function InfrastructureCanvasOverlay({
           const isSelected = id === selectedAssetId;
 
           ctx.lineWidth = isSelected ? 4 : isHovered ? 3 : 2;
-          ctx.strokeStyle = isSelected ? "#ffffff" : isHovered ? "#6ee8ff" : "#4cc9e8";
+          ctx.strokeStyle = isSelected ? "#ffffff" : isHovered ? CABLE_HOVER_COLOR : CABLE_COLOR;
           ctx.globalAlpha = isSelected ? 1 : isHovered ? 0.95 : 0.8;
 
           for (const line of lines) {
@@ -281,14 +293,14 @@ export default function InfrastructureCanvasOverlay({
 
           ctx.beginPath();
           ctx.arc(x, y, dcRadius, 0, Math.PI * 2);
-          ctx.fillStyle = "#e8e5dc";
+          ctx.fillStyle = DATA_CENTER_COLOR;
           ctx.globalAlpha = 0.9;
           ctx.fill();
 
           if (isHovered || isSelected) {
             ctx.beginPath();
             ctx.arc(x, y, dcRadius + 4, 0, Math.PI * 2);
-            ctx.strokeStyle = isSelected ? "#ffffff" : "#4cc9e8";
+            ctx.strokeStyle = DATA_CENTER_STROKE_COLOR;
             ctx.lineWidth = isSelected ? 3 : 2;
             ctx.globalAlpha = isSelected ? 1 : 0.8;
             ctx.stroke();
@@ -299,12 +311,12 @@ export default function InfrastructureCanvasOverlay({
             ctx.fill();
             ctx.beginPath();
             ctx.arc(x, y, dcRadius - 2, 0, Math.PI * 2);
-            ctx.fillStyle = "#e8e5dc";
+            ctx.fillStyle = DATA_CENTER_COLOR;
             ctx.globalAlpha = 0.9;
             ctx.fill();
           }
 
-          ctx.strokeStyle = "#4cc9e8";
+          ctx.strokeStyle = DATA_CENTER_STROKE_COLOR;
           ctx.lineWidth = 1.5;
           ctx.stroke();
           diag.dataCentersDrawn++;
@@ -342,7 +354,7 @@ export default function InfrastructureCanvasOverlay({
       const errMsg = e instanceof Error ? e.message : String(e);
       console.error("[CanvasOverlay] Draw error:", errMsg);
     }
-  }, [data, filters, visibleLayers, mapInstance, showTestPoints, onCanvasDiagnostics, hoveredAssetId, selectedAssetId, graticuleVisible]);
+  }, [enabled, data, filters, visibleLayers, mapInstance, showTestPoints, onCanvasDiagnostics, hoveredAssetId, selectedAssetId, graticuleVisible]);
 
   useEffect(() => {
     animFrameRef.current = requestAnimationFrame(() => { draw(); });
@@ -369,7 +381,7 @@ export default function InfrastructureCanvasOverlay({
 }
 
 function drawGraticule(ctx: CanvasRenderingContext2D, w: number, h: number, project: (lon: number, lat: number) => [number, number]) {
-  ctx.strokeStyle = "rgba(60, 60, 70, 0.3)";
+  ctx.strokeStyle = "rgba(70, 84, 96, 0.22)";
   ctx.lineWidth = 0.5;
   ctx.globalAlpha = 1;
 
@@ -389,7 +401,7 @@ function drawGraticule(ctx: CanvasRenderingContext2D, w: number, h: number, proj
     ctx.stroke();
   }
 
-  ctx.strokeStyle = "rgba(80, 80, 90, 0.6)";
+  ctx.strokeStyle = "rgba(70, 84, 96, 0.4)";
   ctx.lineWidth = 1;
   const [, eqY] = project(0, 0);
   ctx.beginPath();

@@ -1,4 +1,5 @@
 import type { FilterState, AtlasCounts } from "../map/types";
+import { CABLE_COLOR, DATA_CENTER_COLOR } from "../map/layers";
 
 interface Props {
   visibleLayers: Record<string, boolean>;
@@ -34,7 +35,7 @@ const LAYER_CONFIG: LayerConfig[] = [
   {
     key: "cables",
     label: "Submarine Cables",
-    dotColor: "#4cc9e8",
+    dotColor: CABLE_COLOR,
     getMapped: (c: AtlasCounts) => c.cables_mapped ?? c.submarine_cables_mapped,
     getTotal: (c: AtlasCounts) => c.cables_total ?? c.submarine_cables_total,
     getCoverage: (mapped, total) => {
@@ -46,7 +47,7 @@ const LAYER_CONFIG: LayerConfig[] = [
   {
     key: "data_centers",
     label: "PeeringDB facilities / interconnection",
-    dotColor: "#e8e5dc",
+    dotColor: DATA_CENTER_COLOR,
     getMapped: (c: AtlasCounts) => c.data_centers_mapped,
     getTotal: (c: AtlasCounts) => c.data_centers_total,
     getCoverage: (mapped, total) => {

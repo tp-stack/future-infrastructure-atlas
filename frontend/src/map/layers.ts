@@ -14,6 +14,11 @@ export const FUEL_COLORS: Record<string, string> = {
   "Other": "#8d93a1",
 };
 
+export const CABLE_COLOR = "#087ea4";
+export const CABLE_HOVER_COLOR = "#0b94bd";
+export const DATA_CENTER_COLOR = "#173f5f";
+export const DATA_CENTER_STROKE_COLOR = "#ffffff";
+
 export const LAYER_IDS = {
   POWER_PLANTS: "power-plants",
   POWER_CLUSTERS: "power-plants-clusters",
@@ -74,14 +79,14 @@ export const DATA_CENTER_PAINT = {
     8, 5,
     12, 8,
   ],
-  "circle-color": "#e8e5dc",
+  "circle-color": DATA_CENTER_COLOR,
   "circle-opacity": 0.85,
   "circle-stroke-width": 1.5,
-  "circle-stroke-color": "rgba(255,255,255,0.4)",
+  "circle-stroke-color": DATA_CENTER_STROKE_COLOR,
 };
 
 export const CABLE_PAINT = {
-  "line-color": "#4cc9e8",
+  "line-color": CABLE_COLOR,
   "line-width": [
     "interpolate", ["linear"], ["zoom"],
     2, 0.8,

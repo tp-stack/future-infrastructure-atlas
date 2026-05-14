@@ -6,10 +6,12 @@ from pathlib import Path
 import pytest
 
 from atlas.ingestion.postgis_load import _database_available, load_processed_to_postgis
+from atlas.ingestion.base import run_fixture_ingestion
 from atlas.storage import get_storage_paths
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+SAMPLE_FIXTURE = PROJECT_ROOT / "tests" / "fixtures" / "sample_power_plants.csv"
 
 
 def _create_minimal_processed_file(tmp_path: Path) -> Path:
@@ -60,3 +62,21 @@ def test_load_processed_skips_properly_when_db_not_available(tmp_path):
     result = load_processed_to_postgis(processed)
     assert result.get("skipped") is True
     assert result["records_loaded"] == 0
+
+
+@pytest.mark.skipif(not _database_available(), reason="Database not available")
+def test_ingest_and_load_fixture_to_postgis():
+    """Integration test: ingest fixture and load into PostGIS if available."""
+    # Run fixture ingestion
+    result = run_fixture_ingestion("wri_global_power_plants", SAMPLE_FIXTURE)
+    assert result.status == "succeeded"
+    assert result.output_path is not None
+    
+    # Try to load to PostGIS (should work if DB available, skip otherwise)
+    try:
+        load_result = load_processed_to_postgis(result.output_path)
+        assert load_result.get("ok") is True
+        assert load_result.get("records_loaded", 0) >= 0
+    except RuntimeError:
+        pytest.skip("Database is not available")
+

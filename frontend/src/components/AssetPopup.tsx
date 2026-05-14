@@ -32,6 +32,7 @@ export default function AssetPopup({ asset }: Props) {
   }
 
   if ("op" in asset) {
+    const isMetroLevel = asset.coordinate_precision?.includes("metro") || asset.coordinate_precision === "city";
     return (
       <div className="panel-section">
         <h2>Selected Asset</h2>
@@ -43,7 +44,9 @@ export default function AssetPopup({ asset }: Props) {
           <div style={{ display: "flex", justifyContent: "space-between" }}><span>Capacity</span><span style={{ color: "#f4efe6" }}>{asset.mw ? `${asset.mw.toLocaleString()} MW` : "N/A"}</span></div>
           <div style={{ display: "flex", justifyContent: "space-between" }}><span>Precision</span><span style={{ color: "#f4efe6" }}>{asset.coordinate_precision || "N/A"}</span></div>
         </div>
-        <div style={{ fontSize: 9, color: "#5a5a62", marginTop: 6, fontStyle: "italic" }}>Metro-level coordinates — not exact facility location</div>
+        {isMetroLevel && (
+          <div style={{ fontSize: 9, color: "#5a5a62", marginTop: 6, fontStyle: "italic" }}>Metro-level coordinates — not exact facility location</div>
+        )}
       </div>
     );
   }

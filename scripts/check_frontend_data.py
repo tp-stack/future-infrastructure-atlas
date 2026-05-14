@@ -46,6 +46,30 @@ def equirectangular_y(lat: float, height: float) -> float:
     return ((90 - lat) / 180) * height
 
 
+def cable_has_renderable_geometry(cable: dict) -> bool:
+    geom = cable.get("geometry")
+    if not geom:
+        return False
+    is_multi = isinstance(geom[0], list) and bool(geom[0]) and isinstance(geom[0][0], list)
+    lines = geom if is_multi else [geom]
+    for line in lines:
+        valid_points = 0
+        for coord in line:
+            if not isinstance(coord, list) or len(coord) < 2:
+                continue
+            lon, lat = coord[0], coord[1]
+            try:
+                lon_f = float(lon)
+                lat_f = float(lat)
+            except (ValueError, TypeError):
+                continue
+            if -180 <= lon_f <= 180 and -90 <= lat_f <= 90:
+                valid_points += 1
+        if valid_points >= 2:
+            return True
+    return False
+
+
 def main():
     errors = []
     warnings = []
@@ -145,7 +169,7 @@ def main():
     # 5. Cables breakdown
     cables_mapped = sum(1 for c in cables if c.get("mapped_status") == "mapped")
     cables_unmapped = sum(1 for c in cables if c.get("mapped_status") == "unmapped")
-    cables_with_geom = sum(1 for c in cables if c.get("geometry") and len(c["geometry"]) >= 2)
+    cables_with_geom = sum(1 for c in cables if cable_has_renderable_geometry(c))
     print(f"Cables mapped: {cables_mapped}")
     print(f"Cables unmapped: {cables_unmapped}")
     print(f"Cables with geometry: {cables_with_geom}")

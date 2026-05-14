@@ -1,23 +1,23 @@
-import { FUEL_COLORS } from "../map/layers";
+import { CABLE_COLOR, DATA_CENTER_COLOR, FUEL_COLORS } from "../map/layers";
+
+const FUEL_KEYS = Object.keys(FUEL_COLORS).filter((k) => k !== "Other");
 
 export default function Legend() {
   return (
     <div className="panel-section">
       <h2>Legend</h2>
-      {["Hydro", "Solar", "Wind", "Natural Gas", "Nuclear", "Coal", "Oil", "Other"].map(
-        (f) => (
-          <div key={f} className="layer-toggle" style={{ cursor: "default" }}>
-            <span className="layer-dot" style={{ background: FUEL_COLORS[f] }} />
-            {f}
-          </div>
-        )
-      )}
+      {FUEL_KEYS.map((f) => (
+        <div key={f} className="layer-toggle" style={{ cursor: "default" }}>
+          <span className="layer-dot" style={{ background: FUEL_COLORS[f] }} />
+          {f}
+        </div>
+      ))}
       <div className="layer-toggle" style={{ cursor: "default", marginTop: 4 }}>
-        <span className="layer-dot" style={{ background: "#4cc9e8" }} />
+        <span className="layer-dot" style={{ background: CABLE_COLOR }} />
         Submarine Cables
       </div>
       <div className="layer-toggle" style={{ cursor: "default" }}>
-        <span className="layer-dot" style={{ background: "#e8e5dc" }} />
+        <span className="layer-dot" style={{ background: DATA_CENTER_COLOR }} />
         Data Centers
       </div>
     </div>

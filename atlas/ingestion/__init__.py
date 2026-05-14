@@ -1,6 +1,14 @@
 """Ingestion pipeline for registering, validating, normalizing, loading, and geospatially enriching datasets."""
 
-from atlas.ingestion.base import IngestionPipeline, IngestionResult
+from atlas.ingestion.base import (
+    IngestionPipeline,
+    IngestionResult,
+    ingest_local_file,
+    require_registered_dataset,
+    get_target_layer_config,
+    build_processed_output_path,
+    run_fixture_ingestion,
+)
 from atlas.ingestion.csv_loader import read_csv_records, read_csv_stream
 from atlas.ingestion.normalize import normalize_record
 from atlas.ingestion.run import run_ingestion
@@ -37,6 +45,11 @@ from atlas.ingestion.datacenter_loader import (
 __all__ = [
     "IngestionPipeline",
     "IngestionResult",
+    "ingest_local_file",
+    "require_registered_dataset",
+    "get_target_layer_config",
+    "build_processed_output_path",
+    "run_fixture_ingestion",
     "read_csv_records",
     "read_csv_stream",
     "normalize_record",
