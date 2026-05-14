@@ -1,5 +1,15 @@
 # Learnings
 
+## 2026-05-14 - Stabilized Clean MapLibre Renderer
+
+- Issue fixed: the normal app and `?zoomMap=1` needed a reliable, independent MapLibre path that visibly renders power plants, data centers, submarine cables, popups, and reset/fit controls.
+- Root cause: the clean zoom route was missing and the normal route depended on the older `AtlasMap` path, where power plant clustered sources could fail to render even while other layers loaded.
+- Solution: added `ZoomableAtlasMap.tsx`, expanded shared GeoJSON helpers, routed the normal app and `?zoomMap=1` through the clean renderer, kept `AtlasMap` as the diagnostics/canvas fallback, and added a static build observatory.
+- Validation: `python scripts/init_storage.py`; `python scripts/check_registry.py`; `python scripts/build_web_map_data.py --max-public-mb 5`; `python scripts/check_frontend_data.py`; `pytest -q`; `python -m atlas.storage .`; `python scripts/build_pmtiles_inputs.py`; `python scripts/build_atlas_core.py`; `python scripts/check_atlas_core.py`; `python scripts/check_pmtiles_outputs.py --max-public-mb 25`; `python scripts/build_observatory.py --live-url https://frontend-wheat-seven-24.vercel.app/`; `cd frontend && npm.cmd install && npm.cmd run build`; local and production CDP route sweeps; cluster-click and data-center popup/details checks.
+- Deployment: https://frontend-wheat-seven-24.vercel.app/
+- Remaining risk: PMTiles binaries are still absent because Tippecanoe is not installed on this Windows environment; the PMTiles route shows the setup warning instead of tiled infrastructure.
+- Next recommended issue: install Tippecanoe in WSL/Linux and build/check PMTiles outputs for the three primary layers.
+
 ## 2026-05-14 - Reliable MapLibre Route And Global Fit
 
 - Issue fixed: `?zoomMap=1` and `?pmtilesMap=1` were not reliable standalone map routes, and MapLibre could open at a pathological street-scale view instead of the global infrastructure view.

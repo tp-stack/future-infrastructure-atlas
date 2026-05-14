@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FUTURE Infrastructure Atlas Build Observatory</title>
+  <style>
+    body { margin: 0; background: #05070a; color: #eef2f7; font-family: Inter, system-ui, sans-serif; }
+    main { max-width: 1120px; margin: 0 auto; padding: 28px; }
+    h1 { font-size: 24px; margin: 0 0 8px; }
+    h2 { font-size: 14px; margin: 24px 0 10px; color: #9ca3af; text-transform: uppercase; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+    .panel { border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); border-radius: 8px; padding: 14px; }
+    .metric { font-size: 26px; font-weight: 700; }
+    .label { color: #9ca3af; font-size: 12px; margin-top: 4px; }
+    a { color: #67e8f9; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .routes { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; }
+    .routes a { display: flex; flex-direction: column; gap: 4px; border: 1px solid rgba(103,232,249,0.18); border-radius: 6px; padding: 10px; background: rgba(8,145,178,0.08); }
+    .routes span { color: #9ca3af; font-size: 12px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { border-bottom: 1px solid rgba(255,255,255,0.08); padding: 8px; text-align: left; vertical-align: top; }
+    th { color: #9ca3af; font-size: 12px; }
+    ul { margin: 0; padding-left: 18px; line-height: 1.7; }
+    .ok { color: #86efac; }
+    .warn { color: #fbbf24; }
+    .muted { color: #9ca3af; }
+    .small { color: #9ca3af; font-size: 12px; line-height: 1.6; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>FUTURE Infrastructure Atlas Build Observatory</h1>
+  <div class="small">Generated 2026-05-14T12:15:00.532648+00:00 on branch master at commit 5c8a526.</div>
+  <div class="small">Live URL: <a href="https://frontend-wheat-seven-24.vercel.app/">https://frontend-wheat-seven-24.vercel.app/</a></div>
+
+  <h2>Routes</h2>
+  <section class="routes"><a href="https://frontend-wheat-seven-24.vercel.app/">Normal app<span>/</span></a>
+<a href="https://frontend-wheat-seven-24.vercel.app/?zoomMap=1">Clean zoomable route<span>/?zoomMap=1</span></a>
+<a href="https://frontend-wheat-seven-24.vercel.app/?debugMap=1">Debug route<span>/?debugMap=1</span></a>
+<a href="https://frontend-wheat-seven-24.vercel.app/?debugMap=1&amp;proof=1">Proof route<span>/?debugMap=1&amp;proof=1</span></a>
+<a href="https://frontend-wheat-seven-24.vercel.app/?pmtilesMap=1">PMTiles route<span>/?pmtilesMap=1</span></a></section>
+
+  <h2>Data Status</h2>
+  <section class="grid">
+    <div class="panel"><div class="metric ok">4.62 MB</div><div class="label">atlas_web_data.json, 5 MB cap</div></div>
+    <div class="panel"><div class="metric ok">3.1 KB</div><div class="label">atlas_core.json, metadata only</div></div>
+    <div class="panel"><div class="metric">34,936</div><div class="label">mapped power plants</div></div>
+    <div class="panel"><div class="metric">4 / 1,175</div><div class="label">mapped submarine cables</div></div>
+    <div class="panel"><div class="metric">5,264 / 5,264</div><div class="label">mapped data centers</div></div>
+  </section>
+
+  <h2>PMTiles</h2>
+  <table><thead><tr><th>File</th><th>Public file</th><th>Size</th><th>atlas_core status</th></tr></thead><tbody><tr><td>power_plants.pmtiles</td><td class="warn">missing</td><td>missing</td><td>missing</td></tr><tr><td>submarine_cables.pmtiles</td><td class="warn">missing</td><td>missing</td><td>missing</td></tr><tr><td>data_centers.pmtiles</td><td class="warn">missing</td><td>missing</td><td>missing</td></tr></tbody></table>
+
+  <h2>Source And License Warnings</h2>
+  <ul><li class="ok"><strong>submarine_cables</strong>: Cable geometry source (KMCD) requires license review before production/commercial use.</li>
+<li class="warn"><strong>data_centers</strong>: PeeringDB data center source: verify terms before commercial redistribution.</li>
+<li class="warn"><strong>submarine_cables</strong>: KMCD cable data remains source_license: to_verify and license_review_required: true.</li>
+<li class="warn"><strong>data_centers</strong>: PeeringDB public facilities / interconnection data, not all data centers in the world.</li></ul>
+  <table><thead><tr><th>Key</th><th>Name</th><th>License</th></tr></thead><tbody><tr><td>wri_global_power_plant_database</td><td>WRI Global Power Plant Database</td><td>Creative Commons Attribution 4.0 (CC BY 4.0)</td></tr>
+<tr><td>scn_submarine_cables</td><td>SCN Submarine Cable Network Data</td><td>Public research dataset</td></tr>
+<tr><td>epoch_ai_data_centers</td><td>Epoch AI Frontier Data Centers</td><td>Creative Commons Attribution (CC BY)</td></tr>
+<tr><td>peeringdb_facilities</td><td>PeeringDB facilities / interconnection data centers</td><td>PeeringDB public/user-maintained facility data — verify terms before commercial redistribution</td></tr></tbody></table>
+
+  <h2>Visual QA Checklist</h2>
+  <ul>
+    <li>Normal app shows a non-empty zoomable global map.</li>
+    <li><code>?zoomMap=1</code> shows clustered power plants, data centers, cable lines, and graticule.</li>
+    <li><code>?debugMap=1&amp;proof=1</code> shows five large proof points.</li>
+    <li>Zoom controls, cluster expansion, reset global view, and fit filtered results work.</li>
+    <li>Clicking a power plant, data center, or cable opens a popup or details panel.</li>
+    <li><code>?pmtilesMap=1</code> shows setup warnings instead of a black screen when PMTiles are missing.</li>
+  </ul>
+
+  <h2>Build And Test Status</h2>
+  <div class="panel small">
+    This observatory captures file and route metadata. Validation commands are run separately:
+    <code>pytest -q</code>, <code>python -m atlas.storage .</code>, <code>npm.cmd run build</code>,
+    <code>python scripts/check_frontend_data.py</code>, and PMTiles/core checks where available.
+  </div>
+</main>
+</body>
+</html>

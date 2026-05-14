@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import AtlasMap from "./map/AtlasMap";
 import SimpleAtlasMap from "./map/SimpleAtlasMap";
 import PMTilesAtlasMap from "./map/PMTilesAtlasMap";
+import ZoomableAtlasMap from "./map/ZoomableAtlasMap";
 import type { CanvasDiagnostics } from "./map/InfrastructureCanvasOverlay";
 import ErrorBoundary from "./components/ErrorBoundary";
 import LayerPanel from "./components/LayerPanel";
@@ -175,6 +176,8 @@ export default function App() {
   const debugMap = params.get("debugMap") === "1";
   const zoomMap = params.get("zoomMap") === "1";
   const pmtilesMap = params.get("pmtilesMap") === "1";
+  const proof = params.get("proof") === "1";
+  const canvasFallback = params.get("canvasFallback") === "1";
 
   if (pmtilesMap) {
     if (core) return <PMTilesAtlasMap core={core} />;
@@ -195,13 +198,13 @@ export default function App() {
   }
 
   if (zoomMap) {
-    return <ZoomMapRoute data={data} />;
+    return <ZoomMapRoute data={data} proof={proof} />;
   }
 
   return (
     <ErrorBoundary>
-      <div className="app">
-        <div className={`side-panel ${sidebarOpen ? "open" : "closed"}`}>
+      <div className={`app app-shell ${sidebarOpen ? "" : "sidebar-collapsed"}`}>
+        <div className={`side-panel sidebar ${sidebarOpen ? "open" : "closed"}`}>
           <div className="panel-header">
             <div className="panel-header-top">
               <h1>Global Infrastructure Atlas</h1>
@@ -236,7 +239,7 @@ export default function App() {
           </button>
         )}
 
-        <div className="map-area">
+        <div className="map-area map-stage">
           <div className="top-bar">
             <div className="top-bar-left">
               <span className="top-bar-title">Global Infrastructure Atlas</span>
@@ -282,19 +285,31 @@ export default function App() {
             </div>
           )}
 
-          <AtlasMap
-            data={data}
-            filters={filters}
-            visibleLayers={visibleLayers}
-            onPopup={handlePopup}
-            onCanvasDiagnostics={setCanvasDiag}
-            showTestPoints={showTestPoints}
-            graticuleVisible={graticuleVisible}
-            onHoveredAsset={setHoveredAssetId}
-            onSelectedAsset={handleSelectedAsset}
-            selectedAssetId={selectedAssetId}
-            canvasEnabled={canvasEnabled}
-          />
+          {canvasEnabled || canvasFallback ? (
+            <AtlasMap
+              data={data}
+              filters={filters}
+              visibleLayers={visibleLayers}
+              onPopup={handlePopup}
+              onCanvasDiagnostics={setCanvasDiag}
+              showTestPoints={showTestPoints}
+              graticuleVisible={graticuleVisible}
+              onHoveredAsset={setHoveredAssetId}
+              onSelectedAsset={handleSelectedAsset}
+              selectedAssetId={selectedAssetId}
+              canvasEnabled={canvasEnabled || canvasFallback}
+            />
+          ) : (
+            <div className="map-container">
+              <ZoomableAtlasMap
+                data={data}
+                filters={filters}
+                visibleLayers={visibleLayers}
+                graticuleVisible={graticuleVisible}
+                onAssetSelect={handlePopup}
+              />
+            </div>
+          )}
 
           <AssetDetailsPanel
             asset={selectedAsset}
@@ -317,50 +332,31 @@ export default function App() {
   );
 }
 
-function ZoomMapRoute({ data }: { data: AtlasData }) {
+function ZoomMapRoute({ data, proof }: { data: AtlasData; proof?: boolean }) {
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [selectedAssetType, setSelectedAssetType] = useState<InteractableType | null>(null);
-  const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
-  const [canvasDiag, setCanvasDiag] = useState<CanvasDiagnostics | null>(null);
   const visibleLayers = useMemo(() => ({ power_plants: true, cables: true, data_centers: true }), []);
   const filters = useMemo(() => ({ fuelType: "", country: "", minMw: 0 }), []);
 
-  const handlePopup = useCallback((asset: Asset | null) => {
+  const handlePopup = useCallback((asset: Asset | null, assetType: InteractableType | null) => {
     setSelectedAsset(asset);
-    if (!asset) {
-      setSelectedAssetType(null);
-      setSelectedAssetId(null);
-    } else if ("f" in asset) {
-      setSelectedAssetType("power_plant");
-    } else if ("op" in asset) {
-      setSelectedAssetType("data_center");
-    } else {
-      setSelectedAssetType("submarine_cable");
-    }
+    setSelectedAssetType(asset ? assetType : null);
   }, []);
 
   return (
     <ErrorBoundary>
-      <div className="app">
-        <div className="map-area">
-          <AtlasMap
-            data={data}
-            filters={filters}
-            visibleLayers={visibleLayers}
-            onPopup={handlePopup}
-            onCanvasDiagnostics={setCanvasDiag}
-            showTestPoints={false}
-            graticuleVisible={false}
-            onSelectedAsset={setSelectedAssetId}
-            selectedAssetId={selectedAssetId}
-            canvasEnabled={false}
-          />
-          <AssetDetailsPanel asset={selectedAsset} assetType={selectedAssetType} onClose={() => handlePopup(null)} />
-          {canvasDiag?.active && canvasDiag.powerPlantsDrawn === 0 && canvasDiag.recordsReceived > 1000 && (
-            <div className="coverage-warning zoom-route-warning">
-              Visible points in current viewport: 0. Use Reset Global View.
-            </div>
-          )}
+      <div className="app app-shell app-shell--map-only">
+        <div className="map-area map-stage">
+          <div className="map-container">
+            <ZoomableAtlasMap
+              data={data}
+              filters={filters}
+              visibleLayers={visibleLayers}
+              proof={proof}
+              onAssetSelect={handlePopup}
+            />
+          </div>
+          <AssetDetailsPanel asset={selectedAsset} assetType={selectedAssetType} onClose={() => handlePopup(null, null)} />
         </div>
       </div>
     </ErrorBoundary>
@@ -384,7 +380,40 @@ function DiagnosticsPanel({
   onToggleCanvas: (v: boolean) => void;
   onClose?: () => void;
 }) {
-  if (!canvasDiag || !visible) return null;
+  if (!visible) return null;
+
+  if (!canvasDiag) {
+    return (
+      <div className="diag-panel">
+        <div className="diag-panel-header">
+          <span>Renderer Diagnostics</span>
+          <span className="diag-panel-close" onClick={() => onClose?.()} style={{ cursor: "pointer", opacity: 0.5 }}>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </span>
+        </div>
+        <div className="diag-summary">
+          <div className="diag-row">
+            <span className="diag-label">Renderer</span>
+            <span className="diag-val ok">Clean MapLibre</span>
+          </div>
+          <div className="diag-row">
+            <span className="diag-label">Canvas fallback</span>
+            <span className="diag-val">
+              <label style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+                <input type="checkbox" checked={canvasEnabled} onChange={(e) => onToggleCanvas(e.target.checked)} style={{ accentColor: "#d69a13", width: 11, height: 11 }} />
+                <span style={{ color: canvasEnabled ? "#d69a13" : "#5a5a62", fontSize: 9 }}>{canvasEnabled ? "enabled" : "disabled"}</span>
+              </label>
+            </span>
+          </div>
+          <div className="diag-row">
+            <span className="diag-label">Fallback URL</span>
+            <span className="diag-val">?canvasFallback=1</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="diag-panel">
       <div className="diag-panel-header">

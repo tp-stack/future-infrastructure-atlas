@@ -70,6 +70,73 @@ function getCableFromProps(p: Record<string, unknown>): Asset {
   } as Asset;
 }
 
+function addPowerPlantLayers(m: maplibregl.Map, beforeId?: string) {
+  m.addLayer({
+    id: "power-clusters",
+    type: "circle",
+    source: "power-plants-source",
+    filter: ["has", "point_count"],
+    paint: {
+      "circle-color": ["step", ["get", "point_count"], "#d69a13", 10, "#b8850a", 100, "#8a6508"],
+      "circle-radius": ["step", ["get", "point_count"], 18, 10, 24, 100, 32],
+      "circle-opacity": 0.85,
+      "circle-stroke-color": "#ffffff",
+      "circle-stroke-width": 1.5,
+    },
+  }, beforeId);
+
+  m.addLayer({
+    id: "power-cluster-count",
+    type: "symbol",
+    source: "power-plants-source",
+    filter: ["has", "point_count"],
+    layout: {
+      "text-field": ["get", "point_count_abbreviated"],
+      "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
+      "text-size": 11,
+    },
+    paint: {
+      "text-color": "#ffffff",
+      "text-halo-color": "rgba(43,32,8,0.7)",
+      "text-halo-width": 1.2,
+    },
+  }, beforeId);
+
+  m.addLayer({
+    id: "power-points",
+    type: "circle",
+    source: "power-plants-source",
+    filter: ["!", ["has", "point_count"]],
+    paint: {
+      "circle-color": [
+        "match", ["get", "fuel"],
+        "Hydro", FUEL_COLORS["Hydro"],
+        "Solar", FUEL_COLORS["Solar"],
+        "Wind", FUEL_COLORS["Wind"],
+        "Natural Gas", FUEL_COLORS["Natural Gas"],
+        "Nuclear", FUEL_COLORS["Nuclear"],
+        "Coal", FUEL_COLORS["Coal"],
+        "Oil", FUEL_COLORS["Oil"],
+        "Biomass", FUEL_COLORS["Biomass"],
+        "Geothermal", FUEL_COLORS["Geothermal"],
+        "Waste", FUEL_COLORS["Waste"],
+        "Cogeneration", FUEL_COLORS["Cogeneration"],
+        "Wave and Tidal", FUEL_COLORS["Wave and Tidal"],
+        FUEL_COLORS["Other"],
+      ],
+      "circle-radius": [
+        "interpolate", ["linear"], ["zoom"],
+        0, 1.5,
+        5, 3,
+        10, 6,
+      ],
+      "circle-opacity": 0.85,
+      "circle-stroke-color": "rgba(255,255,255,0.75)",
+      "circle-stroke-width": 0.7,
+    },
+  }, beforeId);
+}
+
 export default function AtlasMap({
   data, filters, visibleLayers, onPopup, onCanvasDiagnostics,
   showTestPoints, graticuleVisible,
@@ -86,6 +153,7 @@ export default function AtlasMap({
   const autoResetDoneRef = useRef(false);
   const userInteractedRef = useRef(false);
   const layersAddedRef = useRef(false);
+  const sourceUpdatePrimedRef = useRef(false);
   const [mapStatus, setMapStatus] = useState({
     loaded: false,
     layersReady: false,
@@ -138,70 +206,7 @@ export default function AtlasMap({
         },
       });
 
-      m.addLayer({
-        id: "power-clusters",
-        type: "circle",
-        source: "power-plants-source",
-        filter: ["has", "point_count"],
-        paint: {
-          "circle-color": ["step", ["get", "point_count"], "#d69a13", 10, "#b8850a", 100, "#8a6508"],
-          "circle-radius": ["step", ["get", "point_count"], 18, 10, 24, 100, 32],
-          "circle-opacity": 0.85,
-          "circle-stroke-color": "#ffffff",
-          "circle-stroke-width": 1.5,
-        },
-      });
-
-      m.addLayer({
-        id: "power-cluster-count",
-        type: "symbol",
-        source: "power-plants-source",
-        filter: ["has", "point_count"],
-        layout: {
-          "text-field": ["get", "point_count_abbreviated"],
-          "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
-          "text-size": 11,
-        },
-        paint: {
-          "text-color": "#ffffff",
-          "text-halo-color": "rgba(43,32,8,0.7)",
-          "text-halo-width": 1.2,
-        },
-      });
-
-      m.addLayer({
-        id: "power-points",
-        type: "circle",
-        source: "power-plants-source",
-        filter: ["!", ["has", "point_count"]],
-        paint: {
-          "circle-color": [
-            "match", ["get", "fuel"],
-            "Hydro", FUEL_COLORS["Hydro"],
-            "Solar", FUEL_COLORS["Solar"],
-            "Wind", FUEL_COLORS["Wind"],
-            "Natural Gas", FUEL_COLORS["Natural Gas"],
-            "Nuclear", FUEL_COLORS["Nuclear"],
-            "Coal", FUEL_COLORS["Coal"],
-            "Oil", FUEL_COLORS["Oil"],
-            "Biomass", FUEL_COLORS["Biomass"],
-            "Geothermal", FUEL_COLORS["Geothermal"],
-            "Waste", FUEL_COLORS["Waste"],
-            "Cogeneration", FUEL_COLORS["Cogeneration"],
-            "Wave and Tidal", FUEL_COLORS["Wave and Tidal"],
-            FUEL_COLORS["Other"],
-          ],
-          "circle-radius": [
-            "interpolate", ["linear"], ["zoom"],
-            0, 1.5,
-            5, 3,
-            10, 6,
-          ],
-          "circle-opacity": 0.85,
-          "circle-stroke-color": "rgba(255,255,255,0.75)",
-          "circle-stroke-width": 0.7,
-        },
-      });
+      addPowerPlantLayers(m);
 
       m.addLayer({
         id: "data-center-points",
@@ -223,6 +228,32 @@ export default function AtlasMap({
 
       layersAddedRef.current = true;
       setMapStatus((prev) => ({ ...prev, layersReady: true, error: null }));
+
+      window.setTimeout(() => {
+        try {
+          const current = map.current;
+          if (!current || !layersAddedRef.current || !current.getSource("power-plants-source")) return;
+
+          const repairedPower = buildPowerPlantGeoJSON(dataRef.current, filtersRef.current);
+          const debugWindow = window as unknown as { __atlasPowerRepairCount?: number };
+          debugWindow.__atlasPowerRepairCount = (debugWindow.__atlasPowerRepairCount || 0) + 1;
+          for (const id of ["power-cluster-count", "power-clusters", "power-points"]) {
+            if (current.getLayer(id)) current.removeLayer(id);
+          }
+          current.removeSource("power-plants-source");
+          current.addSource("power-plants-source", {
+            type: "geojson",
+            data: repairedPower,
+            cluster: true,
+            clusterMaxZoom: 7,
+            clusterRadius: 35,
+          });
+          const beforeId = current.getLayer("data-center-points") ? "data-center-points" : undefined;
+          addPowerPlantLayers(current, beforeId);
+        } catch (error) {
+          setMapError(error instanceof Error ? error.message : String(error));
+        }
+      }, 4000);
     } catch (error) {
       setMapError(error instanceof Error ? error.message : String(error));
     }
@@ -289,6 +320,7 @@ export default function AtlasMap({
       center: [10, 30],
       zoom: 1.8,
       renderWorldCopies: false,
+      preserveDrawingBuffer: true,
       maxBounds: [[FIT_WORLD_MIN_LON, -85], [FIT_WORLD_MAX_LON, 85]],
     });
     m.addControl(new maplibregl.NavigationControl(), "top-right");
@@ -298,6 +330,7 @@ export default function AtlasMap({
       setMapError(message);
     });
     map.current = m;
+    (window as unknown as { __atlasMap?: maplibregl.Map }).__atlasMap = m;
     setMapInstance(m);
   }, [setMapError]);
 
@@ -305,9 +338,11 @@ export default function AtlasMap({
     initMap();
     return () => {
       map.current?.remove();
+      delete (window as unknown as { __atlasMap?: maplibregl.Map }).__atlasMap;
       map.current = null;
       setMapInstance(null);
       layersAddedRef.current = false;
+      sourceUpdatePrimedRef.current = false;
     };
   }, [initMap]);
 
@@ -318,11 +353,13 @@ export default function AtlasMap({
     const onLoad = () => {
       m.resize();
       setMapStatus((prev) => ({ ...prev, loaded: true }));
-      addMapLayers();
-      if (!initialFitDoneRef.current) {
-        initialFitDoneRef.current = true;
-        setTimeout(() => fitToData(), 100);
-      }
+      window.setTimeout(() => {
+        addMapLayers();
+        if (!initialFitDoneRef.current) {
+          initialFitDoneRef.current = true;
+          setTimeout(() => fitToData(), 100);
+        }
+      }, 1000);
     };
 
     if (m.loaded()) {
@@ -334,6 +371,10 @@ export default function AtlasMap({
 
   useEffect(() => {
     if (!map.current || !layersAddedRef.current) return;
+    if (!sourceUpdatePrimedRef.current) {
+      sourceUpdatePrimedRef.current = true;
+      return;
+    }
     updateMapSources();
   }, [updateMapSources]);
 

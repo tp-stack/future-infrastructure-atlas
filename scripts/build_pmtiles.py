@@ -193,8 +193,7 @@ def build_layer(
     tippecanoe = _check_tippecanoe()
     if not tippecanoe:
         print(
-            "ERROR: Tippecanoe is required to build PMTiles. "
-            "On Windows, install through WSL or use Docker/Ubuntu. Do not continue.",
+            "Tippecanoe is required. Use WSL/Ubuntu or Linux to build PMTiles.",
             file=sys.stderr,
         )
         return False

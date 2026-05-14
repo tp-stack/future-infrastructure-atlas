@@ -1,4 +1,4 @@
-.PHONY: init-storage test check-storage db-up db-down init-db check-db check-registry create-test-manifest ingest-fixture ingest-wri load-postgis build-map-data build-map-data-legacy build-pmtiles-inputs build-atlas-core build-pmtiles check-atlas-core check-pmtiles check-frontend-data frontend-install frontend-dev frontend-build frontend-preview deploy-vercel validate-all
+.PHONY: init-storage test check-storage db-up db-down init-db check-db check-registry create-test-manifest ingest-fixture ingest-wri load-postgis build-map-data build-map-data-legacy build-pmtiles-inputs build-atlas-core build-pmtiles check-atlas-core check-pmtiles check-frontend-data build-observatory frontend-install frontend-dev frontend-build frontend-preview deploy-vercel validate-all
 
 init-storage:
 	python scripts/init_storage.py
@@ -68,6 +68,9 @@ frontend-build:
 
 check-frontend-data:
 	python scripts/check_frontend_data.py
+
+build-observatory:
+	python scripts/build_observatory.py --live-url https://frontend-wheat-seven-24.vercel.app/
 
 frontend-preview:
 	cd frontend && npm run preview

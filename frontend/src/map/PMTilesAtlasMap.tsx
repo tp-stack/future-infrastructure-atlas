@@ -95,6 +95,7 @@ export default function PMTilesAtlasMap({ core }: Props) {
       center: [10, 20],
       zoom: 1.35,
       renderWorldCopies: false,
+      preserveDrawingBuffer: true,
     });
 
     m.addControl(new maplibregl.NavigationControl(), "top-right");
