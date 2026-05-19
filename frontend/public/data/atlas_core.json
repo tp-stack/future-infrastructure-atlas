@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-14T12:05:41.443097Z",
+  "generated_at": "2026-05-19T16:34:31.056882Z",
   "architecture": "atlas_core + PMTiles",
   "counts": {
     "power_plants_total": 34936,
@@ -47,17 +47,17 @@
   "tile_registry": {
     "power_plants": {
       "url": "/tiles/power_plants.pmtiles",
-      "status": "missing",
+      "status": "artifact_only (9.21 MB in data/tiles; not publicly served)",
       "layer_name": "power_plants"
     },
     "submarine_cables": {
       "url": "/tiles/submarine_cables.pmtiles",
-      "status": "missing",
+      "status": "artifact_only (1.56 MB in data/tiles; not publicly served)",
       "layer_name": "submarine_cables"
     },
     "data_centers": {
       "url": "/tiles/data_centers.pmtiles",
-      "status": "missing",
+      "status": "artifact_only (2.23 MB in data/tiles; not publicly served)",
       "layer_name": "data_centers"
     }
   },

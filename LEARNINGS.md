@@ -1,5 +1,15 @@
 # Learnings
 
+## 2026-05-19 - PMTiles Artifact Build Kept Storage-Safe
+
+- Issue fixed: PMTiles could be generated, but public `.pmtiles` files violated repository storage safety.
+- Root cause: `frontend/public/tiles/*.pmtiles` is not an allowed repository location; storage checks block `.pmtiles` outside ignored data directories even when files are below the public-size cap.
+- Solution: added Docker fallback for Tippecanoe, generated PMTiles as ignored artifacts under `data/tiles/`, updated `atlas_core.json` to mark them `artifact_only`, and updated PMTiles checks/observatory output to distinguish artifact availability from public serving.
+- Validation: `python scripts/build_pmtiles.py --layer submarine_cables --max-public-mb 25`; `python scripts/build_atlas_core.py`; `python scripts/check_atlas_core.py`; `python scripts/check_pmtiles_outputs.py --max-public-mb 25`; `python -m atlas.storage .`; `pytest -q`; `cd frontend && npm.cmd run build`.
+- Deployment: pending; PMTiles artifacts are local and ignored until hosted through object storage or copied into a deployment artifact outside git.
+- Remaining risk: `?pmtilesMap=1` still shows the setup warning in deployed builds because the generated PMTiles are not publicly served.
+- Next recommended issue: add an object-storage or deployment-artifact path for `/tiles/*.pmtiles`, then verify `?pmtilesMap=1` renders tiled infrastructure.
+
 ## 2026-05-14 - Stabilized Clean MapLibre Renderer
 
 - Issue fixed: the normal app and `?zoomMap=1` needed a reliable, independent MapLibre path that visibly renders power plants, data centers, submarine cables, popups, and reset/fit controls.

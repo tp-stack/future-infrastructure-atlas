@@ -1,9 +1,10 @@
 """Validate PMTiles output files.
 
 Checks:
-- frontend/public/tiles/*.pmtiles existence
+- frontend/public/tiles/*.pmtiles only when explicitly served
+- data/tiles/*.pmtiles build artifacts
 - prints file sizes
-- fails if above public threshold
+- fails if public files exceed threshold
 - does not require raw data
 """
 
@@ -28,7 +29,8 @@ def check_pmtiles(max_public_mb: float = 25) -> int:
     errors = 0
     max_bytes = int(max_public_mb * 1024 * 1024)
 
-    print(f"Checking PMTiles in: {FRONTEND_TILES}")
+    print(f"Checking public PMTiles in: {FRONTEND_TILES}")
+    print(f"Checking artifact PMTiles in: {DATA_TILES}")
     print(f"Max public size: {max_public_mb} MB ({max_bytes} bytes)")
     print()
 
@@ -47,9 +49,9 @@ def check_pmtiles(max_public_mb: float = 25) -> int:
         elif data_path.exists():
             size = data_path.stat().st_size
             size_mb = size / (1024 * 1024)
-            print(f"  INFO: {name} in data/tiles/ ({size_mb:.2f} MB) — needs object storage")
+            print(f"  INFO: {name} in data/tiles/ ({size_mb:.2f} MB) - needs object storage/public deployment copy")
         else:
-            print(f"  WARN: {name} not found — run build_pmtiles.py to generate")
+            print(f"  WARN: {name} not found - run build_pmtiles.py to generate")
 
     print()
     if errors:

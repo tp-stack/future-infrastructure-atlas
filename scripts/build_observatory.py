@@ -14,6 +14,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 FRONTEND_PUBLIC = PROJECT_ROOT / "frontend" / "public"
 DATA_DIR = FRONTEND_PUBLIC / "data"
 TILES_DIR = FRONTEND_PUBLIC / "tiles"
+ARTIFACT_TILES_DIR = PROJECT_ROOT / "data" / "tiles"
 OUTPUT_PATH = FRONTEND_PUBLIC / "debug" / "build_observatory.html"
 
 ROUTES = [
@@ -132,12 +133,16 @@ def main() -> None:
         layer_key = name.replace(".pmtiles", "")
         status = (tile_registry.get(layer_key) or {}).get("status", "unknown")
         tile_path = TILES_DIR / name
+        artifact_path = ARTIFACT_TILES_DIR / name
         present = tile_path.exists()
+        artifact_present = artifact_path.exists()
         tile_rows.append(
             "<tr>"
             f"<td>{html.escape(name)}</td>"
             f"<td class=\"{status_class(present)}\">{html.escape('present' if present else 'missing')}</td>"
             f"<td>{html.escape(size_label(tile_path))}</td>"
+            f"<td class=\"{status_class(artifact_present)}\">{html.escape('present' if artifact_present else 'missing')}</td>"
+            f"<td>{html.escape(size_label(artifact_path))}</td>"
             f"<td>{html.escape(str(status))}</td>"
             "</tr>"
         )
@@ -191,7 +196,7 @@ def main() -> None:
   </section>
 
   <h2>PMTiles</h2>
-  <table><thead><tr><th>File</th><th>Public file</th><th>Size</th><th>atlas_core status</th></tr></thead><tbody>{''.join(tile_rows)}</tbody></table>
+  <table><thead><tr><th>File</th><th>Public file</th><th>Public size</th><th>Artifact file</th><th>Artifact size</th><th>atlas_core status</th></tr></thead><tbody>{''.join(tile_rows)}</tbody></table>
 
   <h2>Source And License Warnings</h2>
   <ul>{render_license_warnings(web_data, core)}</ul>

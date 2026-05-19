@@ -8,6 +8,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shlex
 import shutil
 import subprocess
 import sys
@@ -43,13 +44,24 @@ LAYERS = {
 }
 
 
-def _check_tippecanoe() -> str | None:
+def _check_tippecanoe() -> tuple[str, str] | None:
     tippecanoe = shutil.which("tippecanoe")
     if tippecanoe:
-        return tippecanoe
+        return ("local", tippecanoe)
     if os.path.exists("/usr/local/bin/tippecanoe"):
-        return "/usr/local/bin/tippecanoe"
+        return ("local", "/usr/local/bin/tippecanoe")
+    docker = shutil.which("docker")
+    if docker:
+        return ("docker", docker)
     return None
+
+
+def _project_relative_container_path(path: Path) -> str:
+    try:
+        rel = path.resolve().relative_to(PROJECT_ROOT.resolve())
+    except ValueError:
+        raise ValueError(f"Path must stay inside project root: {path}") from None
+    return f"/work/{rel.as_posix()}"
 
 
 def _generate_power_plants_ndjson(data: dict, path: Path) -> int:
@@ -140,16 +152,26 @@ def _generate_datacenters_ndjson(data: dict, path: Path) -> int:
 
 
 def _run_tippecanoe(
-    tippecanoe: str,
+    tippecanoe_runner: tuple[str, str],
     input_path: Path,
     output_path: Path,
     layer_name: str,
     description: str,
 ) -> bool:
     output_path.parent.mkdir(parents=True, exist_ok=True)
+    runner_kind, runner_cmd = tippecanoe_runner
+    tippecanoe = "tippecanoe"
+    input_arg = str(input_path)
+    output_arg = str(output_path)
+    if runner_kind == "local":
+        tippecanoe = runner_cmd
+    elif runner_kind == "docker":
+        input_arg = _project_relative_container_path(input_path)
+        output_arg = _project_relative_container_path(output_path)
+
     cmd = [
         tippecanoe,
-        "--output", str(output_path),
+        "--output", output_arg,
         "--layer", layer_name,
         "--name", layer_name,
         "--description", description,
@@ -160,8 +182,33 @@ def _run_tippecanoe(
         "--extend-zooms-if-still-dropping",
         "--no-tile-compression",
         "--force",
-        str(input_path),
+        input_arg,
     ]
+    if runner_kind == "docker":
+        inner = " ".join(shlex.quote(part) for part in cmd)
+        script = (
+            "set -euo pipefail; "
+            "export DEBIAN_FRONTEND=noninteractive; "
+            "if ! command -v tippecanoe >/dev/null 2>&1; then "
+            "apt-get update -qq; "
+            "apt-get install -y -qq tippecanoe ca-certificates >/dev/null; "
+            "fi; "
+            f"{inner}"
+        )
+        cmd = [
+            runner_cmd,
+            "run",
+            "--rm",
+            "-v",
+            f"{PROJECT_ROOT}:/work",
+            "-w",
+            "/work",
+            "ubuntu:24.04",
+            "bash",
+            "-lc",
+            script,
+        ]
+
     print(f"  Running: {' '.join(cmd)}")
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
@@ -169,6 +216,7 @@ def _run_tippecanoe(
         if result.stderr:
             for line in result.stderr.strip().split("\n"):
                 print(f"    {line}", file=sys.stderr)
+        output_path.unlink(missing_ok=True)
         return False
     print(f"  tippecanoe output: {output_path}")
     return True
@@ -187,8 +235,8 @@ def build_layer(
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
     input_path = CACHE_DIR / cfg["input_ndjson"]
     output_name = cfg["output_pmtiles"]
-    output_frontend = FRONTEND_TILES / output_name
     output_data = DATA_TILES / output_name
+    output_data.parent.mkdir(parents=True, exist_ok=True)
 
     tippecanoe = _check_tippecanoe()
     if not tippecanoe:
@@ -214,29 +262,29 @@ def build_layer(
         print(f"ERROR: No features generated for layer '{layer_key}'", file=sys.stderr)
         input_path.unlink(missing_ok=True)
         return False
-    print(f"[pmtiles] Generated {count} features for '{layer_key}' → {input_path}")
+    print(f"[pmtiles] Generated {count} features for '{layer_key}' -> {input_path}")
 
-    # Run tippecanoe
-    success = _run_tippecanoe(tippecanoe, input_path, output_frontend, cfg["layer_name"], cfg["description"])
+    # Run tippecanoe into ignored artifact storage. PMTiles files are not committed
+    # from frontend/public because repository storage safety blocks .pmtiles there.
+    success = _run_tippecanoe(tippecanoe, input_path, output_data, cfg["layer_name"], cfg["description"])
     if not success:
         return False
 
     # Check size
-    size = output_frontend.stat().st_size
+    size = output_data.stat().st_size
     max_bytes = int(max_public_mb * 1024 * 1024)
     if size > max_bytes:
         print(f"  WARNING: {output_name} is {size/1024/1024:.2f} MB > {max_public_mb} MB limit", file=sys.stderr)
-        DATA_TILES.mkdir(parents=True, exist_ok=True)
-        shutil.move(str(output_frontend), str(output_data))
         print(
-            f"  Moved to {output_data}. Use object storage (Cloudflare R2/S3/Vercel Blob) and update tile URLs.",
+            f"  Kept in {output_data}. Use object storage (Cloudflare R2/S3/Vercel Blob) and update tile URLs.",
             file=sys.stderr,
         )
         return False
 
     # Clean up NDJSON
     input_path.unlink(missing_ok=True)
-    print(f"[pmtiles] '{layer_key}' PMTiles ready: {output_frontend} ({size/1024/1024:.2f} MB)")
+    print(f"[pmtiles] '{layer_key}' PMTiles artifact ready: {output_data} ({size/1024/1024:.2f} MB)")
+    print("  Store externally or copy into a deployment artifact outside git to serve /tiles/*.pmtiles.")
     return True
 
 

@@ -14,6 +14,7 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 FRONTEND_DATA = PROJECT_ROOT / "frontend" / "public" / "data"
 TILES_DIR = PROJECT_ROOT / "frontend" / "public" / "tiles"
+ARTIFACT_TILES_DIR = PROJECT_ROOT / "data" / "tiles"
 
 
 def _check_tile(name: str) -> str:
@@ -21,6 +22,10 @@ def _check_tile(name: str) -> str:
     if path.exists():
         size_mb = path.stat().st_size / (1024 * 1024)
         return f"present ({size_mb:.2f} MB)"
+    artifact_path = ARTIFACT_TILES_DIR / name
+    if artifact_path.exists():
+        size_mb = artifact_path.stat().st_size / (1024 * 1024)
+        return f"artifact_only ({size_mb:.2f} MB in data/tiles; not publicly served)"
     return "missing"
 
 
