@@ -1,21 +1,21 @@
 {
-  "generated_at": "2026-05-19T17:01:34.088985Z",
+  "generated_at": "2026-05-19T17:23:47.551177Z",
   "architecture": "atlas_core + PMTiles",
   "counts": {
     "power_plants_total": 34936,
     "power_plants_mapped": 34936,
     "power_plants_rejected": 0,
-    "submarine_cables_total": 1175,
-    "submarine_cables_mapped": 4,
-    "submarine_cables_unmapped": 1171,
+    "submarine_cables_total": 881,
+    "submarine_cables_mapped": 674,
+    "submarine_cables_unmapped": 207,
     "data_centers_total": 5264,
     "data_centers_mapped": 5264,
     "data_centers_unmapped": 0,
     "data_center_source": "PeeringDB public facility data",
     "data_center_license_status": "PeeringDB terms/AUP review required",
-    "cable_geometry_source": "legacy_lookup",
+    "cable_geometry_source": "KMCD Internet Infrastructure Map",
     "cable_geometry_license_status": "to_verify",
-    "cable_geometry_review_required": false
+    "cable_geometry_review_required": true
   },
   "sources": [
     {
@@ -41,6 +41,12 @@
       "name": "PeeringDB facilities / interconnection data centers",
       "url": "https://www.peeringdb.com/",
       "license": "PeeringDB public/user-maintained facility data — verify terms before commercial redistribution"
+    },
+    {
+      "key": "cable_geometry_csv",
+      "name": "KMCD Internet Infrastructure Map — cable geometries",
+      "url": "https://map.kmcd.dev/data/all_cables.json",
+      "license": "to_verify — requires license review before production/commercial use"
     }
   ],
   "disclaimer": "This atlas uses public or redistribution-safe data. Some infrastructure layers are metadata-only where public geometries or coordinates are unavailable. No coordinates are inferred or invented. Submarine cable routes are generalized public geometries or schematic arcs, not exact surveyed trench routes. This layer uses PeeringDB public facility data. It includes interconnection facilities, colocation sites, and data centers with coordinates. It is not exhaustive of every global data center.",
@@ -65,7 +71,7 @@
     {
       "layer": "submarine_cables",
       "message": "Cable geometry source (KMCD) requires license review before production/commercial use.",
-      "active": false
+      "active": true
     },
     {
       "layer": "data_centers",
@@ -74,7 +80,7 @@
     }
   ],
   "data_gaps": {
-    "cables_unmapped": 1171,
+    "cables_unmapped": 207,
     "data_centers_unmapped": 0,
     "note": "Unmapped entries have no public geometry or coordinates. No coordinates are inferred."
   }

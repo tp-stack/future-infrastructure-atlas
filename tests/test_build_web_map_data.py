@@ -104,6 +104,24 @@ def test_read_cables_empty_fixture(tmp_path):
     assert records == []
 
 
+def test_read_cables_collapses_segment_rows(tmp_path):
+    csv_path = tmp_path / "cables.csv"
+    csv_path.write_text(
+        "record_type,cable_system_name,operators,landing_points,segment_endpoints,source_dataset\n"
+        "segment,Alpha Cable,OpA,Port A | Port B,Port A;Port B,SCN\n"
+        "segment,Alpha Cable,OpB,Port A | Port B,Port B;Port C,SCN\n"
+        "segment,Beta Cable,OpC,Port X | Port Y,Port X;Port Y,SCN\n",
+        encoding="utf-8",
+    )
+    records = _read_cables(csv_path)
+
+    assert len(records) == 2
+    alpha = next(r for r in records if r["n"] == "Alpha Cable")
+    assert alpha["segment_count"] == 2
+    assert alpha["operators"] == "OpA, OpB"
+    assert alpha["segment_endpoints"] == "Port A;Port B | Port B;Port C"
+
+
 def test_read_datacenters_empty_fixture(tmp_path):
     csv_path = tmp_path / "dc.csv"
     csv_path.write_text(

@@ -22,7 +22,7 @@ ROUTES = [
     ("/?reliableMap=1", "Reliable canvas route"),
     ("/?reliableMap=1&proof=1", "Reliable proof route"),
     ("/?zoomMap=1", "Clean zoomable route"),
-    ("/?maplibreMap=1", "MapLibre route"),
+    ("/?maplibreMap=1", "Protected map route"),
     ("/?debugMap=1", "Debug route"),
     ("/?debugMap=1&proof=1", "Proof route"),
     ("/?pmtilesMap=1", "PMTiles route"),
@@ -208,7 +208,7 @@ def main() -> None:
   <h2>Visual QA Checklist</h2>
   <ul>
     <li>Normal app and <code>?reliableMap=1</code> show a non-empty zoomable global map without relying on MapLibre.</li>
-    <li><code>?zoomMap=1</code> and <code>?maplibreMap=1</code> remain available for MapLibre comparison.</li>
+    <li><code>?maplibreMap=1</code> is protected by the reliable renderer; <code>?zoomMap=1</code> remains available for raw MapLibre diagnostics.</li>
     <li>Power plants, data centers, cable lines, and graticule are visible.</li>
     <li><code>?debugMap=1&amp;proof=1</code> shows five large proof points.</li>
     <li>Zoom controls, cluster expansion, reset global view, and fit filtered results work.</li>

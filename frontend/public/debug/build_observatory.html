@@ -31,7 +31,7 @@
 <body>
 <main>
   <h1>FUTURE Infrastructure Atlas Build Observatory</h1>
-  <div class="small">Generated 2026-05-19T17:04:16.691267+00:00 on branch master at commit 33bcb2c.</div>
+  <div class="small">Generated 2026-05-19T17:23:47.841375+00:00 on branch master at commit ff95563.</div>
   <div class="small">Live URL: <a href="https://frontend-wheat-seven-24.vercel.app/">https://frontend-wheat-seven-24.vercel.app/</a></div>
 
   <h2>Routes</h2>
@@ -39,17 +39,17 @@
 <a href="https://frontend-wheat-seven-24.vercel.app/?reliableMap=1">Reliable canvas route<span>/?reliableMap=1</span></a>
 <a href="https://frontend-wheat-seven-24.vercel.app/?reliableMap=1&amp;proof=1">Reliable proof route<span>/?reliableMap=1&amp;proof=1</span></a>
 <a href="https://frontend-wheat-seven-24.vercel.app/?zoomMap=1">Clean zoomable route<span>/?zoomMap=1</span></a>
-<a href="https://frontend-wheat-seven-24.vercel.app/?maplibreMap=1">MapLibre route<span>/?maplibreMap=1</span></a>
+<a href="https://frontend-wheat-seven-24.vercel.app/?maplibreMap=1">Protected map route<span>/?maplibreMap=1</span></a>
 <a href="https://frontend-wheat-seven-24.vercel.app/?debugMap=1">Debug route<span>/?debugMap=1</span></a>
 <a href="https://frontend-wheat-seven-24.vercel.app/?debugMap=1&amp;proof=1">Proof route<span>/?debugMap=1&amp;proof=1</span></a>
 <a href="https://frontend-wheat-seven-24.vercel.app/?pmtilesMap=1">PMTiles route<span>/?pmtilesMap=1</span></a></section>
 
   <h2>Data Status</h2>
   <section class="grid">
-    <div class="panel"><div class="metric ok">4.62 MB</div><div class="label">atlas_web_data.json, 5 MB cap</div></div>
-    <div class="panel"><div class="metric ok">3.3 KB</div><div class="label">atlas_core.json, metadata only</div></div>
+    <div class="panel"><div class="metric ok">4.56 MB</div><div class="label">atlas_web_data.json, 5 MB cap</div></div>
+    <div class="panel"><div class="metric ok">3.6 KB</div><div class="label">atlas_core.json, metadata only</div></div>
     <div class="panel"><div class="metric">34,936</div><div class="label">mapped power plants</div></div>
-    <div class="panel"><div class="metric">4 / 1,175</div><div class="label">mapped submarine cables</div></div>
+    <div class="panel"><div class="metric">674 / 881</div><div class="label">mapped submarine cables</div></div>
     <div class="panel"><div class="metric">5,264 / 5,264</div><div class="label">mapped data centers</div></div>
   </section>
 
@@ -57,19 +57,20 @@
   <table><thead><tr><th>File</th><th>Public file</th><th>Public size</th><th>Artifact file</th><th>Artifact size</th><th>atlas_core status</th></tr></thead><tbody><tr><td>power_plants.pmtiles</td><td class="warn">missing</td><td>missing</td><td class="ok">present</td><td>9.21 MB</td><td>artifact_only (9.21 MB in data/tiles; not publicly served)</td></tr><tr><td>submarine_cables.pmtiles</td><td class="warn">missing</td><td>missing</td><td class="ok">present</td><td>1.56 MB</td><td>artifact_only (1.56 MB in data/tiles; not publicly served)</td></tr><tr><td>data_centers.pmtiles</td><td class="warn">missing</td><td>missing</td><td class="ok">present</td><td>2.23 MB</td><td>artifact_only (2.23 MB in data/tiles; not publicly served)</td></tr></tbody></table>
 
   <h2>Source And License Warnings</h2>
-  <ul><li class="ok"><strong>submarine_cables</strong>: Cable geometry source (KMCD) requires license review before production/commercial use.</li>
+  <ul><li class="warn"><strong>submarine_cables</strong>: Cable geometry source (KMCD) requires license review before production/commercial use.</li>
 <li class="warn"><strong>data_centers</strong>: PeeringDB data center source: verify terms before commercial redistribution.</li>
 <li class="warn"><strong>submarine_cables</strong>: KMCD cable data remains source_license: to_verify and license_review_required: true.</li>
 <li class="warn"><strong>data_centers</strong>: PeeringDB public facilities / interconnection data, not all data centers in the world.</li></ul>
   <table><thead><tr><th>Key</th><th>Name</th><th>License</th></tr></thead><tbody><tr><td>wri_global_power_plant_database</td><td>WRI Global Power Plant Database</td><td>Creative Commons Attribution 4.0 (CC BY 4.0)</td></tr>
 <tr><td>scn_submarine_cables</td><td>SCN Submarine Cable Network Data</td><td>Public research dataset</td></tr>
 <tr><td>epoch_ai_data_centers</td><td>Epoch AI Frontier Data Centers</td><td>Creative Commons Attribution (CC BY)</td></tr>
-<tr><td>peeringdb_facilities</td><td>PeeringDB facilities / interconnection data centers</td><td>PeeringDB public/user-maintained facility data — verify terms before commercial redistribution</td></tr></tbody></table>
+<tr><td>peeringdb_facilities</td><td>PeeringDB facilities / interconnection data centers</td><td>PeeringDB public/user-maintained facility data — verify terms before commercial redistribution</td></tr>
+<tr><td>cable_geometry_csv</td><td>KMCD Internet Infrastructure Map — cable geometries</td><td>to_verify — requires license review before production/commercial use</td></tr></tbody></table>
 
   <h2>Visual QA Checklist</h2>
   <ul>
     <li>Normal app and <code>?reliableMap=1</code> show a non-empty zoomable global map without relying on MapLibre.</li>
-    <li><code>?zoomMap=1</code> and <code>?maplibreMap=1</code> remain available for MapLibre comparison.</li>
+    <li><code>?maplibreMap=1</code> is protected by the reliable renderer; <code>?zoomMap=1</code> remains available for raw MapLibre diagnostics.</li>
     <li>Power plants, data centers, cable lines, and graticule are visible.</li>
     <li><code>?debugMap=1&amp;proof=1</code> shows five large proof points.</li>
     <li>Zoom controls, cluster expansion, reset global view, and fit filtered results work.</li>

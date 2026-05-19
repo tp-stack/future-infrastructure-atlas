@@ -1,5 +1,23 @@
 # Learnings
 
+## 2026-05-19 - Cable Geometry Coverage Preserved In Web Bundle
+
+- Issue fixed: regenerated public data was falling back to a tiny legacy cable geometry set instead of the reviewed KMCD-derived geometry CSV.
+- Root cause: SCN cable segment rows were not collapsed into cable systems, and KMCD geometry-only cable records were not appended when they had no matching SCN inventory row.
+- Solution: merged duplicate cable segment rows, merged duplicate geometry rows into MultiLineString features, and appended geometry-only public cable records while keeping `source_license: to_verify` and `license_review_required: true`.
+- Validation: `python scripts/build_web_map_data.py --cable-geometry-csv data/raw/submarine_cable_geometries/kmcd_manual_20260511/world_submarine_cable_geometries_kmcd.csv --allow-license-review --max-public-mb 5`; `python scripts/check_frontend_data.py`; `pytest -q --ignore=tests/test_visual_regression.py`.
+- Remaining risk: KMCD/underlying cable geometry license still requires review before production/commercial use.
+
+## 2026-05-19 - Visual Regression Guard For Core Map Routes
+
+- Issue fixed: black/empty map regressions could pass CI because no automated test inspected rendered pixels.
+- Root cause: existing tests validated data and builds, but not whether user-facing routes actually paint infrastructure layers.
+- Solution: added a standard-library visual regression script that starts Vite, captures headless Chrome screenshots for `/`, `?reliableMap=1`, and `?maplibreMap=1`, decodes PNG pixels, crops the map area, and fails on low visual signal. CI now runs this guard after frontend build. `?maplibreMap=1` is now a protected reliable-renderer alias; `?zoomMap=1` remains the raw MapLibre diagnostic route.
+- Validation: `python scripts/check_visual_regression.py`; `pytest tests/test_visual_regression.py -q`; `python -m atlas.storage .`; `cd frontend && npm.cmd run build`; `pytest -q --ignore=tests/test_visual_regression.py` (`278 passed, 5 skipped`).
+- Deployment: https://frontend-wheat-seven-24.vercel.app/
+- Remaining risk: CI runners must have Chrome/Chromium and frontend npm dependencies installed; the script fails clearly if either is missing.
+- Next recommended issue: add a second screenshot profile for mobile/narrow viewports so sidebar and map-stage regressions are caught too.
+
 ## 2026-05-19 - Added Reliable Canvas Map Baseline
 
 - Issue fixed: the primary view needed a renderer that stays usable even when MapLibre/WebGL or external globe packages fail.

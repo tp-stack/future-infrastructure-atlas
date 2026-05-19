@@ -74,6 +74,19 @@ class TestLoadCableGeometryCsv:
         assert "test_cable_beta" in lookup
         assert lookup["test_cable_alpha"]["geometry_type"] == "MultiLineString"
 
+    def test_merges_duplicate_cable_geometry_rows(self, tmp_path):
+        csv = tmp_path / "test.csv"
+        csv.write_text(
+            'cable_name,geometry_type,geometry_json,source_name,source_license,license_review_required,geometry_precision,confidence,source_url\n'
+            'Cable A,LineString,"{""type"":""LineString"",""coordinates"":[[0,0],[1,1]]}",TestSrc,to_verify,true,generalized,0.65,\n'
+            'Cable A,LineString,"{""type"":""LineString"",""coordinates"":[[2,2],[3,3]]}",TestSrc,to_verify,true,generalized,0.65,\n',
+            encoding="utf-8",
+        )
+        lookup = _load_cable_geometry_csv(csv)
+
+        assert lookup["cable_a"]["geometry_type"] == "MultiLineString"
+        assert len(lookup["cable_a"]["geometry"]) == 2
+
 
 class TestBuildWithCableGeometryCsv:
     def test_build_with_csv(self, tmp_path, monkeypatch):
@@ -124,6 +137,46 @@ class TestBuildWithCableGeometryCsv:
         assert len(mapped[0]["geometry"]) == 3
         assert data["metadata"]["counts"]["cable_geometry_source"] == "KMCD Internet Infrastructure Map"
         assert data["metadata"]["counts"]["cable_geometry_review_required"] is True
+
+    def test_build_appends_geometry_only_cables(self, tmp_path, monkeypatch):
+        wri_csv = tmp_path / "wri.csv"
+        wri_csv.write_text(
+            "country,name,capacity_mw,latitude,longitude,primary_fuel\nUS,OK,100,40,-75,Gas\n",
+            encoding="utf-8",
+        )
+        cables_csv = tmp_path / "cables.csv"
+        cables_csv.write_text(
+            "record_type,cable_system_name,operators,landing_points,segment_endpoints\n"
+            "segment,Matched Cable,OpCo,CityA;CityB,Port1;Port2\n",
+            encoding="utf-8",
+        )
+        dcs_csv = tmp_path / "dcs.csv"
+        dcs_csv.write_text("name,country\n", encoding="utf-8")
+        geom_csv = tmp_path / "geom.csv"
+        geom_csv.write_text(
+            'cable_name,geometry_type,geometry_json,source_name,source_license,license_review_required,geometry_precision,confidence,source_url\n'
+            'Matched Cable,LineString,"{""type"":""LineString"",""coordinates"":[[0,0],[1,1]]}",KMCD,to_verify,true,generalized,0.65,\n'
+            'Geometry Only Cable,LineString,"{""type"":""LineString"",""coordinates"":[[2,2],[3,3]]}",KMCD,to_verify,true,generalized,0.65,\n',
+            encoding="utf-8",
+        )
+
+        monkeypatch.setattr("scripts.build_web_map_data.WRI_CSV", wri_csv)
+        monkeypatch.setattr("scripts.build_web_map_data.CABLES_CSV", cables_csv)
+        monkeypatch.setattr("scripts.build_web_map_data.DATACENTERS_CSV", dcs_csv)
+        monkeypatch.setattr("scripts.build_web_map_data.FRONTEND_DATA", tmp_path / "frontend_data")
+        monkeypatch.setattr("scripts.build_web_map_data.PROCESSED_WEB", tmp_path / "processed_web")
+
+        success = build_web_data(
+            max_public_mb=5,
+            cable_geometry_csv_path=geom_csv,
+            allow_license_review=True,
+        )
+        assert success is True
+
+        data = json.loads((tmp_path / "frontend_data" / "atlas_web_data.json").read_text(encoding="utf-8"))
+        assert data["metadata"]["counts"]["cables_total"] == 2
+        assert data["metadata"]["counts"]["cables_mapped"] == 2
+        assert {c["n"] for c in data["cables"]} == {"Matched Cable", "Geometry Only Cable"}
 
     def test_rejects_without_allow_license_review(self, tmp_path, monkeypatch):
         wri_csv = tmp_path / "wri.csv"

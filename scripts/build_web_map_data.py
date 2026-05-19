@@ -112,6 +112,29 @@ def _normalize_key(name: str) -> str:
     return name.strip().lower().replace(" ", "_").replace("-", "_")
 
 
+def _merge_text_values(existing: str, incoming: str, separator: str = " | ") -> str:
+    existing = (existing or "").strip()
+    incoming = (incoming or "").strip()
+    if not incoming:
+        return existing
+    if not existing:
+        return incoming
+    parts = [p.strip() for p in existing.split(separator) if p.strip()]
+    if incoming in parts:
+        return existing
+    return f"{existing}{separator}{incoming}"
+
+
+def _merge_csv_values(existing: str, incoming: str) -> str:
+    existing_parts = [p.strip() for p in (existing or "").split(",") if p.strip()]
+    seen = {p.lower() for p in existing_parts}
+    for part in [p.strip() for p in (incoming or "").split(",") if p.strip()]:
+        if part.lower() not in seen:
+            existing_parts.append(part)
+            seen.add(part.lower())
+    return ", ".join(existing_parts)
+
+
 def _read_wri(path: Path) -> tuple[list[dict], int]:
     records = []
     rejected = 0
@@ -152,22 +175,140 @@ def _read_wri(path: Path) -> tuple[list[dict], int]:
 
 
 def _read_cables(path: Path) -> list[dict]:
-    records = []
+    records_by_key: dict[str, dict] = {}
     with open(path, encoding="utf-8-sig") as f:
         reader = csv.DictReader(f)
         for row in reader:
             name = (row.get("cable_system_name") or "").strip()
             if not name:
                 continue
-            records.append({
-                "n": name,
-                "operators": (row.get("operators") or "").strip(),
-                "landing_points": (row.get("landing_points") or "").strip(),
-                "segment_endpoints": (row.get("segment_endpoints") or "").strip(),
-                "length_km": (row.get("segment_length_km_raw") or "").strip(),
-                "source": (row.get("source_dataset") or "").strip(),
-            })
-    return records
+            key = _normalize_key(name)
+            record = records_by_key.get(key)
+            if record is None:
+                records_by_key[key] = {
+                    "n": name,
+                    "operators": (row.get("operators") or "").strip(),
+                    "landing_points": (row.get("landing_points") or "").strip(),
+                    "segment_endpoints": (row.get("segment_endpoints") or row.get("segment_endpoints_raw") or "").strip(),
+                    "length_km": (row.get("system_length_km_raw") or row.get("segment_length_km_raw") or "").strip(),
+                    "source": (row.get("source_dataset") or "").strip(),
+                    "segment_count": 1,
+                }
+                continue
+
+            record["operators"] = _merge_csv_values(record.get("operators", ""), row.get("operators") or "")
+            record["landing_points"] = _merge_text_values(record.get("landing_points", ""), row.get("landing_points") or "")
+            record["segment_endpoints"] = _merge_text_values(
+                record.get("segment_endpoints", ""),
+                row.get("segment_endpoints") or row.get("segment_endpoints_raw") or "",
+            )
+            record["source"] = _merge_csv_values(record.get("source", ""), row.get("source_dataset") or "")
+            if not record.get("length_km"):
+                record["length_km"] = (row.get("system_length_km_raw") or row.get("segment_length_km_raw") or "").strip()
+            record["segment_count"] = int(record.get("segment_count", 0)) + 1
+    return list(records_by_key.values())
+
+
+def _cable_geometry_to_lines(geometry: list) -> list[list[tuple[float, float]]]:
+    if not geometry:
+        return []
+    if isinstance(geometry[0], list) and geometry[0] and isinstance(geometry[0][0], (list, tuple)):
+        return [line for line in geometry if isinstance(line, list) and len(line) >= 2]
+    return [geometry] if len(geometry) >= 2 else []
+
+
+def _lines_to_cable_geometry(lines: list[list[tuple[float, float]]]) -> list:
+    return lines[0] if len(lines) == 1 else lines
+
+
+def _parse_float(value: str, default: float) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _format_landing_points(value: str) -> str:
+    if not value:
+        return ""
+    try:
+        parsed = json.loads(value)
+    except json.JSONDecodeError:
+        return value
+    if not isinstance(parsed, list):
+        return value
+    names = []
+    for item in parsed:
+        if isinstance(item, dict):
+            name = item.get("name") or item.get("landing_point") or item.get("city")
+            if name:
+                names.append(str(name))
+        elif item:
+            names.append(str(item))
+    return " | ".join(names)
+
+
+def _source_cable_from_geometry_entry(entry: dict) -> dict:
+    return {
+        "n": entry.get("cable_name", ""),
+        "source": entry.get("source_name", "KMCD Internet Infrastructure Map"),
+        "geometry": entry.get("geometry", []),
+        "geometry_precision": entry.get("geometry_precision", "generalized_public_geometry"),
+        "mapped_status": "mapped",
+        "coordinate_source": entry.get("source_name", ""),
+        "source_license": entry.get("source_license", ""),
+        "source_url": entry.get("source_url", ""),
+        "confidence": entry.get("confidence", 0.0),
+        "operators": entry.get("owners", ""),
+        "landing_points": _format_landing_points(entry.get("landing_points_json", "")),
+        "length_km": entry.get("length", ""),
+        "source_only_geometry": True,
+    }
+
+
+def _append_geometry_only_cables(cables: list[dict], lookup: dict) -> list[dict]:
+    existing_keys = {_normalize_key(c.get("n", "")) for c in cables}
+    combined = list(cables)
+    for key, entry in sorted(lookup.items(), key=lambda item: item[1].get("cable_name", item[0]).lower()):
+        if key in existing_keys:
+            continue
+        combined.append(_source_cable_from_geometry_entry(entry))
+        existing_keys.add(key)
+    return combined
+
+
+def _merge_geometry_lookup_entry(lookup: dict, key: str, entry: dict) -> None:
+    incoming_lines = _cable_geometry_to_lines(entry["geometry"])
+    if not incoming_lines:
+        return
+
+    existing = lookup.get(key)
+    if existing is None:
+        entry["_geometry_lines"] = incoming_lines
+        lookup[key] = entry
+        return
+
+    existing_lines = existing.get("_geometry_lines")
+    if existing_lines is None:
+        existing_lines = _cable_geometry_to_lines(existing.get("geometry", []))
+        existing["_geometry_lines"] = existing_lines
+
+    existing_lines.extend(incoming_lines)
+    existing["geometry"] = _lines_to_cable_geometry(existing_lines)
+    existing["geometry_type"] = "MultiLineString" if len(existing_lines) > 1 else "LineString"
+    existing["owners"] = _merge_csv_values(existing.get("owners", ""), entry.get("owners", ""))
+    existing["landing_points_json"] = existing.get("landing_points_json") or entry.get("landing_points_json", "")
+    if not existing.get("length"):
+        existing["length"] = entry.get("length", "")
+
+
+def _finalize_geometry_lookup(lookup: dict) -> dict:
+    for entry in lookup.values():
+        lines = entry.pop("_geometry_lines", None)
+        if lines is not None:
+            entry["geometry"] = _lines_to_cable_geometry(lines)
+            entry["geometry_type"] = "MultiLineString" if len(lines) > 1 else "LineString"
+    return lookup
 
 
 def _read_datacenters(path: Path) -> list[dict]:
@@ -265,18 +406,22 @@ def _load_cable_geometry_csv(path: Path) -> dict:
             else:
                 continue
             key = _normalize_key(name)
-            lookup[key] = {
+            entry = {
                 "geometry": geom_out,
                 "geometry_type": gtype,
                 "geometry_precision": row.get("geometry_precision", "generalized_public_geometry"),
                 "source_name": row.get("source_name", "KMCD Internet Infrastructure Map"),
                 "source_url": row.get("source_url", ""),
                 "source_license": row.get("source_license", "to_verify"),
-                "confidence": float(row.get("confidence", 0.65)),
+                "confidence": _parse_float(row.get("confidence", ""), 0.65),
                 "license_review_required": row.get("license_review_required", "true") == "true",
                 "cable_name": name,
+                "owners": row.get("owners", ""),
+                "length": row.get("length", ""),
+                "landing_points_json": row.get("landing_points_json", ""),
             }
-    return lookup
+            _merge_geometry_lookup_entry(lookup, key, entry)
+    return _finalize_geometry_lookup(lookup)
 
 
 def _enrich_cable_geometry(cables: list[dict], lookup: dict) -> list[dict]:
@@ -298,6 +443,7 @@ def _enrich_cable_geometry(cables: list[dict], lookup: dict) -> list[dict]:
                 "operators": cable["operators"],
                 "landing_points": cable["landing_points"],
                 "length_km": cable["length_km"],
+                "segment_count": cable.get("segment_count", 1),
             })
         else:
             enriched.append({
@@ -309,6 +455,7 @@ def _enrich_cable_geometry(cables: list[dict], lookup: dict) -> list[dict]:
                 "operators": cable["operators"],
                 "landing_points": cable["landing_points"],
                 "length_km": cable["length_km"],
+                "segment_count": cable.get("segment_count", 1),
             })
     return enriched
 
@@ -527,6 +674,7 @@ def build_web_data(
                         sys.exit(1)
             geom_lookup = _load_cable_geometry_csv(csv_path)
             cables = _enrich_cable_geometry(cables_raw, geom_lookup)
+            cables = _append_geometry_only_cables(cables, geom_lookup)
             cable_geometry_csv_used = csv_path
             print(f"[build] Enriched cables from geometry CSV: {csv_path.name} ({len(geom_lookup)} entries)")
         else:

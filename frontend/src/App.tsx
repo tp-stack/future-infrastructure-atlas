@@ -204,6 +204,10 @@ export default function App() {
     return <ZoomMapRoute data={data} proof={proof} />;
   }
 
+  if (maplibreMap) {
+    return <ReliableMapRoute data={data} proof={proof} />;
+  }
+
   if (reliableMap) {
     return <ReliableMapRoute data={data} proof={proof} />;
   }
