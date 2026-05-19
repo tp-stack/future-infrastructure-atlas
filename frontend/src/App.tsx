@@ -3,6 +3,7 @@ import AtlasMap from "./map/AtlasMap";
 import SimpleAtlasMap from "./map/SimpleAtlasMap";
 import PMTilesAtlasMap from "./map/PMTilesAtlasMap";
 import ZoomableAtlasMap from "./map/ZoomableAtlasMap";
+import ReliableAtlasMap from "./map/ReliableAtlasMap";
 import type { CanvasDiagnostics } from "./map/InfrastructureCanvasOverlay";
 import ErrorBoundary from "./components/ErrorBoundary";
 import LayerPanel from "./components/LayerPanel";
@@ -175,6 +176,8 @@ export default function App() {
   const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : new URLSearchParams();
   const debugMap = params.get("debugMap") === "1";
   const zoomMap = params.get("zoomMap") === "1";
+  const reliableMap = params.get("reliableMap") === "1";
+  const maplibreMap = params.get("maplibreMap") === "1";
   const pmtilesMap = params.get("pmtilesMap") === "1";
   const proof = params.get("proof") === "1";
   const canvasFallback = params.get("canvasFallback") === "1";
@@ -199,6 +202,10 @@ export default function App() {
 
   if (zoomMap) {
     return <ZoomMapRoute data={data} proof={proof} />;
+  }
+
+  if (reliableMap) {
+    return <ReliableMapRoute data={data} proof={proof} />;
   }
 
   return (
@@ -299,9 +306,19 @@ export default function App() {
               selectedAssetId={selectedAssetId}
               canvasEnabled={canvasEnabled || canvasFallback}
             />
-          ) : (
+          ) : maplibreMap ? (
             <div className="map-container">
               <ZoomableAtlasMap
+                data={data}
+                filters={filters}
+                visibleLayers={visibleLayers}
+                graticuleVisible={graticuleVisible}
+                onAssetSelect={handlePopup}
+              />
+            </div>
+          ) : (
+            <div className="map-container">
+              <ReliableAtlasMap
                 data={data}
                 filters={filters}
                 visibleLayers={visibleLayers}
@@ -326,6 +343,37 @@ export default function App() {
             onToggleCanvas={setCanvasEnabled}
             onClose={() => setShowDiagnostics(false)}
           />
+        </div>
+      </div>
+    </ErrorBoundary>
+  );
+}
+
+function ReliableMapRoute({ data, proof }: { data: AtlasData; proof?: boolean }) {
+  const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
+  const [selectedAssetType, setSelectedAssetType] = useState<InteractableType | null>(null);
+  const visibleLayers = useMemo(() => ({ power_plants: true, cables: true, data_centers: true }), []);
+  const filters = useMemo(() => ({ fuelType: "", country: "", minMw: 0 }), []);
+
+  const handlePopup = useCallback((asset: Asset | null, assetType: InteractableType | null) => {
+    setSelectedAsset(asset);
+    setSelectedAssetType(asset ? assetType : null);
+  }, []);
+
+  return (
+    <ErrorBoundary>
+      <div className="app app-shell app-shell--map-only">
+        <div className="map-area map-stage">
+          <div className="map-container">
+            <ReliableAtlasMap
+              data={data}
+              filters={filters}
+              visibleLayers={visibleLayers}
+              proof={proof}
+              onAssetSelect={handlePopup}
+            />
+          </div>
+          <AssetDetailsPanel asset={selectedAsset} assetType={selectedAssetType} onClose={() => handlePopup(null, null)} />
         </div>
       </div>
     </ErrorBoundary>

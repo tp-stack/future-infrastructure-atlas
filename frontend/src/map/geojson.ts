@@ -155,15 +155,12 @@ export function buildDataCenterGeoJSON(
 
 export function buildCableGeoJSON(data: AtlasData): GeoJSON.FeatureCollection {
   const features: GeoJSON.Feature[] = [];
-  const seen = new Set<string>();
 
   for (const c of data.cables) {
     if (c.mapped_status !== "mapped") continue;
-    if (seen.has(c.n)) continue;
 
     const lines = cableLines(c.geometry);
     if (lines.length === 0) continue;
-    seen.add(c.n);
 
     const geometry: GeoJSON.Geometry = lines.length === 1
       ? { type: "LineString", coordinates: lines[0] }

@@ -19,7 +19,10 @@ OUTPUT_PATH = FRONTEND_PUBLIC / "debug" / "build_observatory.html"
 
 ROUTES = [
     ("/", "Normal app"),
+    ("/?reliableMap=1", "Reliable canvas route"),
+    ("/?reliableMap=1&proof=1", "Reliable proof route"),
     ("/?zoomMap=1", "Clean zoomable route"),
+    ("/?maplibreMap=1", "MapLibre route"),
     ("/?debugMap=1", "Debug route"),
     ("/?debugMap=1&proof=1", "Proof route"),
     ("/?pmtilesMap=1", "PMTiles route"),
@@ -204,8 +207,9 @@ def main() -> None:
 
   <h2>Visual QA Checklist</h2>
   <ul>
-    <li>Normal app shows a non-empty zoomable global map.</li>
-    <li><code>?zoomMap=1</code> shows clustered power plants, data centers, cable lines, and graticule.</li>
+    <li>Normal app and <code>?reliableMap=1</code> show a non-empty zoomable global map without relying on MapLibre.</li>
+    <li><code>?zoomMap=1</code> and <code>?maplibreMap=1</code> remain available for MapLibre comparison.</li>
+    <li>Power plants, data centers, cable lines, and graticule are visible.</li>
     <li><code>?debugMap=1&amp;proof=1</code> shows five large proof points.</li>
     <li>Zoom controls, cluster expansion, reset global view, and fit filtered results work.</li>
     <li>Clicking a power plant, data center, or cable opens a popup or details panel.</li>

@@ -1,5 +1,15 @@
 # Learnings
 
+## 2026-05-19 - Added Reliable Canvas Map Baseline
+
+- Issue fixed: the primary view needed a renderer that stays usable even when MapLibre/WebGL or external globe packages fail.
+- Root cause: globe repositories under the GitHub topic are either decorative WebGL components, Three.js data-globe libraries, or heavier GIS engines; they still depend on WebGL and would not remove the current critical rendering risk.
+- Solution: added a self-contained React canvas renderer as the normal app default and exposed <code>?reliableMap=1</code>; MapLibre remains available through <code>?maplibreMap=1</code> and <code>?zoomMap=1</code>.
+- Validation: `python scripts/init_storage.py`; `python scripts/check_registry.py`; `python scripts/build_web_map_data.py --max-public-mb 5`; `python scripts/check_frontend_data.py`; `python -m atlas.storage .`; `python scripts/check_pmtiles_outputs.py --max-public-mb 25`; `python scripts/build_atlas_core.py`; `python scripts/check_atlas_core.py`; `pytest -q`; `cd frontend && npm.cmd run build`; local Chrome/CDP route sweep for `/`, `?reliableMap=1`, `?reliableMap=1&proof=1`, `?maplibreMap=1`, and `?zoomMap=1`.
+- Deployment: https://frontend-wheat-seven-24.vercel.app/
+- Remaining risk: the reliable renderer is intentionally simple and does not replace PMTiles/object-storage architecture for large production layers.
+- Next recommended issue: add automated visual regression checks for <code>/</code>, <code>?reliableMap=1</code>, and <code>?maplibreMap=1</code>.
+
 ## 2026-05-19 - PMTiles Artifact Build Kept Storage-Safe
 
 - Issue fixed: PMTiles could be generated, but public `.pmtiles` files violated repository storage safety.

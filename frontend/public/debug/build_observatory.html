@@ -31,12 +31,15 @@
 <body>
 <main>
   <h1>FUTURE Infrastructure Atlas Build Observatory</h1>
-  <div class="small">Generated 2026-05-19T16:34:36.219373+00:00 on branch master at commit e148319.</div>
+  <div class="small">Generated 2026-05-19T17:04:16.691267+00:00 on branch master at commit 33bcb2c.</div>
   <div class="small">Live URL: <a href="https://frontend-wheat-seven-24.vercel.app/">https://frontend-wheat-seven-24.vercel.app/</a></div>
 
   <h2>Routes</h2>
   <section class="routes"><a href="https://frontend-wheat-seven-24.vercel.app/">Normal app<span>/</span></a>
+<a href="https://frontend-wheat-seven-24.vercel.app/?reliableMap=1">Reliable canvas route<span>/?reliableMap=1</span></a>
+<a href="https://frontend-wheat-seven-24.vercel.app/?reliableMap=1&amp;proof=1">Reliable proof route<span>/?reliableMap=1&amp;proof=1</span></a>
 <a href="https://frontend-wheat-seven-24.vercel.app/?zoomMap=1">Clean zoomable route<span>/?zoomMap=1</span></a>
+<a href="https://frontend-wheat-seven-24.vercel.app/?maplibreMap=1">MapLibre route<span>/?maplibreMap=1</span></a>
 <a href="https://frontend-wheat-seven-24.vercel.app/?debugMap=1">Debug route<span>/?debugMap=1</span></a>
 <a href="https://frontend-wheat-seven-24.vercel.app/?debugMap=1&amp;proof=1">Proof route<span>/?debugMap=1&amp;proof=1</span></a>
 <a href="https://frontend-wheat-seven-24.vercel.app/?pmtilesMap=1">PMTiles route<span>/?pmtilesMap=1</span></a></section>
@@ -65,8 +68,9 @@
 
   <h2>Visual QA Checklist</h2>
   <ul>
-    <li>Normal app shows a non-empty zoomable global map.</li>
-    <li><code>?zoomMap=1</code> shows clustered power plants, data centers, cable lines, and graticule.</li>
+    <li>Normal app and <code>?reliableMap=1</code> show a non-empty zoomable global map without relying on MapLibre.</li>
+    <li><code>?zoomMap=1</code> and <code>?maplibreMap=1</code> remain available for MapLibre comparison.</li>
+    <li>Power plants, data centers, cable lines, and graticule are visible.</li>
     <li><code>?debugMap=1&amp;proof=1</code> shows five large proof points.</li>
     <li>Zoom controls, cluster expansion, reset global view, and fit filtered results work.</li>
     <li>Clicking a power plant, data center, or cable opens a popup or details panel.</li>
