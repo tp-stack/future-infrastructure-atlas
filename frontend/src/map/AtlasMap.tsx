@@ -530,7 +530,6 @@ export default function AtlasMap({
       setMapError(message);
     });
     map.current = m;
-    (window as unknown as { __atlasMap?: maplibregl.Map }).__atlasMap = m;
     setMapInstance(m);
   }, [setMapError]);
 
@@ -541,7 +540,6 @@ export default function AtlasMap({
       for (const fn of cleanupFnsRef.current) fn();
       cleanupFnsRef.current = [];
       map.current?.remove();
-      delete (window as unknown as { __atlasMap?: maplibregl.Map }).__atlasMap;
       map.current = null;
       setMapInstance(null);
       layersAddedRef.current = false;

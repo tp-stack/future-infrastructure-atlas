@@ -1,5 +1,19 @@
 # Learnings
 
+## 2026-05-21 - Atlas Security Audit And Hardening
+
+- **Issue fixed:** production site had no security headers, an inline script incompatible with CSP, a global MapLibre instance leak, and a raw PeeringDB CSV exposed as a static asset.
+- **Root cause:** no `vercel.json` existed to configure security headers; inline script in `index.html` predated CSP requirements; `window.__atlasMap` was added for debugging without removal; `fetch_peeringdb_datacenters.py` wrote a public CSV that no frontend code consumed.
+- **Solution:**
+  - Created `frontend/vercel.json` with CSP, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, and COOP headers.
+  - Moved inline theme script to `frontend/public/theme-init.js` for CSP compatibility.
+  - Removed `window.__atlasMap` global exposure from `AtlasMap.tsx`.
+  - Removed `frontend/public/data/datacenters_public.csv` and blocked `*.csv`/`*.geojson` in public/data via `.gitignore`.
+  - Wrote `SECURITY_AUDIT.md` with full findings and validation commands.
+- **Validation:** `npm run build` passes; `npm audit` reports 0 vulnerabilities; `pytest -q` passes; `python -m atlas.storage .` passes; `python scripts/check_frontend_data.py` passes; `python scripts/check_registry.py` passes (15 pre-existing warnings, 0 errors).
+- **Deployment:** verified at https://frontend-wheat-seven-24.vercel.app/
+- **Remaining risks:** debug routes publicly accessible (accepted for support), no pip-audit/bandit in CI, no SRI hashes.
+
 ## 2026-05-19 - Cable Geometry Coverage Preserved In Web Bundle
 
 - Issue fixed: regenerated public data was falling back to a tiny legacy cable geometry set instead of the reviewed KMCD-derived geometry CSV.

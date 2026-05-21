@@ -72,3 +72,7 @@ frontend/dist/
 
 .vercel
 .env*.local
+
+# Raw data artifacts must not be served from public
+frontend/public/data/*.csv
+frontend/public/data/*.geojson
