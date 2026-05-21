@@ -16,7 +16,7 @@ export default function AssetPopup({ asset }: Props) {
     );
   }
 
-  if ("f" in asset) {
+  if (asset.kind === "power_plant") {
     return (
       <div className="panel-section">
         <h2>Selected Asset</h2>
@@ -31,7 +31,7 @@ export default function AssetPopup({ asset }: Props) {
     );
   }
 
-  if ("op" in asset) {
+  if (asset.kind === "data_center") {
     const isMetroLevel = asset.coordinate_precision?.includes("metro") || asset.coordinate_precision === "city";
     return (
       <div className="panel-section">
@@ -47,6 +47,37 @@ export default function AssetPopup({ asset }: Props) {
         {isMetroLevel && (
           <div style={{ fontSize: 9, color: "#5a5a62", marginTop: 6, fontStyle: "italic" }}>Metro-level coordinates — not exact facility location</div>
         )}
+      </div>
+    );
+  }
+
+  if (asset.kind === "power_line") {
+    return (
+      <div className="panel-section">
+        <h2>Selected Asset</h2>
+        <div style={{ fontSize: 12, marginBottom: 4, color: "#f4efe6", fontWeight: 600 }}>{asset.n}</div>
+        <div style={{ fontSize: 10, color: "#6a6a72", lineHeight: 1.6 }}>
+          <div style={{ display: "flex", justifyContent: "space-between" }}><span>Type</span><span style={{ color: "#f4efe6" }}>Power Line</span></div>
+          <div style={{ display: "flex", justifyContent: "space-between" }}><span>Voltage</span><span style={{ color: "#f4efe6" }}>{asset.voltage || "N/A"} kV</span></div>
+          <div style={{ display: "flex", justifyContent: "space-between" }}><span>Circuits</span><span style={{ color: "#f4efe6" }}>{asset.circuits || "N/A"}</span></div>
+          {asset.cables ? <div style={{ display: "flex", justifyContent: "space-between" }}><span>Cables</span><span style={{ color: "#f4efe6" }}>{asset.cables}</span></div> : null}
+          <div style={{ display: "flex", justifyContent: "space-between" }}><span>Length</span><span style={{ color: "#f4efe6" }}>{asset.length_km ? `${asset.length_km.toLocaleString()} km` : "N/A"}</span></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (asset.kind === "substation") {
+    return (
+      <div className="panel-section">
+        <h2>Selected Asset</h2>
+        <div style={{ fontSize: 12, marginBottom: 4, color: "#f4efe6", fontWeight: 600 }}>{asset.n}</div>
+        <div style={{ fontSize: 10, color: "#6a6a72", lineHeight: 1.6 }}>
+          <div style={{ display: "flex", justifyContent: "space-between" }}><span>Type</span><span style={{ color: "#f4efe6" }}>Substation</span></div>
+          <div style={{ display: "flex", justifyContent: "space-between" }}><span>Voltage</span><span style={{ color: "#f4efe6" }}>{asset.voltage || "N/A"} kV</span></div>
+          <div style={{ display: "flex", justifyContent: "space-between" }}><span>Country</span><span style={{ color: "#f4efe6" }}>{asset.country || "N/A"}</span></div>
+          <div style={{ display: "flex", justifyContent: "space-between" }}><span>DC</span><span style={{ color: "#f4efe6" }}>{asset.dc ? "Yes" : "No"}</span></div>
+        </div>
       </div>
     );
   }

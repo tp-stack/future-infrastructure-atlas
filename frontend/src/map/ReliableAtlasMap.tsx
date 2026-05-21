@@ -138,6 +138,7 @@ function pointAsset(kind: "power_plant" | "data_center", props: GeoJSON.GeoJsonP
     return {
       assetType: "power_plant",
       asset: {
+        kind: "power_plant",
         n: String(props?.n || props?.name || ""),
         c: String(props?.c || props?.country || ""),
         f: String(props?.f || props?.fuel || ""),
@@ -152,6 +153,7 @@ function pointAsset(kind: "power_plant" | "data_center", props: GeoJSON.GeoJsonP
   return {
     assetType: "data_center",
     asset: {
+      kind: "data_center",
       n: String(props?.n || props?.name || ""),
       op: String(props?.op || props?.operator || ""),
       c: String(props?.c || props?.country || ""),
@@ -171,6 +173,7 @@ function pointAsset(kind: "power_plant" | "data_center", props: GeoJSON.GeoJsonP
 
 function cableAsset(props: GeoJSON.GeoJsonProperties): Asset {
   return {
+    kind: "submarine_cable",
     n: String(props?.n || props?.name || ""),
     source: String(props?.source || ""),
     geometry: [],

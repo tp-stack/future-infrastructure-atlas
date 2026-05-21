@@ -64,8 +64,9 @@ def test_build_atlas_core_minimal():
     assert core["counts"]["submarine_cables_mapped"] == 50
     assert core["counts"]["data_centers_mapped"] == 20
 
-    # Sources
-    assert len(core["sources"]) == 1
+    # Sources preserve caller-provided entries and may append layer-specific
+    # attribution discovered from metadata-only frontend files.
+    assert any(source.get("key") == "test_source" for source in core["sources"])
 
     # Tile registry
     for key in ("power_plants", "submarine_cables", "data_centers"):

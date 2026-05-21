@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, lazy, Suspense } from "react";
 import AtlasMap from "./map/AtlasMap";
 import SimpleAtlasMap from "./map/SimpleAtlasMap";
 import PMTilesAtlasMap from "./map/PMTilesAtlasMap";
@@ -8,19 +8,29 @@ import type { CanvasDiagnostics } from "./map/InfrastructureCanvasOverlay";
 import ErrorBoundary from "./components/ErrorBoundary";
 import LayerPanel from "./components/LayerPanel";
 import Legend from "./components/Legend";
-import SourcePanel from "./components/SourcePanel";
-import StatsPanel from "./components/StatsPanel";
-import UnmappedPanel from "./components/UnmappedPanel";
-import AssetDetailsPanel from "./components/AssetDetailsPanel";
-import type { AtlasData, AtlasCore, FilterState, Asset } from "./map/types";
+
+const StatsDashboard = lazy(() => import("./components/StatsDashboard"));
+const DataExport = lazy(() => import("./components/DataExport"));
+const StatsPanel = lazy(() => import("./components/StatsPanel"));
+const UnmappedPanel = lazy(() => import("./components/UnmappedPanel"));
+const SourcePanel = lazy(() => import("./components/SourcePanel"));
+const AssetDetailsPanel = lazy(() => import("./components/AssetDetailsPanel"));
+import type { AtlasData, AtlasCore, FilterState, Asset, PowerPlant, Cable } from "./map/types";
 import type { InteractableType } from "./map/interaction";
+import { cachedFetch } from "./utils/cache";
+import { isValidLonLat } from "./map/coords";
+import { readUrlParams, writeUrlParams, layersToParam, paramToLayers } from "./utils/urlState";
+import { toggleTheme, getTheme } from "./utils/theme";
 
 export default function App() {
+  const initialParams = typeof window !== "undefined" ? readUrlParams() : {};
   const [data, setData] = useState<AtlasData | null>(null);
   const [core, setCore] = useState<AtlasCore | null>(null);
+  const [powerLinesData, setPowerLinesData] = useState<GeoJSON.FeatureCollection | null>(null);
+  const [substationsData, setSubstationsData] = useState<GeoJSON.FeatureCollection | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(initialParams.sidebar !== "0");
   const [canvasDiag, setCanvasDiag] = useState<CanvasDiagnostics | null>(null);
   const [showTestPoints, setShowTestPoints] = useState(false);
   const [graticuleVisible, setGraticuleVisible] = useState(true);
@@ -30,25 +40,62 @@ export default function App() {
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [selectedAssetType, setSelectedAssetType] = useState<InteractableType | null>(null);
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
-  const [visibleLayers, setVisibleLayers] = useState({
+  const [searchQuery, setSearchQuery] = useState(initialParams.searchQuery ?? "");
+  const [navigateTo, setNavigateTo] = useState<{ lon: number; lat: number; zoom?: number } | null>(null);
+  const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
+
+  const handleShare = useCallback(() => {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      setCopyFeedback("Copied!");
+      setTimeout(() => setCopyFeedback(null), 2000);
+    }).catch(() => {
+      setCopyFeedback("Failed");
+      setTimeout(() => setCopyFeedback(null), 2000);
+    });
+  }, []);
+  const [visibleLayers, setVisibleLayers] = useState(paramToLayers(initialParams.layers) ?? {
     power_plants: true,
     cables: true,
     data_centers: true,
+    power_lines: true,
+    substations: true,
+    heatmap: false,
   });
+  const [layerOpacity, setLayerOpacity] = useState<Record<string, number>>({
+    power_plants: 0.85,
+    cables: 0.85,
+    data_centers: 0.9,
+    power_lines: 0.7,
+    substations: 0.85,
+    heatmap: 0.75,
+  });
+  const [, setThemeVersion] = useState(0);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = getTheme();
+  }, []);
+
+  const handleToggleTheme = useCallback(() => {
+    toggleTheme();
+    setThemeVersion((v) => v + 1);
+  }, []);
+
   const [filters, setFilters] = useState<FilterState>({
-    fuelType: "",
-    country: "",
-    minMw: 0,
+    fuelType: initialParams.fuelType ?? "",
+    country: initialParams.country ?? "",
+    minMw: initialParams.minMw ?? 0,
   });
 
   useEffect(() => {
     const controller = new AbortController();
 
     async function load() {
+      let loadedCore: AtlasCore | null = null;
       try {
         const coreResp = await fetch("/data/atlas_core.json", { signal: controller.signal });
         if (coreResp.ok) {
           const coreData: AtlasCore = await coreResp.json();
+          loadedCore = coreData;
           setCore(coreData);
         }
       } catch {
@@ -56,11 +103,7 @@ export default function App() {
       }
 
       try {
-        const webResp = await fetch("/data/atlas_web_data.json", { signal: controller.signal });
-        if (!webResp.ok) {
-          throw new Error(`HTTP ${webResp.status}${webResp.status === 404 ? " - file not found" : ""}`);
-        }
-        const webData: AtlasData = await webResp.json();
+        const webData = await cachedFetch<AtlasData>("/data/atlas_web_data.json", 5 * 60 * 1000);
         if (!webData.metadata || !webData.power_plants) {
           throw new Error("Invalid data structure: missing metadata or power_plants");
         }
@@ -72,11 +115,45 @@ export default function App() {
           setLoading(false);
         }
       }
+
+      const hasPowerLineTiles = loadedCore?.tile_registry?.power_lines?.status?.startsWith("present");
+      if (!hasPowerLineTiles) {
+        try {
+          const resp = await fetch("/data/power_lines.json", { signal: controller.signal });
+          if (resp.ok) {
+            const plData: GeoJSON.FeatureCollection = await resp.json();
+            if (plData.features?.length) setPowerLinesData(plData);
+          }
+        } catch {
+          // power lines layer is optional; map works without it
+        }
+      }
+
+      try {
+        const resp = await fetch("/data/substations.json", { signal: controller.signal });
+        if (resp.ok) {
+          const substationData: GeoJSON.FeatureCollection = await resp.json();
+          setSubstationsData(substationData);
+        }
+      } catch {
+        // substations layer is optional; map works without it
+      }
     }
 
     load();
     return () => controller.abort();
   }, []);
+
+  useEffect(() => {
+    writeUrlParams({
+      fuel: filters.fuelType || null,
+      country: filters.country || null,
+      mw: filters.minMw > 0 ? filters.minMw : null,
+      q: searchQuery || null,
+      layers: layersToParam(visibleLayers),
+      sidebar: sidebarOpen ? null : "0",
+    });
+  }, [filters, searchQuery, visibleLayers, sidebarOpen]);
 
   const fuelTypes = useMemo(() => {
     if (!data) return [];
@@ -92,15 +169,50 @@ export default function App() {
     return Array.from(s).sort();
   }, [data]);
 
-  const visibleCount = useMemo(() => {
-    if (!data) return 0;
+  const filteredPowerPlants = useMemo(() => {
+    if (!data) return [];
     return data.power_plants.filter((p) => {
       if (filters.fuelType && p.f !== filters.fuelType) return false;
       if (filters.country && p.c !== filters.country) return false;
       if (filters.minMw > 0 && p.mw < filters.minMw) return false;
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        if (!p.n.toLowerCase().includes(q) && !p.c.toLowerCase().includes(q)) return false;
+      }
       return true;
-    }).length;
-  }, [data, filters]);
+    });
+  }, [data, filters, searchQuery]);
+
+  const visibleCount = useMemo(() => filteredPowerPlants.length, [filteredPowerPlants]);
+
+  const searchResults = useMemo(() => {
+    if (!data || !searchQuery) return [];
+    const q = searchQuery.toLowerCase();
+    const results: Array<{ label: string; type: string; asset: Asset }> = [];
+    for (const p of data.power_plants) {
+      if (p.n.toLowerCase().includes(q) || p.c.toLowerCase().includes(q)) {
+        results.push({ label: `${p.n} (${p.c}, ${p.f})`, type: "power_plant", asset: p });
+        if (results.length >= 50) break;
+      }
+    }
+    if (results.length < 50) {
+      for (const c of data.cables) {
+        if (c.n.toLowerCase().includes(q)) {
+          results.push({ label: `${c.n} (submarine cable)`, type: "cable", asset: c });
+          if (results.length >= 50) break;
+        }
+      }
+    }
+    if (results.length < 50) {
+      for (const d of data.data_centers) {
+        if (d.n.toLowerCase().includes(q) || d.c.toLowerCase().includes(q) || d.city?.toLowerCase().includes(q)) {
+          results.push({ label: `${d.n} (${d.city}, ${d.c})`, type: "data_center", asset: d });
+          if (results.length >= 50) break;
+        }
+      }
+    }
+    return results;
+  }, [data, searchQuery]);
 
   const counts = data ? data.metadata.counts : (core?.counts as Record<string, number> | null) || {};
   const cablesMapped = (counts?.cables_mapped ?? counts?.submarine_cables_mapped ?? 0) as number;
@@ -119,15 +231,23 @@ export default function App() {
     setVisibleLayers((prev) => ({ ...prev, [key]: !(prev as Record<string, boolean>)[key] }));
   }, []);
 
+  const handleOpacityChange = useCallback((key: string, value: number) => {
+    setLayerOpacity((prev) => ({ ...prev, [key]: value }));
+  }, []);
+
   const handlePopup = useCallback((asset: Asset | null) => {
     setSelectedAsset(asset);
     if (!asset) {
       setSelectedAssetId(null);
       setSelectedAssetType(null);
-    } else if ("f" in asset) {
+    } else if (asset.kind === "power_plant") {
       setSelectedAssetType("power_plant");
-    } else if ("op" in asset) {
+    } else if (asset.kind === "data_center") {
       setSelectedAssetType("data_center");
+    } else if (asset.kind === "power_line") {
+      setSelectedAssetType("power_line");
+    } else if (asset.kind === "substation") {
+      setSelectedAssetType("substation");
     } else {
       setSelectedAssetType("submarine_cable");
     }
@@ -142,6 +262,34 @@ export default function App() {
     setSelectedAssetId(null);
     setSelectedAssetType(null);
   }, []);
+
+  function getCableFirstCoord(cable: Cable): [number, number] | null {
+    const g = cable.geometry;
+    if (!g) return null;
+    if (Array.isArray(g[0]) && Array.isArray(g[0][0])) {
+      const multi = g as number[][][];
+      if (multi.length > 0 && multi[0].length > 0) return multi[0][0] as [number, number];
+    }
+    if (Array.isArray(g[0])) {
+      const single = g as number[][];
+      if (single.length > 0) return single[0] as [number, number];
+    }
+    return null;
+  }
+
+  const handleSearchResultClick = useCallback((asset: Asset) => {
+    handlePopup(asset);
+    if (asset.kind === "power_plant" || asset.kind === "data_center") {
+      if (isValidLonLat(asset.lon, asset.lat)) {
+        setNavigateTo({ lon: asset.lon, lat: asset.lat, zoom: 10 });
+      }
+    } else if (asset.kind === "submarine_cable") {
+      const coord = getCableFirstCoord(asset);
+      if (coord) {
+        setNavigateTo({ lon: coord[0], lat: coord[1], zoom: 5 });
+      }
+    }
+  }, [handlePopup]);
 
   const hasZeroCanvasPoints = Boolean(
     canvasDiag?.active && data && canvasDiag.powerPlantsDrawn === 0 && canvasDiag.recordsReceived > 1000
@@ -167,7 +315,7 @@ export default function App() {
           <div className="error-title">Data file missing or invalid</div>
           <div className="error-message">{error || "No data available"}</div>
           <div className="error-hint">Ensure atlas_web_data.json exists in the public data directory and is valid JSON.</div>
-          <div className="error-footer"><SourcePanel metadata={null} /></div>
+          <div className="error-footer"><Suspense fallback={null}><SourcePanel metadata={null} core={core ?? undefined} /></Suspense></div>
         </div>
       </div>
     );
@@ -181,9 +329,10 @@ export default function App() {
   const pmtilesMap = params.get("pmtilesMap") === "1";
   const proof = params.get("proof") === "1";
   const canvasFallback = params.get("canvasFallback") === "1";
+  const embed = params.get("embed") === "1";
 
   if (pmtilesMap) {
-    if (core) return <PMTilesAtlasMap core={core} />;
+    if (core) return <ErrorBoundary><PMTilesAtlasMap core={core} /></ErrorBoundary>;
     return (
       <div className="app">
         <div className="error-screen">
@@ -197,7 +346,7 @@ export default function App() {
   }
 
   if (debugMap) {
-    return <SimpleAtlasMap data={data} />;
+    return <ErrorBoundary><SimpleAtlasMap data={data} /></ErrorBoundary>;
   }
 
   if (zoomMap) {
@@ -210,6 +359,35 @@ export default function App() {
 
   if (reliableMap) {
     return <ReliableMapRoute data={data} proof={proof} />;
+  }
+
+  if (embed) {
+    return (
+      <ErrorBoundary>
+        <div className="app app-shell app-shell--embed">
+          <div className="map-area map-stage" style={{ width: "100%", height: "100%" }}>
+            <AtlasMap
+              data={data}
+              filters={filters}
+              visibleLayers={visibleLayers}
+              onPopup={handlePopup}
+              onCanvasDiagnostics={setCanvasDiag}
+              showTestPoints={showTestPoints}
+              graticuleVisible={false}
+              onHoveredAsset={setHoveredAssetId}
+              onSelectedAsset={handleSelectedAsset}
+              selectedAssetId={selectedAssetId}
+              canvasEnabled={canvasEnabled || canvasFallback}
+              core={core ?? undefined}
+              navigateTo={navigateTo}
+              layerOpacity={layerOpacity}
+              powerLinesData={powerLinesData}
+              substationsData={substationsData}
+            />
+          </div>
+        </div>
+      </ErrorBoundary>
+    );
   }
 
   return (
@@ -234,11 +412,29 @@ export default function App() {
             countries={countries}
             counts={data.metadata.counts}
             visibleCount={visibleCount}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            searchResults={searchResults}
+            onSearchResultClick={handleSearchResultClick}
+            layerOpacity={layerOpacity}
+            onOpacityChange={handleOpacityChange}
           />
+          <Suspense fallback={<div className="panel-section"><div className="panel-loading">Loading...</div></div>}>
+            <StatsDashboard data={data} filters={filters} />
+          </Suspense>
           <Legend />
-          <StatsPanel metadata={data.metadata} />
-          <UnmappedPanel metadata={data.metadata} />
-          <SourcePanel metadata={data.metadata} />
+          <Suspense fallback={null}>
+            <StatsPanel metadata={data.metadata} />
+          </Suspense>
+          <Suspense fallback={null}>
+            <DataExport data={data} filters={filters} />
+          </Suspense>
+          <Suspense fallback={null}>
+            <UnmappedPanel metadata={data.metadata} />
+          </Suspense>
+          <Suspense fallback={null}>
+            <SourcePanel metadata={data.metadata} core={core ?? undefined} />
+          </Suspense>
           <div className="panel-footer">
             Generated {new Date(data.metadata.generated_at).toLocaleString()}
           </div>
@@ -259,6 +455,21 @@ export default function App() {
               <span className="top-bar-stat">{dcsMapped.toLocaleString()} / {dcsTotal.toLocaleString()} data centers</span>
             </div>
             <div className="top-bar-right">
+              <button
+                className="toolbar-btn"
+                onClick={handleToggleTheme}
+                title="Toggle dark/light theme"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+              </button>
+              <button
+                className="toolbar-btn"
+                onClick={handleShare}
+                title="Copy share link"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+              </button>
+              {copyFeedback && <span className="top-bar-share-feedback">{copyFeedback}</span>}
               <button
                 className={`toolbar-btn ${graticuleVisible ? "active" : ""}`}
                 onClick={() => setGraticuleVisible((v) => !v)}
@@ -296,7 +507,17 @@ export default function App() {
             </div>
           )}
 
-          {canvasEnabled || canvasFallback ? (
+          {reliableMap ? (
+            <div className="map-container">
+              <ReliableAtlasMap
+                data={data}
+                filters={filters}
+                visibleLayers={visibleLayers}
+                graticuleVisible={graticuleVisible}
+                onAssetSelect={handlePopup}
+              />
+            </div>
+          ) : (
             <AtlasMap
               data={data}
               filters={filters}
@@ -309,34 +530,21 @@ export default function App() {
               onSelectedAsset={handleSelectedAsset}
               selectedAssetId={selectedAssetId}
               canvasEnabled={canvasEnabled || canvasFallback}
+              core={core ?? undefined}
+              navigateTo={navigateTo}
+              layerOpacity={layerOpacity}
+              powerLinesData={powerLinesData}
+              substationsData={substationsData}
             />
-          ) : maplibreMap ? (
-            <div className="map-container">
-              <ZoomableAtlasMap
-                data={data}
-                filters={filters}
-                visibleLayers={visibleLayers}
-                graticuleVisible={graticuleVisible}
-                onAssetSelect={handlePopup}
-              />
-            </div>
-          ) : (
-            <div className="map-container">
-              <ReliableAtlasMap
-                data={data}
-                filters={filters}
-                visibleLayers={visibleLayers}
-                graticuleVisible={graticuleVisible}
-                onAssetSelect={handlePopup}
-              />
-            </div>
           )}
 
-          <AssetDetailsPanel
-            asset={selectedAsset}
-            assetType={selectedAssetType}
-            onClose={handleCloseDetails}
-          />
+          <Suspense fallback={null}>
+            <AssetDetailsPanel
+              asset={selectedAsset}
+              assetType={selectedAssetType}
+              onClose={handleCloseDetails}
+            />
+          </Suspense>
 
           <DiagnosticsPanel
             canvasDiag={canvasDiag}
@@ -377,7 +585,9 @@ function ReliableMapRoute({ data, proof }: { data: AtlasData; proof?: boolean })
               onAssetSelect={handlePopup}
             />
           </div>
-          <AssetDetailsPanel asset={selectedAsset} assetType={selectedAssetType} onClose={() => handlePopup(null, null)} />
+          <Suspense fallback={null}>
+            <AssetDetailsPanel asset={selectedAsset} assetType={selectedAssetType} onClose={() => handlePopup(null, null)} />
+          </Suspense>
         </div>
       </div>
     </ErrorBoundary>
@@ -408,7 +618,9 @@ function ZoomMapRoute({ data, proof }: { data: AtlasData; proof?: boolean }) {
               onAssetSelect={handlePopup}
             />
           </div>
-          <AssetDetailsPanel asset={selectedAsset} assetType={selectedAssetType} onClose={() => handlePopup(null, null)} />
+          <Suspense fallback={null}>
+            <AssetDetailsPanel asset={selectedAsset} assetType={selectedAssetType} onClose={() => handlePopup(null, null)} />
+          </Suspense>
         </div>
       </div>
     </ErrorBoundary>

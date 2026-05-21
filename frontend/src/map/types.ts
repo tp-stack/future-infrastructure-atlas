@@ -1,4 +1,5 @@
 export interface PowerPlant {
+  kind: "power_plant";
   n: string;
   c: string;
   f: string;
@@ -11,6 +12,7 @@ export interface PowerPlant {
 export type CableGeometry = number[][] | number[][][];
 
 export interface Cable {
+  kind: "submarine_cable";
   n: string;
   source: string;
   geometry: CableGeometry;
@@ -27,6 +29,7 @@ export interface Cable {
 }
 
 export interface DataCenter {
+  kind: "data_center";
   id?: string;
   n: string;
   op: string;
@@ -48,7 +51,34 @@ export interface DataCenter {
   ix_count?: number;
 }
 
-export type Asset = PowerPlant | Cable | DataCenter;
+export interface PowerLine {
+  kind: "power_line";
+  id?: string;
+  n: string;
+  voltage: number;
+  circuits: number;
+  cables?: number;
+  length_km: number;
+  underground?: boolean;
+  country?: string;
+  type?: string;
+  s_nom_mva?: number;
+}
+
+export interface Substation {
+  kind: "substation";
+  id?: string;
+  n: string;
+  voltage: number;
+  dc?: boolean;
+  symbol?: string;
+  under_construction?: boolean;
+  country?: string;
+  lat: number;
+  lon: number;
+}
+
+export type Asset = PowerPlant | Cable | DataCenter | PowerLine | Substation;
 
 export interface UnmappedRecord {
   n: string;
@@ -91,6 +121,10 @@ export interface AtlasCounts {
   data_center_source?: string;
   data_center_license_status?: string;
   data_center_review_required?: boolean;
+  power_lines_total?: number;
+  power_lines_mapped?: number;
+  substations_total?: number;
+  substations_mapped?: number;
 }
 
 export interface LayerInfo {
@@ -139,7 +173,9 @@ export interface AtlasCore {
   counts: Record<string, unknown>;
   sources: { key: string; name: string; url: string; license: string }[];
   disclaimer: string;
-  tile_registry: Record<string, { url: string; status: string; layer_name: string }>;
+  tile_registry: Record<string, { url: string; status: string; layer_name: string; deployment_mode?: string }>;
   license_warnings: { layer: string; message: string; active: boolean }[];
+  setup_warnings?: { layer: string; message: string; active: boolean }[];
   data_gaps: Record<string, unknown>;
+  bounds?: Record<string, unknown>;
 }

@@ -10,10 +10,14 @@ from __future__ import annotations
 
 import json
 import sys
+import csv
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 CACHE_DIR = PROJECT_ROOT / "data" / "cache" / "pmtiles"
+FRONTEND_DATA = PROJECT_ROOT / "frontend" / "public" / "data"
+LEGACY_POWER_CACHE = PROJECT_ROOT / "scripts" / "data" / "cache"
+POWER_CACHE = PROJECT_ROOT / "data" / "cache" / "pypsa_eur"
 
 
 def _valid_coord_pair(lon: float, lat: float) -> bool:
@@ -102,6 +106,96 @@ def generate_data_centers(data: dict) -> dict:
     return {"type": "FeatureCollection", "features": features}
 
 
+def generate_power_lines(data: dict | None = None) -> dict:
+    if data is None:
+        path = FRONTEND_DATA / "power_lines.json"
+        if not path.exists():
+            return {"type": "FeatureCollection", "features": []}
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+
+    features = []
+    for feature in data.get("features", []):
+        geom = feature.get("geometry") or {}
+        props = feature.get("properties") or {}
+        coords = geom.get("coordinates")
+        if geom.get("type") != "LineString" or not isinstance(coords, list) or len(coords) < 2:
+            continue
+        features.append({
+            "type": "Feature",
+            "geometry": {"type": "LineString", "coordinates": coords},
+            "properties": {
+                "kind": "power_line",
+                "id": props.get("id", ""),
+                "voltage": props.get("voltage", 0),
+                "circuits": props.get("circuits", 0),
+                "length_km": props.get("length_km", 0),
+                "underground": props.get("underground", False),
+                "country": props.get("country", ""),
+                "type": props.get("type", ""),
+                "s_nom_mva": props.get("s_nom_mva", 0),
+            },
+        })
+    return {"type": "FeatureCollection", "features": features}
+
+
+def _find_buses_csv() -> Path | None:
+    candidates = [
+        POWER_CACHE / "buses.csv",
+        LEGACY_POWER_CACHE / "buses.csv",
+    ]
+    return next((path for path in candidates if path.exists()), None)
+
+
+def generate_substations_from_buses(path: Path) -> dict:
+    features = []
+    with open(path, encoding="utf-8", newline="") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            try:
+                lon = float(row.get("x") or "")
+                lat = float(row.get("y") or "")
+            except ValueError:
+                continue
+            if not _valid_coord_pair(lon, lat):
+                continue
+            try:
+                voltage = int(float(row.get("voltage") or 0))
+            except ValueError:
+                voltage = 0
+            bus_id = row.get("bus_id", "")
+            features.append({
+                "type": "Feature",
+                "geometry": {"type": "Point", "coordinates": [lon, lat]},
+                "properties": {
+                    "kind": "substation",
+                    "id": bus_id,
+                    "n": bus_id,
+                    "voltage": voltage,
+                    "dc": row.get("dc", "") == "t",
+                    "symbol": row.get("symbol", ""),
+                    "under_construction": row.get("under_construction", "") == "t",
+                    "country": row.get("country", ""),
+                    "lat": lat,
+                    "lon": lon,
+                },
+            })
+    return {"type": "FeatureCollection", "features": features}
+
+
+def generate_substations(data: dict | None = None) -> dict:
+    if data is not None and data.get("type") == "FeatureCollection":
+        return data
+    frontend_path = FRONTEND_DATA / "substations.json"
+    if frontend_path.exists():
+        with open(frontend_path, encoding="utf-8") as f:
+            return json.load(f)
+    buses_csv = _find_buses_csv()
+    if buses_csv is None:
+        return {"type": "FeatureCollection", "features": []}
+    return generate_substations_from_buses(buses_csv)
+
+
 def load_frontend_data() -> dict | None:
     path = PROJECT_ROOT / "frontend" / "public" / "data" / "atlas_web_data.json"
     if not path.exists():
@@ -122,6 +216,8 @@ def main() -> None:
         ("power_plants", generate_power_plants),
         ("submarine_cables", generate_submarine_cables),
         ("data_centers", generate_data_centers),
+        ("power_lines", lambda _data: generate_power_lines()),
+        ("substations", lambda _data: generate_substations()),
     ]
 
     for name, gen_fn in layers:

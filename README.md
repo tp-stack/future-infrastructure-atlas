@@ -633,16 +633,68 @@ This checks:
 
 If a file exceeds the size limit, it is moved to `data/tiles/` and marked for object storage (Cloudflare R2, S3, Vercel Blob, etc.).
 
-#### Deployment with PMTiles
+#### Deploying large PMTiles
 
-After building PMTiles:
+The Europe all-voltage `power_lines.pmtiles` file is about 190.37 MB. Do not deploy it as a normal Vercel frontend/static asset on Hobby-safe deploys. Upload it to object storage and point the atlas registry at the remote file instead.
+
+Object storage requirements:
+- Public HTTPS URL
+- HTTP Range Requests
+- CORS for the production frontend and local dev
+
+Good storage options include Cloudflare R2, AWS S3 plus CloudFront, Vercel Blob public store, Azure Blob, and Google Cloud Storage.
+
+Generic CORS guidance:
+
+```json
+{
+  "AllowedOrigins": [
+    "https://frontend-wheat-seven-24.vercel.app",
+    "http://localhost:5173"
+  ],
+  "AllowedMethods": ["GET", "HEAD", "OPTIONS"],
+  "AllowedHeaders": ["Range", "Origin", "Accept"],
+  "ExposeHeaders": ["Accept-Ranges", "Content-Range", "Content-Length"]
+}
+```
+
+Cloudflare R2 manual flow:
+
+1. Create a public bucket.
+2. Upload `data/tiles/power_lines.pmtiles`.
+3. Configure CORS with the origins, methods, allowed headers, and exposed headers above.
+4. Copy the public URL.
+5. Set the local environment variable:
 
 ```powershell
+$env:POWER_LINES_PMTILES_URL="https://<domain>/power_lines.pmtiles"
+```
+
+6. Rebuild the registry:
+
+```powershell
+python scripts/build_atlas_core.py
+```
+
+7. Run deploy preflight:
+
+```powershell
+python scripts/preflight_deploy.py --max-local-pmtiles-mb 100
+```
+
+When `POWER_LINES_PMTILES_URL` is set, `atlas_core.json` writes `tile_registry.power_lines.url` as `pmtiles://https://<domain>/power_lines.pmtiles`. Without it, large local power-line PMTiles remain blocked from deploy by design.
+
+#### Deployment with PMTiles
+
+After building small PMTiles or configuring remote large PMTiles:
+
+```powershell
+python scripts/preflight_deploy.py --max-local-pmtiles-mb 100
 cd frontend
 npm install
 npm run build
-vercel --prod
 cd ..
+vercel.cmd --prod
 ```
 
 Then test the production URL:
@@ -651,7 +703,7 @@ Then test the production URL:
 https://your-frontend-url.vercel.app/
 ```
 
-The PMTiles files are served from `frontend/public/tiles/` via the standard HTTP protocol. The frontend's `pmtiles` protocol handler resolves `pmtiles:///tiles/power_plants.pmtiles` to an HTTP GET request for that file relative to the public root.
+Small PMTiles can be served from `frontend/public/tiles/` via the standard HTTP protocol. Large PMTiles should use remote object storage. The frontend's `pmtiles` protocol handler supports both `pmtiles:///tiles/example.pmtiles` and `pmtiles://https://<domain>/example.pmtiles`.
 
 #### Troubleshooting PMTiles
 

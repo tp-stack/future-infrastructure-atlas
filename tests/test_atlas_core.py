@@ -73,6 +73,13 @@ class TestAtlasCoreStructure:
         registry = atlas_core_data.get("tile_registry", {})
         for tile_key, entry in registry.items():
             url = entry.get("url", "")
+            deployment_mode = entry.get("deployment_mode")
+            if deployment_mode in {"remote_required", "invalid_remote", "missing"}:
+                assert url == "", f"{tile_key} should not advertise an unavailable tile URL: {url}"
+                continue
+            if url.startswith("pmtiles://"):
+                assert url.endswith(".pmtiles"), f"PMTiles URL should end with .pmtiles: {url}"
+                continue
             assert url.startswith("/tiles/"), f"URL should start with /tiles/: {url}"
             assert url.endswith(".pmtiles"), f"URL should end with .pmtiles: {url}"
 

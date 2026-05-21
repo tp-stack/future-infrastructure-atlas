@@ -9,6 +9,8 @@ from scripts.build_pmtiles import (
     _generate_power_plants_ndjson,
     _generate_cables_ndjson,
     _generate_datacenters_ndjson,
+    _generate_power_lines_ndjson,
+    _generate_substations_ndjson,
     LAYERS,
 )
 
@@ -94,7 +96,58 @@ def test_generate_datacenters_ndjson(tmp_path):
     assert feat["properties"]["n"] == "DC A"
 
 
+def test_generate_power_lines_ndjson(tmp_path, monkeypatch):
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    power_lines = {
+        "type": "FeatureCollection",
+        "features": [
+            {
+                "type": "Feature",
+                "geometry": {"type": "LineString", "coordinates": [[0, 0], [1, 1]]},
+                "properties": {"id": "L1", "voltage": 400, "circuits": 2, "length_km": 10, "type": "AC"},
+            },
+        ],
+    }
+    (data_dir / "power_lines.json").write_text(json.dumps(power_lines), encoding="utf-8")
+    monkeypatch.setattr("scripts.build_pmtiles.FRONTEND_DATA", data_dir)
+
+    out = tmp_path / "power_lines.ndjson"
+    count = _generate_power_lines_ndjson({}, out)
+    assert count == 1
+    feat = json.loads(out.read_text(encoding="utf-8").strip())
+    assert feat["geometry"]["type"] == "LineString"
+    assert feat["properties"]["voltage"] == 400
+    assert feat["properties"]["circuits"] == 2
+
+
+def test_generate_substations_ndjson(tmp_path, monkeypatch):
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    substations = {
+        "type": "FeatureCollection",
+        "features": [
+            {
+                "type": "Feature",
+                "geometry": {"type": "Point", "coordinates": [10, 45]},
+                "properties": {"id": "S1", "n": "S1", "voltage": 220, "country": "IT", "lat": 45, "lon": 10},
+            },
+        ],
+    }
+    (data_dir / "substations.json").write_text(json.dumps(substations), encoding="utf-8")
+    monkeypatch.setattr("scripts.build_pmtiles.FRONTEND_DATA", data_dir)
+
+    out = tmp_path / "substations.ndjson"
+    count = _generate_substations_ndjson({}, out)
+    assert count == 1
+    feat = json.loads(out.read_text(encoding="utf-8").strip())
+    assert feat["geometry"]["type"] == "Point"
+    assert feat["properties"]["voltage"] == 220
+
+
 def test_layer_configs_have_required_keys():
+    assert "power_lines" in LAYERS
+    assert "substations" in LAYERS
     for key, cfg in LAYERS.items():
         assert "input_ndjson" in cfg
         assert "output_pmtiles" in cfg

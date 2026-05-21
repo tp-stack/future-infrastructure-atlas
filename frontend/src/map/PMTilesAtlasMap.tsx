@@ -30,7 +30,21 @@ function getTileStatusFromCore(core: AtlasCore): TileStatus {
     power_plants: reg.power_plants?.status?.startsWith("present") ? "present" : "missing",
     submarine_cables: reg.submarine_cables?.status?.startsWith("present") ? "present" : "missing",
     data_centers: reg.data_centers?.status?.startsWith("present") ? "present" : "missing",
+    power_lines: reg.power_lines?.status?.startsWith("present") ? "present" : "missing",
+    substations: reg.substations?.status?.startsWith("present") ? "present" : "missing",
   };
+}
+
+function isPowerLineTileError(event: unknown): boolean {
+  const raw = event as unknown as { sourceId?: string; error?: { message?: string } };
+  const sourceId = raw.sourceId || "";
+  const message = raw.error?.message || "";
+  return (
+    sourceId === "power_lines_tiles" ||
+    message.includes("power_lines") ||
+    message.includes("power-lines") ||
+    message.includes("power_lines.pmtiles")
+  );
 }
 
 interface LayerToggle {
@@ -54,16 +68,21 @@ export default function PMTilesAtlasMap({ core }: Props) {
     { key: "power_plants", label: "Power Plants", visible: true },
     { key: "cables", label: "Submarine Cables", visible: true },
     { key: "data_centers", label: "Data Centers", visible: true },
+    { key: "power_lines", label: "Power Lines", visible: true },
+    { key: "substations", label: "Substations", visible: true },
   ]);
   const [debugVisible, setDebugVisible] = useState(true);
 
   const tileStatus = getTileStatusFromCore(core);
-  const anyTilesPresent = tileStatus.power_plants === "present" || tileStatus.submarine_cables === "present" || tileStatus.data_centers === "present";
+  const anyTilesPresent = Object.values(tileStatus).some((status) => status === "present");
+  const activeSetupWarnings = (core.setup_warnings || []).filter((warning) => warning.active);
 
   const visibleLayers = {
     power_plants: toggles.find((t) => t.key === "power_plants")?.visible ?? true,
     cables: toggles.find((t) => t.key === "cables")?.visible ?? true,
     data_centers: toggles.find((t) => t.key === "data_centers")?.visible ?? true,
+    power_lines: toggles.find((t) => t.key === "power_lines")?.visible ?? true,
+    substations: toggles.find((t) => t.key === "substations")?.visible ?? true,
   };
 
   const handleToggle = useCallback((key: string) => {
@@ -75,7 +94,7 @@ export default function PMTilesAtlasMap({ core }: Props) {
 
     registerPMTilesProtocol();
 
-    const tileSources = getPMTilesSources(tileStatus);
+    const tileSources = getPMTilesSources(tileStatus, core.tile_registry);
     const hasSources = Object.keys(tileSources).length > 0;
 
     const style: maplibregl.StyleSpecification = {
@@ -99,6 +118,14 @@ export default function PMTilesAtlasMap({ core }: Props) {
     });
 
     m.addControl(new maplibregl.NavigationControl(), "top-right");
+    m.on("error", (event) => {
+      setStatus((s) => ({
+        ...s,
+        error: isPowerLineTileError(event)
+          ? "Power-line PMTiles failed to load. Check CORS, Range requests, or tile URL."
+          : event.error?.message || "MapLibre reported a render error",
+      }));
+    });
 
     m.on("load", () => {
       m.resize();
@@ -133,7 +160,7 @@ export default function PMTilesAtlasMap({ core }: Props) {
 
       const popup = new maplibregl.Popup({ closeButton: true, closeOnClick: true });
       const getInteractiveTileLayers = () => (
-        ["power_plants_tiles-layer", "submarine_cables_tiles-layer", "data_centers_tiles-layer"]
+        ["power_plants_tiles-layer", "submarine_cables_tiles-layer", "data_centers_tiles-layer", "power_lines_tiles-layer", "substations_tiles-layer"]
           .filter((id) => m.getLayer(id))
       );
 
@@ -153,6 +180,11 @@ export default function PMTilesAtlasMap({ core }: Props) {
         if (props.capacity_mw) lines.push(`Capacity: ${props.capacity_mw} MW`);
         if (props.op) lines.push(`Operator: ${props.op}`);
         if (props.c) lines.push(`Country: ${props.c}`);
+        if (props.voltage) lines.push(`Voltage: ${props.voltage} kV`);
+        if (props.circuits != null) lines.push(`Circuits: ${props.circuits}`);
+        if (props.length_km) lines.push(`Length: ${props.length_km} km`);
+        if (props.country) lines.push(`Country: ${props.country}`);
+        if (props.type) lines.push(`Type: ${props.type}`);
         if (props.source) lines.push(`Source: ${props.source}`);
         if (props.source_license) lines.push(`License: ${props.source_license}`);
 
@@ -185,7 +217,7 @@ export default function PMTilesAtlasMap({ core }: Props) {
     // Get existing layer ids
     const existingLayers = m.getStyle().layers?.map((l) => l.id) || [];
     // Remove existing tile layers
-    for (const id of ["power_plants_tiles-layer", "submarine_cables_tiles-layer", "data_centers_tiles-layer"]) {
+    for (const id of ["power_plants_tiles-layer", "submarine_cables_tiles-layer", "data_centers_tiles-layer", "power_lines_tiles-layer", "substations_tiles-layer"]) {
       if (existingLayers.includes(id)) {
         try { m.removeLayer(id); } catch { /* */ }
       }
@@ -204,6 +236,8 @@ export default function PMTilesAtlasMap({ core }: Props) {
   if (tileStatus.power_plants === "missing") missingLayers.push("power_plants.pmtiles");
   if (tileStatus.submarine_cables === "missing") missingLayers.push("submarine_cables.pmtiles");
   if (tileStatus.data_centers === "missing") missingLayers.push("data_centers.pmtiles");
+  if (tileStatus.power_lines === "missing") missingLayers.push("power_lines.pmtiles");
+  if (tileStatus.substations === "missing") missingLayers.push("substations.pmtiles");
 
   return (
     <div style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}>
@@ -218,15 +252,27 @@ export default function PMTilesAtlasMap({ core }: Props) {
         }}>
           <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>No PMTiles Found</div>
           <div style={{ color: "#9ca3af", marginBottom: 12 }}>
-            Build PMTiles files to enable vector tile layers:
+            {activeSetupWarnings[0]?.message || "Build PMTiles files or configure remote tile storage to enable vector tile layers."}
           </div>
           <div style={{ fontFamily: "monospace", fontSize: 11, color: "#d69a13", textAlign: "left", background: "rgba(255,255,255,0.05)", padding: "10px 14px", borderRadius: 4 }}>
-            python scripts/build_web_map_data.py --max-public-mb 5<br />
-            python scripts/build_pmtiles.py --all --max-public-mb 25
+            $env:POWER_LINES_PMTILES_URL="https://&lt;domain&gt;/power_lines.pmtiles"<br />
+            python scripts/build_atlas_core.py
           </div>
           <div style={{ marginTop: 12, fontSize: 11, color: "#6a6a72" }}>
             The light topographic basemap is loaded. Build PMTiles to add infrastructure vector layers.
           </div>
+        </div>
+      )}
+
+      {status.error && (
+        <div style={{
+          position: "absolute", top: 60, left: "50%", transform: "translateX(-50%)",
+          zIndex: 100, background: "rgba(150,30,30,0.9)", color: "#fff",
+          padding: "8px 14px", borderRadius: 4,
+          fontFamily: "system-ui", fontSize: 11, lineHeight: 1.4, textAlign: "center",
+          maxWidth: 520, pointerEvents: "none",
+        }}>
+          {status.error}
         </div>
       )}
 
@@ -308,6 +354,7 @@ export default function PMTilesAtlasMap({ core }: Props) {
           <div>Map loaded: {status.mapLoaded ? "YES" : "NO"}</div>
           <div>Graticule: {status.graticuleAdded ? "YES" : "NO"}</div>
           <div>Tiles: {status.tilesAdded ? "YES" : "NO"}</div>
+          {status.error && <div style={{ color: "#d95c5c" }}>Error: {status.error}</div>}
           <div style={{ color: tileStatus.power_plants === "present" ? "#62c370" : "#d95c5c" }}>
             Power plants: {tileStatus.power_plants}
           </div>
@@ -316,6 +363,12 @@ export default function PMTilesAtlasMap({ core }: Props) {
           </div>
           <div style={{ color: tileStatus.data_centers === "present" ? "#62c370" : "#d95c5c" }}>
             Data centers: {tileStatus.data_centers}
+          </div>
+          <div style={{ color: tileStatus.power_lines === "present" ? "#62c370" : "#d95c5c" }}>
+            Power lines: {tileStatus.power_lines}
+          </div>
+          <div style={{ color: tileStatus.substations === "present" ? "#62c370" : "#d95c5c" }}>
+            Substations: {tileStatus.substations}
           </div>
           <div>Zoom: {status.zoom.toFixed(2)}</div>
           <div>Center: {status.center}</div>

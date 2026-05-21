@@ -6,6 +6,7 @@ Requires tippecanoe. On Windows, install through WSL or use Docker/Ubuntu.
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import os
 import shlex
@@ -18,6 +19,10 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 CACHE_DIR = PROJECT_ROOT / "data" / "cache" / "pmtiles"
 FRONTEND_TILES = PROJECT_ROOT / "frontend" / "public" / "tiles"
 DATA_TILES = PROJECT_ROOT / "data" / "tiles"
+FRONTEND_DATA = PROJECT_ROOT / "frontend" / "public" / "data"
+LEGACY_POWER_CACHE = PROJECT_ROOT / "scripts" / "data" / "cache"
+POWER_CACHE = PROJECT_ROOT / "data" / "cache" / "pypsa_eur"
+OSM_POWER_CACHE = PROJECT_ROOT / "data" / "cache" / "osm_europe_power_lines"
 
 MAX_PUBLIC_MB = 25
 MAX_PUBLIC_BYTES = MAX_PUBLIC_MB * 1024 * 1024
@@ -40,6 +45,19 @@ LAYERS = {
         "output_pmtiles": "data_centers.pmtiles",
         "layer_name": "data_centers",
         "description": "Data center coordinates from PeeringDB",
+    },
+    "power_lines": {
+        "input_ndjson": "power_lines.ndjson",
+        "output_pmtiles": "power_lines.pmtiles",
+        "layer_name": "power_lines",
+        "description": "European power lines from OpenStreetMap / PyPSA-Eur",
+        "maximum_zoom": "10",
+    },
+    "substations": {
+        "input_ndjson": "substations.ndjson",
+        "output_pmtiles": "substations.pmtiles",
+        "layer_name": "substations",
+        "description": "Substations from PyPSA-Eur buses.csv",
     },
 }
 
@@ -151,12 +169,148 @@ def _generate_datacenters_ndjson(data: dict, path: Path) -> int:
     return count
 
 
+def _valid_coord_pair(lon: float, lat: float) -> bool:
+    return -180 <= lon <= 180 and -90 <= lat <= 90
+
+
+def _load_feature_collection(path: Path) -> dict | None:
+    if not path.exists():
+        return None
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def _generate_power_lines_ndjson(_data: dict, path: Path) -> int:
+    fc = _load_feature_collection(FRONTEND_DATA / "power_lines.json")
+    if not fc:
+        return 0
+
+    pmtiles_input = (fc.get("metadata") or {}).get("pmtiles_input")
+    if pmtiles_input:
+        source = PROJECT_ROOT / str(pmtiles_input)
+        if not source.exists():
+            print(f"ERROR: power_lines pmtiles_input not found: {source}", file=sys.stderr)
+            return 0
+        shutil.copyfile(source, path)
+        with open(path, encoding="utf-8") as f:
+            return sum(1 for line in f if line.strip())
+
+    count = 0
+    with open(path, "w", encoding="utf-8") as f:
+        for feature in fc.get("features", []):
+            geom = feature.get("geometry") or {}
+            props = feature.get("properties") or {}
+            coords = geom.get("coordinates")
+            if geom.get("type") != "LineString" or not isinstance(coords, list) or len(coords) < 2:
+                continue
+            feat = {
+                "type": "Feature",
+                "geometry": {"type": "LineString", "coordinates": coords},
+                "properties": {
+                    "kind": "power_line",
+                    "id": props.get("id", ""),
+                    "voltage": props.get("voltage", 0),
+                    "circuits": props.get("circuits", 0),
+                    "length_km": props.get("length_km", 0),
+                    "underground": props.get("underground", False),
+                    "country": props.get("country", ""),
+                    "type": props.get("type", ""),
+                    "s_nom_mva": props.get("s_nom_mva", 0),
+                },
+            }
+            f.write(json.dumps(feat, ensure_ascii=False) + "\n")
+            count += 1
+    return count
+
+
+def _find_buses_csv() -> Path | None:
+    for candidate in (POWER_CACHE / "buses.csv", LEGACY_POWER_CACHE / "buses.csv"):
+        if candidate.exists():
+            return candidate
+    return None
+
+
+def _generate_substations_ndjson(_data: dict, path: Path) -> int:
+    fc = _load_feature_collection(FRONTEND_DATA / "substations.json")
+    count = 0
+    with open(path, "w", encoding="utf-8") as f:
+        if fc:
+            for feature in fc.get("features", []):
+                geom = feature.get("geometry") or {}
+                props = feature.get("properties") or {}
+                coords = geom.get("coordinates")
+                if geom.get("type") != "Point" or not isinstance(coords, list) or len(coords) < 2:
+                    continue
+                lon = float(coords[0])
+                lat = float(coords[1])
+                if not _valid_coord_pair(lon, lat):
+                    continue
+                feat = {
+                    "type": "Feature",
+                    "geometry": {"type": "Point", "coordinates": [lon, lat]},
+                    "properties": {
+                        "kind": "substation",
+                        "id": props.get("id", ""),
+                        "n": props.get("n", props.get("id", "")),
+                        "voltage": props.get("voltage", 0),
+                        "dc": props.get("dc", False),
+                        "symbol": props.get("symbol", ""),
+                        "under_construction": props.get("under_construction", False),
+                        "country": props.get("country", ""),
+                        "lat": lat,
+                        "lon": lon,
+                    },
+                }
+                f.write(json.dumps(feat, ensure_ascii=False) + "\n")
+                count += 1
+            return count
+
+        buses_csv = _find_buses_csv()
+        if buses_csv is None:
+            return 0
+        with open(buses_csv, encoding="utf-8", newline="") as src:
+            reader = csv.DictReader(src)
+            for row in reader:
+                try:
+                    lon = float(row.get("x") or "")
+                    lat = float(row.get("y") or "")
+                except ValueError:
+                    continue
+                if not _valid_coord_pair(lon, lat):
+                    continue
+                try:
+                    voltage = int(float(row.get("voltage") or 0))
+                except ValueError:
+                    voltage = 0
+                bus_id = row.get("bus_id", "")
+                feat = {
+                    "type": "Feature",
+                    "geometry": {"type": "Point", "coordinates": [lon, lat]},
+                    "properties": {
+                        "kind": "substation",
+                        "id": bus_id,
+                        "n": bus_id,
+                        "voltage": voltage,
+                        "dc": row.get("dc", "") == "t",
+                        "symbol": row.get("symbol", ""),
+                        "under_construction": row.get("under_construction", "") == "t",
+                        "country": row.get("country", ""),
+                        "lat": lat,
+                        "lon": lon,
+                    },
+                }
+                f.write(json.dumps(feat, ensure_ascii=False) + "\n")
+                count += 1
+    return count
+
+
 def _run_tippecanoe(
     tippecanoe_runner: tuple[str, str],
     input_path: Path,
     output_path: Path,
     layer_name: str,
     description: str,
+    maximum_zoom: str = "12",
 ) -> bool:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     runner_kind, runner_cmd = tippecanoe_runner
@@ -177,10 +331,9 @@ def _run_tippecanoe(
         "--description", description,
         "--attribution", "Future Infrastructure Atlas",
         "--minimum-zoom", "0",
-        "--maximum-zoom", "12",
+        "--maximum-zoom", maximum_zoom,
         "--drop-densest-as-needed",
         "--extend-zooms-if-still-dropping",
-        "--no-tile-compression",
         "--force",
         input_arg,
     ]
@@ -251,6 +404,8 @@ def build_layer(
         "power_plants": _generate_power_plants_ndjson,
         "submarine_cables": _generate_cables_ndjson,
         "data_centers": _generate_datacenters_ndjson,
+        "power_lines": _generate_power_lines_ndjson,
+        "substations": _generate_substations_ndjson,
     }
     gen = generators.get(layer_key)
     if not gen:
@@ -266,7 +421,14 @@ def build_layer(
 
     # Run tippecanoe into ignored artifact storage. PMTiles files are not committed
     # from frontend/public because repository storage safety blocks .pmtiles there.
-    success = _run_tippecanoe(tippecanoe, input_path, output_data, cfg["layer_name"], cfg["description"])
+    success = _run_tippecanoe(
+        tippecanoe,
+        input_path,
+        output_data,
+        cfg["layer_name"],
+        cfg["description"],
+        str(cfg.get("maximum_zoom", "12")),
+    )
     if not success:
         return False
 
@@ -299,7 +461,7 @@ def load_frontend_data() -> dict | None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Build PMTiles for heavy map layers")
-    parser.add_argument("--layer", type=str, default=None, help="Layer to build: power_plants, submarine_cables, data_centers")
+    parser.add_argument("--layer", type=str, default=None, help=f"Layer to build: {', '.join(LAYERS.keys())}")
     parser.add_argument("--all", action="store_true", help="Build all layers")
     parser.add_argument("--max-public-mb", type=float, default=MAX_PUBLIC_MB, help=f"Max MB per PMTiles (default: {MAX_PUBLIC_MB})")
     args = parser.parse_args()

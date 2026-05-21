@@ -107,6 +107,7 @@ function assetFromFeature(feature: maplibregl.MapGeoJSONFeature): { asset: Asset
     return {
       type: "power_plant",
       asset: {
+        kind: "power_plant",
         n: String(props.n || props.name || ""),
         c: String(props.c || props.country || ""),
         f: String(props.f || props.fuel || ""),
@@ -121,6 +122,7 @@ function assetFromFeature(feature: maplibregl.MapGeoJSONFeature): { asset: Asset
     return {
       type: "data_center",
       asset: {
+        kind: "data_center",
         n: String(props.n || props.name || ""),
         op: String(props.op || props.operator || ""),
         c: String(props.c || props.country || ""),
@@ -142,6 +144,7 @@ function assetFromFeature(feature: maplibregl.MapGeoJSONFeature): { asset: Asset
     return {
       type: "submarine_cable",
       asset: {
+        kind: "submarine_cable",
         n: String(props.n || props.name || ""),
         source: String(props.source || ""),
         geometry: [],

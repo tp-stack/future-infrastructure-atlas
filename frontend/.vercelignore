@@ -1,0 +1,5 @@
+node_modules
+dist/tiles/*.pmtiles
+public/tiles/*.pmtiles
+*.pmtiles
+tsconfig.tsbuildinfo

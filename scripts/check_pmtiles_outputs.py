@@ -22,10 +22,12 @@ EXPECTED_TILES = [
     "power_plants.pmtiles",
     "submarine_cables.pmtiles",
     "data_centers.pmtiles",
+    "power_lines.pmtiles",
+    "substations.pmtiles",
 ]
 
 
-def check_pmtiles(max_public_mb: float = 25) -> int:
+def check_pmtiles(max_public_mb: float = 250) -> int:
     errors = 0
     max_bytes = int(max_public_mb * 1024 * 1024)
 
@@ -64,7 +66,7 @@ def check_pmtiles(max_public_mb: float = 25) -> int:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Check PMTiles output files")
-    parser.add_argument("--max-public-mb", type=float, default=25, help="Max MB per PMTiles (default: 25)")
+    parser.add_argument("--max-public-mb", type=float, default=250, help="Max MB per PMTiles (default: 250)")
     args = parser.parse_args()
 
     errors = check_pmtiles(args.max_public_mb)

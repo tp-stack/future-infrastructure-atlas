@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-19T17:23:47.551177Z",
+  "generated_at": "2026-05-21T06:12:22.913114Z",
   "architecture": "atlas_core + PMTiles",
   "counts": {
     "power_plants_total": 34936,
@@ -8,14 +8,20 @@
     "submarine_cables_total": 881,
     "submarine_cables_mapped": 674,
     "submarine_cables_unmapped": 207,
-    "data_centers_total": 5264,
-    "data_centers_mapped": 5264,
+    "data_centers_total": 2341,
+    "data_centers_mapped": 2341,
     "data_centers_unmapped": 0,
     "data_center_source": "PeeringDB public facility data",
     "data_center_license_status": "PeeringDB terms/AUP review required",
     "cable_geometry_source": "KMCD Internet Infrastructure Map",
     "cable_geometry_license_status": "to_verify",
-    "cable_geometry_review_required": true
+    "cable_geometry_review_required": true,
+    "power_lines_total": 1020943,
+    "power_lines_mapped": 1020943,
+    "substations_total": 6863,
+    "substations_mapped": 6863,
+    "power_grid_source": "OpenStreetMap Power Lines for Europe via ArcGIS Online",
+    "power_grid_license_status": "ODbL 1.0"
   },
   "sources": [
     {
@@ -47,24 +53,41 @@
       "name": "KMCD Internet Infrastructure Map — cable geometries",
       "url": "https://map.kmcd.dev/data/all_cables.json",
       "license": "to_verify — requires license review before production/commercial use"
+    },
+    {
+      "key": "osm_europe_power_lines",
+      "name": "OpenStreetMap Power Lines for Europe via ArcGIS Online",
+      "url": "https://services-eu1.arcgis.com/zci5bUiJ8olAal7N/arcgis/rest/services/OpenStreetMap_Power_Lines_for_Europe/FeatureServer/0",
+      "license": "ODbL 1.0"
     }
   ],
   "disclaimer": "This atlas uses public or redistribution-safe data. Some infrastructure layers are metadata-only where public geometries or coordinates are unavailable. No coordinates are inferred or invented. Submarine cable routes are generalized public geometries or schematic arcs, not exact surveyed trench routes. This layer uses PeeringDB public facility data. It includes interconnection facilities, colocation sites, and data centers with coordinates. It is not exhaustive of every global data center.",
   "tile_registry": {
     "power_plants": {
       "url": "/tiles/power_plants.pmtiles",
-      "status": "artifact_only (9.21 MB in data/tiles; not publicly served)",
+      "status": "artifact_only (5.08 MB in data/tiles; not publicly served)",
       "layer_name": "power_plants"
     },
     "submarine_cables": {
       "url": "/tiles/submarine_cables.pmtiles",
-      "status": "artifact_only (1.56 MB in data/tiles; not publicly served)",
+      "status": "artifact_only (4.63 MB in data/tiles; not publicly served)",
       "layer_name": "submarine_cables"
     },
     "data_centers": {
       "url": "/tiles/data_centers.pmtiles",
-      "status": "artifact_only (2.23 MB in data/tiles; not publicly served)",
+      "status": "artifact_only (0.68 MB in data/tiles; not publicly served)",
       "layer_name": "data_centers"
+    },
+    "power_lines": {
+      "url": "pmtiles://https://0ubjomuu7dbyf9q9.public.blob.vercel-storage.com/power_lines.pmtiles",
+      "status": "present (remote)",
+      "layer_name": "power_lines",
+      "deployment_mode": "remote"
+    },
+    "substations": {
+      "url": "/tiles/substations.pmtiles",
+      "status": "artifact_only (3.40 MB in data/tiles; not publicly served)",
+      "layer_name": "substations"
     }
   },
   "license_warnings": [
@@ -77,11 +100,25 @@
       "layer": "data_centers",
       "message": "PeeringDB data center source: verify terms before commercial redistribution.",
       "active": true
+    },
+    {
+      "layer": "power_grid",
+      "message": "OpenStreetMap Power Lines for Europe via ArcGIS Online is ODbL 1.0; attribution and share-alike obligations apply.",
+      "active": true
     }
   ],
+  "setup_warnings": [],
   "data_gaps": {
     "cables_unmapped": 207,
     "data_centers_unmapped": 0,
     "note": "Unmapped entries have no public geometry or coordinates. No coordinates are inferred."
+  },
+  "bounds": {
+    "power_lines": {
+      "minLon": -28.8031066,
+      "minLat": 32.6487817,
+      "maxLon": 47.2252786,
+      "maxLat": 78.9231671
+    }
   }
 }

@@ -58,6 +58,8 @@ data/logs/**
 *.parquet
 *.duckdb
 *.sqlite
+frontend/public/tiles/*.pmtiles
+!frontend/public/tiles/.gitkeep
 
 # Frontend dependencies and builds
 node_modules/
@@ -69,3 +71,4 @@ frontend/dist/
 !tests/fixtures/**
 
 .vercel
+.env*.local

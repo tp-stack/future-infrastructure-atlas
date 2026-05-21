@@ -1,4 +1,4 @@
-import type { Asset, PowerPlant, DataCenter, Cable } from "../map/types";
+import type { Asset, PowerPlant, DataCenter, Cable, PowerLine, Substation } from "../map/types";
 import { formatAssetType, type InteractableType } from "../map/interaction";
 
 interface Props {
@@ -10,7 +10,7 @@ interface Props {
 export default function AssetDetailsPanel({ asset, assetType, onClose }: Props) {
   if (!asset) return null;
 
-  const type = assetType || ("f" in asset ? "power_plant" : "op" in asset ? "data_center" : "submarine_cable");
+  const type = assetType || asset.kind || ("f" in asset ? "power_plant" : "op" in asset ? "data_center" : "submarine_cable");
   const typeLabel = formatAssetType(type);
   const hasLicenseWarning = "source_license" in asset && (asset as unknown as Record<string, string>).source_license === "to_verify";
 
@@ -35,6 +35,22 @@ export default function AssetDetailsPanel({ asset, assetType, onClose }: Props) 
       </div>
     </div>
   );
+}
+
+function renderConfidence(c: number): string {
+  if (c >= 0.9) return "High";
+  if (c >= 0.7) return "Medium";
+  if (c >= 0.4) return "Low";
+  return "Very low";
+}
+
+function formatLength(km: string): string {
+  const n = parseFloat(km);
+  if (Number.isFinite(n)) {
+    if (n >= 1000) return `${(n / 1000).toFixed(1)}k km`;
+    return `${Math.round(n).toLocaleString()} km`;
+  }
+  return km;
 }
 
 function renderFields(asset: Asset, type: string) {
@@ -66,11 +82,73 @@ function renderFields(asset: Asset, type: string) {
     fields.push({ label: "Source", value: cable.source || "N/A" });
     fields.push({ label: "Geometry precision", value: cable.geometry_precision || "N/A" });
     fields.push({ label: "License", value: cable.source_license || "N/A" });
-    if (cable.operators) fields.push({ label: "Operators", value: cable.operators });
-    if (cable.length_km) fields.push({ label: "Length", value: cable.length_km });
-    if (cable.landing_points) fields.push({ label: "Landing points", value: cable.landing_points.substring(0, 200) });
-    if (cable.confidence != null) fields.push({ label: "Confidence", value: String(cable.confidence) });
+    if (cable.confidence != null) fields.push({ label: "Confidence", value: renderConfidence(cable.confidence) });
     fields.push({ label: "Note", value: "Generalized public geometry — not exact trench route" });
+
+    return (
+      <div className="asset-details-fields">
+        {fields.map((f, i) => (
+          <div key={i} className="asset-details-field">
+            <span className="asset-details-label">{f.label}</span>
+            <span className="asset-details-value">{f.value}</span>
+          </div>
+        ))}
+        {cable.operators && (
+          <div className="asset-details-field">
+            <span className="asset-details-label">Operators</span>
+            <span className="asset-details-value asset-details-badges">
+              {cable.operators.split(",").map((op, i) => (
+                <span key={i} className="badge badge--operator">{op.trim()}</span>
+              ))}
+            </span>
+          </div>
+        )}
+        {cable.length_km && (
+          <div className="asset-details-field">
+            <span className="asset-details-label">Length</span>
+            <span className="asset-details-value">{formatLength(cable.length_km)}</span>
+          </div>
+        )}
+        {cable.landing_points && (
+          <div className="asset-details-field asset-details-field--block">
+            <span className="asset-details-label">Landing points</span>
+            <div className="asset-details-landing-list">
+              {cable.landing_points.split(",").map((lp, i) => (
+                <span key={i} className="badge badge--landing">{lp.trim()}</span>
+              ))}
+            </div>
+          </div>
+        )}
+        {cable.source_url && (
+          <div className="asset-details-field">
+            <span className="asset-details-label">Source URL</span>
+            <span className="asset-details-value">
+              <a href={cable.source_url} target="_blank" rel="noopener noreferrer" className="asset-details-link">
+                {new URL(cable.source_url).hostname}
+              </a>
+            </span>
+          </div>
+        )}
+      </div>
+    );
+  } else if (type === "power_line") {
+    const line = asset as PowerLine;
+    fields.push({ label: "Voltage", value: line.voltage ? `${line.voltage} kV` : "N/A" });
+    fields.push({ label: "Circuits", value: line.circuits ? String(line.circuits) : "N/A" });
+    if (line.cables) fields.push({ label: "Cables", value: String(line.cables) });
+    fields.push({ label: "Length", value: line.length_km ? `${line.length_km.toLocaleString()} km` : "N/A" });
+    fields.push({ label: "Country", value: line.country || "N/A" });
+    fields.push({ label: "Type", value: line.type || "N/A" });
+    if (line.s_nom_mva != null) fields.push({ label: "Capacity", value: `${line.s_nom_mva.toLocaleString()} MVA` });
+    fields.push({ label: "Underground", value: line.underground ? "Yes" : "No" });
+  } else if (type === "substation") {
+    const substation = asset as Substation;
+    fields.push({ label: "Voltage", value: substation.voltage ? `${substation.voltage} kV` : "N/A" });
+    fields.push({ label: "Country", value: substation.country || "N/A" });
+    fields.push({ label: "Type", value: substation.symbol || "N/A" });
+    fields.push({ label: "DC", value: substation.dc ? "Yes" : "No" });
+    fields.push({ label: "Under construction", value: substation.under_construction ? "Yes" : "No" });
+    fields.push({ label: "Coordinates", value: `${substation.lat?.toFixed(4)}, ${substation.lon?.toFixed(4)}` });
   }
 
   return (

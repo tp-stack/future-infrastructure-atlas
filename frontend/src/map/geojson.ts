@@ -1,4 +1,5 @@
 import type { AtlasData, FilterState } from "./types";
+import { parseCoord, validPointFromRecord, toValidPoint, isValidLonLat } from "./coords";
 
 export interface LonLatBounds {
   minLon: number;
@@ -8,42 +9,6 @@ export interface LonLatBounds {
 }
 
 const EMPTY_FILTERS: FilterState = { fuelType: "", country: "", minMw: 0 };
-
-function parseCoord(v: unknown): number | null {
-  if (typeof v === "number" && Number.isFinite(v)) return v;
-  if (typeof v === "string" && v.trim() !== "") {
-    const n = Number(v);
-    return Number.isFinite(n) ? n : null;
-  }
-  return null;
-}
-
-function getLon(record: Record<string, unknown>): number | null {
-  return parseCoord(record.lon ?? record.longitude ?? record.lng);
-}
-
-function getLat(record: Record<string, unknown>): number | null {
-  return parseCoord(record.lat ?? record.latitude);
-}
-
-function isValidLonLat(lon: number, lat: number): boolean {
-  return lon >= -180 && lon <= 180 && lat >= -90 && lat <= 90;
-}
-
-function validPointFromRecord(record: Record<string, unknown>): [number, number] | null {
-  const lon = getLon(record);
-  const lat = getLat(record);
-  if (lon == null || lat == null || !isValidLonLat(lon, lat)) return null;
-  return [lon, lat];
-}
-
-function toValidPoint(coord: unknown): [number, number] | null {
-  if (!Array.isArray(coord) || coord.length < 2) return null;
-  const lon = parseCoord(coord[0]);
-  const lat = parseCoord(coord[1]);
-  if (lon == null || lat == null || !isValidLonLat(lon, lat)) return null;
-  return [lon, lat];
-}
 
 function cableLines(geometry: unknown): [number, number][][] {
   if (!Array.isArray(geometry) || geometry.length === 0) return [];
@@ -169,6 +134,7 @@ export function buildCableGeoJSON(data: AtlasData): GeoJSON.FeatureCollection {
 
     features.push({
       type: "Feature",
+      id: `cable-${name}`,
       geometry,
       properties: {
         n: name,

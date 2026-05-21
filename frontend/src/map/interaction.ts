@@ -1,12 +1,12 @@
-import type { PowerPlant, DataCenter, Cable } from "./types";
+import type { PowerPlant, DataCenter, Cable, PowerLine, Substation } from "./types";
 
-export type InteractableType = "power_plant" | "data_center" | "submarine_cable";
+export type InteractableType = "power_plant" | "data_center" | "submarine_cable" | "power_line" | "substation";
 
 export interface InteractableAsset {
   id: string;
   type: InteractableType;
   name: string;
-  asset: PowerPlant | DataCenter | Cable;
+  asset: PowerPlant | DataCenter | Cable | PowerLine | Substation;
   screenX: number;
   screenY: number;
   radius: number;
@@ -93,5 +93,7 @@ export function formatAssetType(type: InteractableType): string {
     case "power_plant": return "Power Plant";
     case "data_center": return "Data Center / Facility";
     case "submarine_cable": return "Submarine Cable";
+    case "power_line": return "Power Line";
+    case "substation": return "Substation";
   }
 }

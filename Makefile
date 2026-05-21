@@ -49,13 +49,13 @@ build-atlas-core:
 	python scripts/build_atlas_core.py
 
 build-pmtiles:
-	python scripts/build_pmtiles.py --all --max-public-mb 25
+	python scripts/build_pmtiles.py --all --max-public-mb 250
 
 check-atlas-core:
 	python scripts/check_atlas_core.py
 
 check-pmtiles:
-	python scripts/check_pmtiles_outputs.py --max-public-mb 25
+	python scripts/check_pmtiles_outputs.py --max-public-mb 250
 
 frontend-install:
 	cd frontend && npm install

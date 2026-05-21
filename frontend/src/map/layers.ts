@@ -19,6 +19,23 @@ export const CABLE_HOVER_COLOR = "#0b94bd";
 export const DATA_CENTER_COLOR = "#173f5f";
 export const DATA_CENTER_STROKE_COLOR = "#ffffff";
 
+export const POWER_LINE_COLORS: Record<number, string> = {
+  750: "#8b0000",
+  500: "#d00000",
+  420: "#e04000",
+  400: "#e06000",
+  380: "#e08000",
+  330: "#e0a000",
+  300: "#c0a000",
+  275: "#80a000",
+  220: "#40a000",
+};
+
+export const POWER_LINE_DEFAULT_COLOR = "#666666";
+export const POWER_LINE_HVDC_COLOR = "#800080";
+export const SUBSTATION_COLOR = "#2f6b4f";
+export const SUBSTATION_STROKE_COLOR = "#ffffff";
+
 export const LAYER_IDS = {
   POWER_PLANTS: "power-plants",
   POWER_CLUSTERS: "power-plants-clusters",

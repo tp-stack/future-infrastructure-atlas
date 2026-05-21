@@ -1,7 +1,8 @@
 import { useRef, useEffect, useCallback } from "react";
 import type maplibregl from "maplibre-gl";
-import type { AtlasData, FilterState, PowerPlant, Cable, DataCenter } from "./types";
+import type { AtlasData, FilterState, PowerPlant } from "./types";
 import { CABLE_COLOR, CABLE_HOVER_COLOR, DATA_CENTER_COLOR, DATA_CENTER_STROKE_COLOR, FUEL_COLORS } from "./layers";
+import { getLon, getLat, isValidLonLat } from "./coords";
 
 interface Props {
   enabled?: boolean;
@@ -42,24 +43,6 @@ const TEST_POINTS = [
   { n: "São Paulo", lat: -23.5505, lon: -46.6333, color: "#ff44ff" },
 ];
 
-function getLon(record: Record<string, unknown>): number | null {
-  const v = record.lon ?? record.longitude ?? record.lng ?? null;
-  if (v == null) return null;
-  const n = typeof v === "number" ? v : Number(v);
-  return isFinite(n) ? n : null;
-}
-
-function getLat(record: Record<string, unknown>): number | null {
-  const v = record.lat ?? record.latitude ?? null;
-  if (v == null) return null;
-  const n = typeof v === "number" ? v : Number(v);
-  return isFinite(n) ? n : null;
-}
-
-function isValidLonLat(lon: number, lat: number): boolean {
-  return isFinite(lon) && isFinite(lat) && lon >= -180 && lon <= 180 && lat >= -90 && lat <= 90;
-}
-
 function projectEquirectangular(lon: number, lat: number, w: number, h: number): [number, number] {
   const x = ((lon + 180) / 360) * w;
   const y = ((90 - lat) / 180) * h;
@@ -82,6 +65,7 @@ export default function InfrastructureCanvasOverlay({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const animFrameRef = useRef(0);
   const resizeObsRef = useRef<ResizeObserver | null>(null);
+  const drawRef = useRef<() => void>(() => {});
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -356,10 +340,26 @@ export default function InfrastructureCanvasOverlay({
     }
   }, [enabled, data, filters, visibleLayers, mapInstance, showTestPoints, onCanvasDiagnostics, hoveredAssetId, selectedAssetId, graticuleVisible]);
 
+  drawRef.current = draw;
+
   useEffect(() => {
     animFrameRef.current = requestAnimationFrame(() => { draw(); });
     return () => cancelAnimationFrame(animFrameRef.current);
   }, [draw]);
+
+  useEffect(() => {
+    if (!mapInstance) return;
+    const onMapMove = () => {
+      cancelAnimationFrame(animFrameRef.current);
+      animFrameRef.current = requestAnimationFrame(() => { drawRef.current(); });
+    };
+    mapInstance.on("move", onMapMove);
+    mapInstance.on("zoom", onMapMove);
+    return () => {
+      mapInstance.off("move", onMapMove);
+      mapInstance.off("zoom", onMapMove);
+    };
+  }, [mapInstance]);
 
   useEffect(() => {
     const canvas = canvasRef.current;

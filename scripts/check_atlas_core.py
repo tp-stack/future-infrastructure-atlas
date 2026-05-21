@@ -19,7 +19,7 @@ CORE_PATH = PROJECT_ROOT / "frontend" / "public" / "data" / "atlas_core.json"
 
 MAX_SIZE_KB = 500
 
-HEAVY_KEYS = ["power_plants", "cables", "data_centers"]
+HEAVY_KEYS = ["power_plants", "cables", "data_centers", "power_lines", "substations"]
 
 
 def check_atlas_core() -> int:
@@ -61,7 +61,7 @@ def check_atlas_core() -> int:
             print(f"  OK: No heavy array '{hk}'")
 
     tile_registry = core.get("tile_registry", {})
-    for key in ["power_plants", "submarine_cables", "data_centers"]:
+    for key in ["power_plants", "submarine_cables", "data_centers", "power_lines", "substations"]:
         entry = tile_registry.get(key)
         if entry is None:
             print(f"  FAIL: tile_registry missing entry '{key}'")
@@ -77,7 +77,7 @@ def check_atlas_core() -> int:
             print(f"  OK: tile_registry['{key}'] status: {entry['status']}")
 
     counts = core.get("counts", {})
-    count_keys = ["power_plants_mapped", "submarine_cables_mapped", "data_centers_mapped"]
+    count_keys = ["power_plants_mapped", "submarine_cables_mapped", "data_centers_mapped", "power_lines_mapped", "substations_mapped"]
     for ck in count_keys:
         if ck not in counts:
             print(f"  WARN: counts missing '{ck}'")

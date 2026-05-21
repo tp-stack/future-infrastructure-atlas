@@ -1,5 +1,5 @@
-import type { FilterState, AtlasCounts } from "../map/types";
-import { CABLE_COLOR, DATA_CENTER_COLOR } from "../map/layers";
+import type { FilterState, AtlasCounts, Asset } from "../map/types";
+import { CABLE_COLOR, DATA_CENTER_COLOR, POWER_LINE_COLORS, SUBSTATION_COLOR } from "../map/layers";
 
 interface Props {
   visibleLayers: Record<string, boolean>;
@@ -10,6 +10,12 @@ interface Props {
   countries: string[];
   counts: AtlasCounts | null;
   visibleCount: number;
+  searchQuery?: string;
+  onSearchChange?: (q: string) => void;
+  searchResults?: Array<{ label: string; type: string; asset: Asset }>;
+  onSearchResultClick?: (asset: Asset) => void;
+  layerOpacity?: Record<string, number>;
+  onOpacityChange?: (key: string, value: number) => void;
 }
 
 type LayerConfig = {
@@ -56,10 +62,39 @@ const LAYER_CONFIG: LayerConfig[] = [
     },
     tooltip: "PeeringDB public interconnection facilities, colocation sites, and data centers with coordinates. Not exhaustive of every global data center.",
   },
+  {
+    key: "heatmap",
+    label: "Density heatmap",
+    dotColor: "#e8b02a",
+    getMapped: () => 1,
+    getTotal: () => 1,
+    getCoverage: () => "ok",
+    tooltip: "Power plant density heatmap overlay",
+  },
+  {
+    key: "power_lines",
+    label: "Power Lines",
+    dotColor: POWER_LINE_COLORS[400] || "#e06000",
+    getMapped: (c: AtlasCounts) => c.power_lines_mapped ?? 1,
+    getTotal: (c: AtlasCounts) => c.power_lines_total ?? c.power_lines_mapped ?? 1,
+    getCoverage: () => "ok",
+    tooltip: "European power lines from OpenStreetMap, including line, minor_line, and cable features across all tagged voltages (ODbL 1.0)",
+  },
+  {
+    key: "substations",
+    label: "Substations",
+    dotColor: SUBSTATION_COLOR,
+    getMapped: (c: AtlasCounts) => c.substations_mapped ?? 1,
+    getTotal: (c: AtlasCounts) => c.substations_total ?? c.substations_mapped ?? 1,
+    getCoverage: () => "ok",
+    tooltip: "European substations from PyPSA-Eur buses.csv (ODbL 1.0)",
+  },
 ];
 
 export default function LayerPanel({
   visibleLayers,
+  layerOpacity,
+  onOpacityChange,
   onToggle,
   filters,
   onFilterChange,
@@ -67,6 +102,10 @@ export default function LayerPanel({
   countries,
   counts,
   visibleCount,
+  searchQuery = "",
+  onSearchChange,
+  searchResults,
+  onSearchResultClick,
 }: Props) {
   const activeFilters = [filters.fuelType, filters.country, filters.minMw > 0 ? `${filters.minMw}+ MW` : ""].filter(Boolean);
 
@@ -99,9 +138,63 @@ export default function LayerPanel({
                 {coverage === "ok" ? "mapped" : coverage === "warning" ? "partial" : "unmapped"}
               </span>
             </label>
+            {onOpacityChange && layerOpacity && cfg.key in layerOpacity && (
+              <div className="layer-opacity-row">
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  value={layerOpacity[cfg.key]}
+                  onChange={(e) => onOpacityChange(cfg.key, Number(e.target.value))}
+                  className="layer-opacity-slider"
+                />
+                <span className="layer-opacity-val">{Math.round(layerOpacity[cfg.key] * 100)}%</span>
+              </div>
+            )}
           </div>
         );
       })}
+
+      {onSearchChange && (
+        <>
+          <h2 style={{ marginTop: 14 }}>Search</h2>
+          <div className="filter-group">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => onSearchChange(e.target.value)}
+              placeholder="Name, country, city..."
+              className="search-input"
+            />
+          </div>
+          {searchQuery && searchResults && searchResults.length > 0 && (
+            <div className="search-results">
+              {searchResults.slice(0, 15).map((r, i) => (
+                <div
+                  key={i}
+                  className="search-result-item"
+                  onClick={() => onSearchResultClick?.(r.asset)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === "Enter") onSearchResultClick?.(r.asset); }}
+                >
+                  <span className={`search-result-dot search-result-dot--${r.type}`} />
+                  <span className="search-result-label">{r.label}</span>
+                </div>
+              ))}
+              {searchResults.length > 15 && (
+                <div className="search-result-more">+{searchResults.length - 15} more</div>
+              )}
+            </div>
+          )}
+          {searchQuery && searchResults && searchResults.length === 0 && (
+            <div className="filter-summary">
+              <span className="filter-summary-label">No results for "{searchQuery}"</span>
+            </div>
+          )}
+        </>
+      )}
 
       <h2 style={{ marginTop: 14 }}>Filters</h2>
       <div className="filter-group">
