@@ -59,6 +59,20 @@ LAYERS = {
         "layer_name": "substations",
         "description": "Global substations from OpenStreetMap / Geofabrik extracts",
     },
+    "openinframap_power_lines": {
+        "input_ndjson": "openinframap_power_lines.ndjson",
+        "output_pmtiles": "openinframap_power_lines.pmtiles",
+        "layer_name": "openinframap_power_lines",
+        "description": "OpenInfraMap-compatible OSM power-line viewport extract",
+        "maximum_zoom": "12",
+    },
+    "openinframap_substations": {
+        "input_ndjson": "openinframap_substations.ndjson",
+        "output_pmtiles": "openinframap_substations.pmtiles",
+        "layer_name": "openinframap_substations",
+        "description": "OpenInfraMap-compatible OSM substation viewport extract",
+        "maximum_zoom": "12",
+    },
 }
 
 
@@ -315,6 +329,30 @@ def _generate_substations_ndjson(_data: dict, path: Path) -> int:
     return count
 
 
+def _generate_openinframap_ndjson(metadata_key: str, path: Path) -> int:
+    fc = _load_feature_collection(FRONTEND_DATA / "openinframap_power_extract.json")
+    if not fc:
+        return 0
+    pmtiles_input = (fc.get("metadata") or {}).get(metadata_key)
+    if not pmtiles_input:
+        return 0
+    source = PROJECT_ROOT / str(pmtiles_input)
+    if not source.exists():
+        print(f"ERROR: OpenInfraMap pmtiles input not found: {source}", file=sys.stderr)
+        return 0
+    shutil.copyfile(source, path)
+    with open(path, encoding="utf-8") as f:
+        return sum(1 for line in f if line.strip())
+
+
+def _generate_openinframap_power_lines_ndjson(_data: dict, path: Path) -> int:
+    return _generate_openinframap_ndjson("power_lines_pmtiles_input", path)
+
+
+def _generate_openinframap_substations_ndjson(_data: dict, path: Path) -> int:
+    return _generate_openinframap_ndjson("substations_pmtiles_input", path)
+
+
 def _run_tippecanoe(
     tippecanoe_runner: tuple[str, str],
     input_path: Path,
@@ -417,6 +455,8 @@ def build_layer(
         "data_centers": _generate_datacenters_ndjson,
         "power_lines": _generate_power_lines_ndjson,
         "substations": _generate_substations_ndjson,
+        "openinframap_power_lines": _generate_openinframap_power_lines_ndjson,
+        "openinframap_substations": _generate_openinframap_substations_ndjson,
     }
     gen = generators.get(layer_key)
     if not gen:

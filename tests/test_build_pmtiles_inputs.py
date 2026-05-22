@@ -11,6 +11,7 @@ from scripts.build_pmtiles import (
     _generate_datacenters_ndjson,
     _generate_power_lines_ndjson,
     _generate_substations_ndjson,
+    _generate_openinframap_power_lines_ndjson,
     LAYERS,
 )
 
@@ -184,3 +185,36 @@ def test_layer_configs_have_required_keys():
         assert "output_pmtiles" in cfg
         assert "layer_name" in cfg
         assert "description" in cfg
+
+
+def test_generate_openinframap_power_lines_ndjson(tmp_path, monkeypatch):
+    data_dir = tmp_path / "data"
+    project_root = tmp_path / "project"
+    cache_dir = project_root / "data" / "cache" / "openinframap_power_extract"
+    data_dir.mkdir()
+    cache_dir.mkdir(parents=True)
+    source = cache_dir / "openinframap_power_lines.ndjson"
+    source.write_text(
+        json.dumps({
+            "type": "Feature",
+            "geometry": {"type": "LineString", "coordinates": [[10, 45], [11, 46]]},
+            "properties": {"id": "osm-way-1", "power": "cable"},
+        }) + "\n",
+        encoding="utf-8",
+    )
+    (data_dir / "openinframap_power_extract.json").write_text(
+        json.dumps({
+            "type": "FeatureCollection",
+            "features": [],
+            "metadata": {"power_lines_pmtiles_input": "data/cache/openinframap_power_extract/openinframap_power_lines.ndjson"},
+        }),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr("scripts.build_pmtiles.FRONTEND_DATA", data_dir)
+    monkeypatch.setattr("scripts.build_pmtiles.PROJECT_ROOT", project_root)
+
+    out = tmp_path / "openinframap_power_lines.ndjson"
+    count = _generate_openinframap_power_lines_ndjson({}, out)
+
+    assert count == 1
+    assert out.read_text(encoding="utf-8") == source.read_text(encoding="utf-8")

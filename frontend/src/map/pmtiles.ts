@@ -18,16 +18,20 @@ export interface TileStatus {
   data_centers: "present" | "missing" | "unknown";
   power_lines: "present" | "missing" | "unknown";
   substations: "present" | "missing" | "unknown";
+  openinframap_power_lines?: "present" | "missing" | "unknown";
+  openinframap_substations?: "present" | "missing" | "unknown";
 }
 
 export type TileRegistry = Record<string, { url?: string; status?: string; layer_name?: string } | undefined>;
 
-const FALLBACK_TILE_URLS: Record<keyof TileStatus, string> = {
+const FALLBACK_TILE_URLS: Record<string, string> = {
   power_plants: "pmtiles:///tiles/power_plants.pmtiles",
   submarine_cables: "pmtiles:///tiles/submarine_cables.pmtiles",
   data_centers: "pmtiles:///tiles/data_centers.pmtiles",
   power_lines: "pmtiles:///tiles/power_lines.pmtiles",
   substations: "pmtiles:///tiles/substations.pmtiles",
+  openinframap_power_lines: "pmtiles:///tiles/openinframap_power_lines.pmtiles",
+  openinframap_substations: "pmtiles:///tiles/openinframap_substations.pmtiles",
 };
 
 function normalizePMTilesUrl(url: string | undefined, fallback: string): string {
@@ -40,11 +44,11 @@ function normalizePMTilesUrl(url: string | undefined, fallback: string): string 
 }
 
 function sourceSpecFor(
-  key: keyof TileStatus,
+  key: string,
   tileStatus: TileStatus,
   tileRegistry?: TileRegistry
 ): maplibregl.SourceSpecification | null {
-  if (tileStatus[key] !== "present") return null;
+  if ((tileStatus as unknown as Record<string, string | undefined>)[key] !== "present") return null;
   const url = normalizePMTilesUrl(tileRegistry?.[key]?.url, FALLBACK_TILE_URLS[key]);
   if (!url) return null;
   return { type: "vector", url };
@@ -98,12 +102,16 @@ export function getPMTilesSources(
   const dataCenters = sourceSpecFor("data_centers", tileStatus, tileRegistry);
   const powerLines = sourceSpecFor("power_lines", tileStatus, tileRegistry);
   const substations = sourceSpecFor("substations", tileStatus, tileRegistry);
+  const openInfraMapPowerLines = sourceSpecFor("openinframap_power_lines", tileStatus, tileRegistry);
+  const openInfraMapSubstations = sourceSpecFor("openinframap_substations", tileStatus, tileRegistry);
 
   if (powerPlants) sources["power_plants_tiles"] = powerPlants;
   if (submarineCables) sources["submarine_cables_tiles"] = submarineCables;
   if (dataCenters) sources["data_centers_tiles"] = dataCenters;
   if (powerLines) sources["power_lines_tiles"] = powerLines;
   if (substations) sources["substations_tiles"] = substations;
+  if (openInfraMapPowerLines) sources["openinframap_power_lines_tiles"] = openInfraMapPowerLines;
+  if (openInfraMapSubstations) sources["openinframap_substations_tiles"] = openInfraMapSubstations;
   return sources;
 }
 
@@ -195,6 +203,44 @@ export function getPMTilesLayers(
     });
   }
 
+  if (tileStatus.openinframap_power_lines === "present" && visibleLayers.power_lines) {
+    layers.push({
+      id: "openinframap_power_lines_tiles-layer",
+      type: "line",
+      source: "openinframap_power_lines_tiles",
+      "source-layer": "openinframap_power_lines",
+      filter: POWER_OVERHEAD_FILTER,
+      paint: {
+        "line-color": powerLineColorExpression(),
+        "line-width": [
+          "interpolate", ["linear"], ["zoom"],
+          2, 0.8,
+          6, 1.5,
+          10, 3.0,
+        ],
+        "line-opacity": 0.8,
+      },
+    });
+    layers.push({
+      id: "openinframap_power_cables_tiles-layer",
+      type: "line",
+      source: "openinframap_power_lines_tiles",
+      "source-layer": "openinframap_power_lines",
+      filter: POWER_CABLE_FILTER,
+      paint: {
+        "line-color": powerCableColorExpression(),
+        "line-width": [
+          "interpolate", ["linear"], ["zoom"],
+          2, 1.1,
+          6, 2.0,
+          10, 3.6,
+        ],
+        "line-opacity": 0.95,
+        "line-dasharray": [2, 1.2],
+      },
+    });
+  }
+
   if (tileStatus.substations === "present" && visibleLayers.substations) {
     layers.push({
       id: "substations_tiles-layer",
@@ -212,6 +258,27 @@ export function getPMTilesLayers(
         "circle-opacity": 0.85,
         "circle-stroke-color": SUBSTATION_STROKE_COLOR,
         "circle-stroke-width": 1,
+      },
+    });
+  }
+
+  if (tileStatus.openinframap_substations === "present" && visibleLayers.substations) {
+    layers.push({
+      id: "openinframap_substations_tiles-layer",
+      type: "circle",
+      source: "openinframap_substations_tiles",
+      "source-layer": "openinframap_substations",
+      paint: {
+        "circle-radius": [
+          "interpolate", ["linear"], ["zoom"],
+          2, 2.5,
+          6, 4.5,
+          10, 7.5,
+        ],
+        "circle-color": SUBSTATION_COLOR,
+        "circle-opacity": 0.9,
+        "circle-stroke-color": SUBSTATION_STROKE_COLOR,
+        "circle-stroke-width": 1.2,
       },
     });
   }

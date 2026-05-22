@@ -41,7 +41,17 @@ interface Props {
 }
 
 const GEOJSON_CLUSTER_LAYERS = ["power-clusters", "power-cluster-count", "power-points", "data-center-points", "submarine-cable-lines", "power-line-lines", "power-line-cables", "substation-points"];
-const PMTILES_CLUSTER_LAYERS = ["power_plants_tiles-layer", "data_centers_tiles-layer", "submarine_cables_tiles-layer", "power_lines_tiles-layer", "power_lines_cables_tiles-layer", "substations_tiles-layer"];
+const PMTILES_CLUSTER_LAYERS = [
+  "power_plants_tiles-layer",
+  "data_centers_tiles-layer",
+  "submarine_cables_tiles-layer",
+  "power_lines_tiles-layer",
+  "power_lines_cables_tiles-layer",
+  "openinframap_power_lines_tiles-layer",
+  "openinframap_power_cables_tiles-layer",
+  "substations_tiles-layer",
+  "openinframap_substations_tiles-layer",
+];
 
 function getTileStatusFromCore(core: AtlasCore): TileStatus {
   const reg = core.tile_registry || {};
@@ -51,6 +61,8 @@ function getTileStatusFromCore(core: AtlasCore): TileStatus {
     data_centers: reg.data_centers?.status?.startsWith("present") ? "present" : "missing",
     power_lines: reg.power_lines?.status?.startsWith("present") ? "present" : "missing",
     substations: reg.substations?.status?.startsWith("present") ? "present" : "missing",
+    openinframap_power_lines: reg.openinframap_power_lines?.status?.startsWith("present") ? "present" : "missing",
+    openinframap_substations: reg.openinframap_substations?.status?.startsWith("present") ? "present" : "missing",
   };
 }
 
@@ -188,7 +200,7 @@ function powerCableColorExpression(): maplibregl.ExpressionSpecification {
   ] as maplibregl.ExpressionSpecification;
 }
 
-function boundsFromCore(core: AtlasCore | undefined, key: "power_lines" | "substations"): LonLatBounds | null {
+function boundsFromCore(core: AtlasCore | undefined, key: "power_lines" | "substations" | "openinframap_power_lines" | "openinframap_substations"): LonLatBounds | null {
   const raw = core?.bounds?.[key];
   if (!raw || typeof raw !== "object") return null;
   const b = raw as Record<string, unknown>;
@@ -523,8 +535,10 @@ export default function AtlasMap({
     const cableBounds = computeFeatureCollectionBounds(cableFC);
     const lineBounds = lineFC ? computeFeatureCollectionBounds(lineFC) : boundsFromCore(core, "power_lines");
     const substationBounds = substationFC ? computeFeatureCollectionBounds(substationFC) : boundsFromCore(core, "substations");
+    const openInfraMapLineBounds = boundsFromCore(core, "openinframap_power_lines");
+    const openInfraMapSubstationBounds = boundsFromCore(core, "openinframap_substations");
 
-    const allBounds = [ppBounds, dcBounds, cableBounds, lineBounds, substationBounds].filter(Boolean) as LonLatBounds[];
+    const allBounds = [ppBounds, dcBounds, cableBounds, lineBounds, substationBounds, openInfraMapLineBounds, openInfraMapSubstationBounds].filter(Boolean) as LonLatBounds[];
     if (allBounds.length > 0) {
       const merged: LonLatBounds = {
         minLon: Math.min(...allBounds.map((b) => b.minLon)),
@@ -634,7 +648,10 @@ export default function AtlasMap({
       setVis("submarine_cables_tiles-layer", "cables");
       setVis("power_lines_tiles-layer", "power_lines");
       setVis("power_lines_cables_tiles-layer", "power_lines");
+      setVis("openinframap_power_lines_tiles-layer", "power_lines");
+      setVis("openinframap_power_cables_tiles-layer", "power_lines");
       setVis("substations_tiles-layer", "substations");
+      setVis("openinframap_substations_tiles-layer", "substations");
     }
     setVis("power-heatmap", "heatmap");
     setVis("power-clusters", "power_plants");
@@ -678,7 +695,10 @@ export default function AtlasMap({
     setOpacity("submarine_cables_tiles-layer", "cables");
     setOpacity("power_lines_tiles-layer", "power_lines");
     setOpacity("power_lines_cables_tiles-layer", "power_lines");
+    setOpacity("openinframap_power_lines_tiles-layer", "power_lines");
+    setOpacity("openinframap_power_cables_tiles-layer", "power_lines");
     setOpacity("substations_tiles-layer", "substations");
+    setOpacity("openinframap_substations_tiles-layer", "substations");
   }, [layerOpacity]);
 
   useEffect(() => {
@@ -700,7 +720,7 @@ export default function AtlasMap({
       const layerId = feat.layer?.id;
 
       if (usePMTiles) {
-        if (layerId === "power_plants_tiles-layer" || layerId === "data_centers_tiles-layer" || layerId === "submarine_cables_tiles-layer" || layerId === "power_lines_tiles-layer" || layerId === "power_lines_cables_tiles-layer" || layerId === "substations_tiles-layer") {
+        if (layerId === "power_plants_tiles-layer" || layerId === "data_centers_tiles-layer" || layerId === "submarine_cables_tiles-layer" || layerId === "power_lines_tiles-layer" || layerId === "power_lines_cables_tiles-layer" || layerId === "openinframap_power_lines_tiles-layer" || layerId === "openinframap_power_cables_tiles-layer" || layerId === "substations_tiles-layer" || layerId === "openinframap_substations_tiles-layer") {
           const p = feat.properties as Record<string, unknown>;
           let asset: Asset;
           let id: string;
@@ -713,7 +733,7 @@ export default function AtlasMap({
           } else if (layerId === "submarine_cables_tiles-layer") {
             asset = getCableFromProps(p);
             id = `cable-pmtiles-${p.n ?? "?"}`;
-          } else if (layerId === "power_lines_tiles-layer" || layerId === "power_lines_cables_tiles-layer") {
+          } else if (layerId === "power_lines_tiles-layer" || layerId === "power_lines_cables_tiles-layer" || layerId === "openinframap_power_lines_tiles-layer" || layerId === "openinframap_power_cables_tiles-layer") {
             asset = getPowerLineFromProps(p);
             id = `power-line-pmtiles-${p.id ?? p.n ?? "?"}`;
           } else {
@@ -820,8 +840,8 @@ export default function AtlasMap({
           if (layerId === "power_plants_tiles-layer") hoverId = `pp-pmtiles-${props.n ?? "?"}`;
           else if (layerId === "data_centers_tiles-layer") hoverId = `dc-pmtiles-${props.n ?? "?"}`;
           else if (layerId === "submarine_cables_tiles-layer") hoverId = `cable-pmtiles-${props.n ?? "?"}`;
-          else if (layerId === "power_lines_tiles-layer" || layerId === "power_lines_cables_tiles-layer") hoverId = `power-line-pmtiles-${props.id ?? props.n ?? "?"}`;
-          else if (layerId === "substations_tiles-layer") hoverId = `substation-pmtiles-${props.id ?? props.n ?? "?"}`;
+          else if (layerId === "power_lines_tiles-layer" || layerId === "power_lines_cables_tiles-layer" || layerId === "openinframap_power_lines_tiles-layer" || layerId === "openinframap_power_cables_tiles-layer") hoverId = `power-line-pmtiles-${props.id ?? props.n ?? "?"}`;
+          else if (layerId === "substations_tiles-layer" || layerId === "openinframap_substations_tiles-layer") hoverId = `substation-pmtiles-${props.id ?? props.n ?? "?"}`;
           else if (layerId === "power-line-lines" || layerId === "power-line-cables") hoverId = `power-line-${props.id ?? "?"}`;
           else if (layerId === "substation-points") hoverId = `substation-${props.id ?? props.n ?? "?"}`;
         } else {

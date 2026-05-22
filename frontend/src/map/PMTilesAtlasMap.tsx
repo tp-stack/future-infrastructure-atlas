@@ -32,6 +32,8 @@ function getTileStatusFromCore(core: AtlasCore): TileStatus {
     data_centers: reg.data_centers?.status?.startsWith("present") ? "present" : "missing",
     power_lines: reg.power_lines?.status?.startsWith("present") ? "present" : "missing",
     substations: reg.substations?.status?.startsWith("present") ? "present" : "missing",
+    openinframap_power_lines: reg.openinframap_power_lines?.status?.startsWith("present") ? "present" : "missing",
+    openinframap_substations: reg.openinframap_substations?.status?.startsWith("present") ? "present" : "missing",
   };
 }
 
@@ -41,7 +43,9 @@ function isPowerLineTileError(event: unknown): boolean {
   const message = raw.error?.message || "";
   return (
     sourceId === "power_lines_tiles" ||
+    sourceId === "openinframap_power_lines_tiles" ||
     message.includes("power_lines") ||
+    message.includes("openinframap_power_lines") ||
     message.includes("power-lines") ||
     message.includes("power_lines.pmtiles")
   );
@@ -53,7 +57,9 @@ function isSubstationTileError(event: unknown): boolean {
   const message = raw.error?.message || "";
   return (
     sourceId === "substations_tiles" ||
+    sourceId === "openinframap_substations_tiles" ||
     message.includes("substations") ||
+    message.includes("openinframap_substations") ||
     message.includes("substations.pmtiles")
   );
 }
@@ -173,7 +179,17 @@ export default function PMTilesAtlasMap({ core }: Props) {
 
       const popup = new maplibregl.Popup({ closeButton: true, closeOnClick: true });
       const getInteractiveTileLayers = () => (
-        ["power_plants_tiles-layer", "submarine_cables_tiles-layer", "data_centers_tiles-layer", "power_lines_tiles-layer", "power_lines_cables_tiles-layer", "substations_tiles-layer"]
+        [
+          "power_plants_tiles-layer",
+          "submarine_cables_tiles-layer",
+          "data_centers_tiles-layer",
+          "power_lines_tiles-layer",
+          "power_lines_cables_tiles-layer",
+          "openinframap_power_lines_tiles-layer",
+          "openinframap_power_cables_tiles-layer",
+          "substations_tiles-layer",
+          "openinframap_substations_tiles-layer",
+        ]
           .filter((id) => m.getLayer(id))
       );
 
@@ -193,10 +209,22 @@ export default function PMTilesAtlasMap({ core }: Props) {
         if (props.capacity_mw) lines.push(`Capacity: ${props.capacity_mw} MW`);
         if (props.op) lines.push(`Operator: ${props.op}`);
         if (props.c) lines.push(`Country: ${props.c}`);
-        if (feat.layer?.id === "power_lines_tiles-layer" || feat.layer?.id === "power_lines_cables_tiles-layer" || feat.layer?.id === "substations_tiles-layer") {
+        if (
+          feat.layer?.id === "power_lines_tiles-layer" ||
+          feat.layer?.id === "power_lines_cables_tiles-layer" ||
+          feat.layer?.id === "openinframap_power_lines_tiles-layer" ||
+          feat.layer?.id === "openinframap_power_cables_tiles-layer" ||
+          feat.layer?.id === "substations_tiles-layer" ||
+          feat.layer?.id === "openinframap_substations_tiles-layer"
+        ) {
           lines.push(`Voltage: ${props.voltage ? `${props.voltage} kV` : "N/A"}`);
         }
-        if (feat.layer?.id === "power_lines_tiles-layer" || feat.layer?.id === "power_lines_cables_tiles-layer") {
+        if (
+          feat.layer?.id === "power_lines_tiles-layer" ||
+          feat.layer?.id === "power_lines_cables_tiles-layer" ||
+          feat.layer?.id === "openinframap_power_lines_tiles-layer" ||
+          feat.layer?.id === "openinframap_power_cables_tiles-layer"
+        ) {
           lines.push(`Circuits: ${props.circuits || "N/A"}`);
           lines.push(`Cables: ${props.cables || "N/A"}`);
           lines.push(`Length: ${props.length_km ? `${props.length_km} km` : "N/A"}`);
@@ -235,7 +263,17 @@ export default function PMTilesAtlasMap({ core }: Props) {
     // Get existing layer ids
     const existingLayers = m.getStyle().layers?.map((l) => l.id) || [];
     // Remove existing tile layers
-    for (const id of ["power_plants_tiles-layer", "submarine_cables_tiles-layer", "data_centers_tiles-layer", "power_lines_tiles-layer", "power_lines_cables_tiles-layer", "substations_tiles-layer"]) {
+    for (const id of [
+      "power_plants_tiles-layer",
+      "submarine_cables_tiles-layer",
+      "data_centers_tiles-layer",
+      "power_lines_tiles-layer",
+      "power_lines_cables_tiles-layer",
+      "openinframap_power_lines_tiles-layer",
+      "openinframap_power_cables_tiles-layer",
+      "substations_tiles-layer",
+      "openinframap_substations_tiles-layer",
+    ]) {
       if (existingLayers.includes(id)) {
         try { m.removeLayer(id); } catch { /* */ }
       }
@@ -386,9 +424,19 @@ export default function PMTilesAtlasMap({ core }: Props) {
           <div style={{ color: tileStatus.power_lines === "present" ? "#62c370" : "#d95c5c" }}>
             Power lines: {tileStatus.power_lines}
           </div>
+          {tileStatus.openinframap_power_lines && (
+            <div style={{ color: tileStatus.openinframap_power_lines === "present" ? "#62c370" : "#d95c5c" }}>
+              OpenInfraMap lines: {tileStatus.openinframap_power_lines}
+            </div>
+          )}
           <div style={{ color: tileStatus.substations === "present" ? "#62c370" : "#d95c5c" }}>
             Substations: {tileStatus.substations}
           </div>
+          {tileStatus.openinframap_substations && (
+            <div style={{ color: tileStatus.openinframap_substations === "present" ? "#62c370" : "#d95c5c" }}>
+              OpenInfraMap substations: {tileStatus.openinframap_substations}
+            </div>
+          )}
           <div>Zoom: {status.zoom.toFixed(2)}</div>
           <div>Center: {status.center}</div>
           <div style={{ marginTop: 4, fontSize: 10, color: "#6a6a72" }}>

@@ -309,12 +309,17 @@ The atlas now has two parallel delivery paths:
 Power-grid layers use OSM-compatible electricity schemas:
 - `scripts/fetch_osm_global_power_grid.py` ingests fresh Geofabrik PBF extracts by region into ignored NDJSON, then writes metadata-only `power_lines.json` and `substations.json` with `pmtiles_input` references.
 - `scripts/fetch_osm_europe_power_lines.py` preserves the existing Europe all-voltage OSM ArcGIS-derived pipeline for the first global pass.
+- `scripts/fetch_openinframap_power_extract.py` reproduces an OpenInfraMap viewport by querying underlying OSM power data through Overpass. It must not scrape OpenInfraMap tiles; generated JSON/NDJSON stays under ignored `data/cache/`.
 - `scripts/fetch_power_lines.py` and `scripts/fetch_pypsa_usa_power_grid.py` remain available for PyPSA-style CSV imports, but the global expansion path is Geofabrik OSM.
-- `scripts/build_pmtiles.py --layer power_lines` and `--layer substations` read either direct GeoJSON fallback features or metadata `pmtiles_input` NDJSON and build the corresponding `.pmtiles`.
+- `scripts/build_pmtiles.py --layer power_lines`, `--layer substations`, `--layer openinframap_power_lines`, and `--layer openinframap_substations` read either direct GeoJSON fallback features or metadata `pmtiles_input` NDJSON and build the corresponding `.pmtiles`.
 
 Frontend layer factories live in `frontend/src/map/pmtiles.ts`. Keep PMTiles layer ids aligned with `AtlasMap.tsx` interaction ids:
 - `power_lines_tiles-layer`
+- `power_lines_cables_tiles-layer`
+- `openinframap_power_lines_tiles-layer`
+- `openinframap_power_cables_tiles-layer`
 - `substations_tiles-layer`
+- `openinframap_substations_tiles-layer`
 - GeoJSON fallback ids: `power-line-lines`, `substation-points`
 
 ---

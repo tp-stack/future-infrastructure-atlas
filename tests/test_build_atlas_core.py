@@ -150,6 +150,40 @@ def test_build_atlas_core_accepts_remote_grid_tile_urls(monkeypatch):
     assert core["tile_registry"]["substations"]["deployment_mode"] == "remote"
 
 
+def test_build_atlas_core_accepts_openinframap_remote_tile_urls(tmp_path, monkeypatch):
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    (data_dir / "openinframap_power_extract.json").write_text(
+        json.dumps({
+            "type": "FeatureCollection",
+            "features": [],
+            "metadata": {
+                "total_power_lines": 7,
+                "total_substations": 3,
+                "line_bounds": {"minLon": 1, "minLat": 2, "maxLon": 3, "maxLat": 4},
+                "substation_bounds": {"minLon": 5, "minLat": 6, "maxLon": 7, "maxLat": 8},
+                "source": "OpenStreetMap power infrastructure via OpenInfraMap-compatible Overpass extract",
+                "source_url": "https://openinframap.org/#1/0/0",
+                "license": "ODbL 1.0",
+            },
+        }),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr("scripts.build_atlas_core.FRONTEND_DATA", data_dir)
+    monkeypatch.setenv("OPENINFRAMAP_POWER_LINES_PMTILES_URL", "https://tiles.example/openinframap_power_lines.pmtiles")
+    monkeypatch.setenv("OPENINFRAMAP_SUBSTATIONS_PMTILES_URL", "https://tiles.example/openinframap_substations.pmtiles")
+
+    core = build_atlas_core({"metadata": {"counts": {}, "sources": [], "disclaimer": ""}})
+
+    assert core["counts"]["openinframap_power_lines_mapped"] == 7
+    assert core["counts"]["openinframap_substations_mapped"] == 3
+    assert core["tile_registry"]["openinframap_power_lines"]["url"] == "pmtiles://https://tiles.example/openinframap_power_lines.pmtiles"
+    assert core["tile_registry"]["openinframap_substations"]["url"] == "pmtiles://https://tiles.example/openinframap_substations.pmtiles"
+    assert core["bounds"]["openinframap_power_lines"] == {"minLon": 1, "minLat": 2, "maxLon": 3, "maxLat": 4}
+    assert any(source.get("key") == "openinframap_power_extract" for source in core["sources"])
+    assert any(warning.get("layer") == "openinframap_power_extract" and warning.get("active") for warning in core["license_warnings"])
+
+
 def test_build_atlas_core_derives_substation_bounds(tmp_path, monkeypatch):
     data_dir = tmp_path / "data"
     data_dir.mkdir()

@@ -657,6 +657,26 @@ python scripts/fetch_osm_global_power_grid.py --regions greenland --limit 100 --
 
 The script deletes each raw PBF after processing unless `--keep-raw` is set. Generated PBF, NDJSON, and PMTiles files stay under ignored `data/raw/`, `data/cache/`, and `data/tiles/` paths.
 
+#### OpenInfraMap-compatible viewport extracts
+
+OpenInfraMap visualizes OpenStreetMap infrastructure. Do not scrape OpenInfraMap map tiles. To reproduce a visible OpenInfraMap viewport in the atlas, query the underlying OSM data through Overpass and keep ODbL attribution:
+
+```powershell
+python scripts/fetch_openinframap_power_extract.py --url "https://openinframap.org/#5.83/46.28/17.082" --grid-size 6 --save-json data/cache/openinframap_power_extract/openinframap_overpass_geom_response
+python scripts/build_pmtiles.py --layer openinframap_power_lines --max-public-mb 1000
+python scripts/build_pmtiles.py --layer openinframap_substations --max-public-mb 1000
+```
+
+Upload `data/tiles/openinframap_power_lines.pmtiles` and `data/tiles/openinframap_substations.pmtiles` to object storage, then set:
+
+```powershell
+$env:OPENINFRAMAP_POWER_LINES_PMTILES_URL="https://<domain>/openinframap_power_lines.pmtiles"
+$env:OPENINFRAMAP_SUBSTATIONS_PMTILES_URL="https://<domain>/openinframap_substations.pmtiles"
+python scripts/build_atlas_core.py
+```
+
+The frontend renders these as supplemental PMTiles under the existing Power Lines and Substations toggles. Overhead lines and underground/`power=cable` geometries are split into separate visual layers.
+
 #### Deploying large PMTiles
 
 The all-voltage `power_lines.pmtiles` file is about 190.37 MB before global expansion and will grow as more continents are added. Do not deploy large PMTiles as normal Vercel frontend/static assets on Hobby-safe deploys. Upload `power_lines.pmtiles` and `substations.pmtiles` to object storage and point the atlas registry at the remote files instead.

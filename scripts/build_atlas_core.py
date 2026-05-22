@@ -21,6 +21,8 @@ POWER_CACHE = PROJECT_ROOT / "data" / "cache" / "pypsa_eur"
 DEFAULT_MAX_LOCAL_PMTILES_MB = 100.0
 POWER_LINES_REMOTE_ENV = "POWER_LINES_PMTILES_URL"
 SUBSTATIONS_REMOTE_ENV = "SUBSTATIONS_PMTILES_URL"
+OPENINFRAMAP_POWER_LINES_REMOTE_ENV = "OPENINFRAMAP_POWER_LINES_PMTILES_URL"
+OPENINFRAMAP_SUBSTATIONS_REMOTE_ENV = "OPENINFRAMAP_SUBSTATIONS_PMTILES_URL"
 POWER_LINES_REMOTE_WARNING = (
     "Power-line PMTiles require remote object storage for Hobby-safe deploys. "
     "Set POWER_LINES_PMTILES_URL to a public HTTPS PMTiles URL with CORS and Range request support."
@@ -63,6 +65,25 @@ def _local_tile_entry(key: str, filename: str) -> dict:
         "status": _check_tile(filename),
         "layer_name": key,
     }
+
+
+def _optional_remote_tile_entry(key: str, filename: str, env_name: str) -> dict:
+    remote_url = os.environ.get(env_name, "").strip()
+    if remote_url:
+        if remote_url.startswith("https://"):
+            return {
+                "url": f"pmtiles://{remote_url}",
+                "status": "present (remote)",
+                "layer_name": key,
+                "deployment_mode": "remote",
+            }
+        return {
+            "url": "",
+            "status": f"missing (invalid {env_name}; must start with https://)",
+            "layer_name": key,
+            "deployment_mode": "invalid_remote",
+        }
+    return _local_tile_entry(key, filename)
 
 
 def _remote_capable_tile_entry(
@@ -269,6 +290,7 @@ def build_atlas_core(data: dict) -> dict:
     disclaimer = data.get("metadata", {}).get("disclaimer", "")
     power_lines_metadata = _geojson_metadata("power_lines.json")
     substations_metadata = _geojson_metadata("substations.json")
+    openinframap_metadata = _geojson_metadata("openinframap_power_extract.json")
     power_lines_count = _count_geojson_features_or_metadata("power_lines.json")
     substations_count = _count_geojson_features_or_metadata("substations.json") or _count_csv_rows(
         POWER_CACHE / "buses.csv",
@@ -295,14 +317,20 @@ def build_atlas_core(data: dict) -> dict:
     setup_warnings = [w for w in (power_lines_setup_warning, substations_setup_warning) if w]
     sources = _merge_sources(
         sources,
-        [
+        [source for source in [
             {
                 "key": "osm_power_grid",
                 "name": power_grid_source,
                 "url": power_grid_source_url,
                 "license": power_grid_license,
-            }
-        ],
+            },
+            {
+                "key": "openinframap_power_extract",
+                "name": openinframap_metadata.get("source") or "OpenInfraMap-compatible OSM power extract",
+                "url": openinframap_metadata.get("source_url") or "https://openinframap.org/",
+                "license": openinframap_metadata.get("license") or "ODbL 1.0",
+            } if openinframap_metadata else None,
+        ] if source],
     )
 
     return {
@@ -327,6 +355,8 @@ def build_atlas_core(data: dict) -> dict:
             "power_lines_mapped": power_lines_count,
             "substations_total": substations_count,
             "substations_mapped": substations_count,
+            "openinframap_power_lines_mapped": openinframap_metadata.get("total_power_lines", 0),
+            "openinframap_substations_mapped": openinframap_metadata.get("total_substations", 0),
             "power_grid_source": power_grid_source,
             "power_grid_license_status": power_grid_license,
         },
@@ -338,6 +368,16 @@ def build_atlas_core(data: dict) -> dict:
             "data_centers": _local_tile_entry("data_centers", "data_centers.pmtiles"),
             "power_lines": power_lines_tile,
             "substations": substations_tile,
+            "openinframap_power_lines": _optional_remote_tile_entry(
+                "openinframap_power_lines",
+                "openinframap_power_lines.pmtiles",
+                OPENINFRAMAP_POWER_LINES_REMOTE_ENV,
+            ),
+            "openinframap_substations": _optional_remote_tile_entry(
+                "openinframap_substations",
+                "openinframap_substations.pmtiles",
+                OPENINFRAMAP_SUBSTATIONS_REMOTE_ENV,
+            ),
         },
         "license_warnings": [
             {
@@ -355,6 +395,11 @@ def build_atlas_core(data: dict) -> dict:
                 "message": f"{power_grid_source} is {power_grid_license}; attribution and share-alike obligations apply.",
                 "active": power_lines_count > 0 or substations_count > 0,
             },
+            {
+                "layer": "openinframap_power_extract",
+                "message": "OpenInfraMap-compatible power extract uses OpenStreetMap data under ODbL 1.0; attribution and share-alike obligations apply.",
+                "active": openinframap_metadata.get("total_power_lines", 0) > 0 or openinframap_metadata.get("total_substations", 0) > 0,
+            },
         ],
         "setup_warnings": setup_warnings,
         "data_gaps": {
@@ -365,6 +410,8 @@ def build_atlas_core(data: dict) -> dict:
         "bounds": {
             "power_lines": power_lines_metadata.get("bounds"),
             "substations": substations_metadata.get("bounds") or _geojson_feature_bounds("substations.json"),
+            "openinframap_power_lines": openinframap_metadata.get("line_bounds"),
+            "openinframap_substations": openinframap_metadata.get("substation_bounds"),
         },
     }
 

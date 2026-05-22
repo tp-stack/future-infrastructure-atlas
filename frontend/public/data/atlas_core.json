@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-22T06:29:17.777170Z",
+  "generated_at": "2026-05-22T07:30:19.662176Z",
   "architecture": "atlas_core + PMTiles",
   "counts": {
     "power_plants_total": 34936,
@@ -20,6 +20,8 @@
     "power_lines_mapped": 1020943,
     "substations_total": 6863,
     "substations_mapped": 6863,
+    "openinframap_power_lines_mapped": 206251,
+    "openinframap_substations_mapped": 74950,
     "power_grid_source": "OpenStreetMap Power Lines for Europe via ArcGIS Online",
     "power_grid_license_status": "ODbL 1.0"
   },
@@ -59,6 +61,12 @@
       "name": "OpenStreetMap Power Lines for Europe via ArcGIS Online",
       "url": "https://services-eu1.arcgis.com/zci5bUiJ8olAal7N/arcgis/rest/services/OpenStreetMap_Power_Lines_for_Europe/FeatureServer/0",
       "license": "ODbL 1.0"
+    },
+    {
+      "key": "openinframap_power_extract",
+      "name": "OpenStreetMap power infrastructure via OpenInfraMap-compatible Overpass extract",
+      "url": "https://openinframap.org/#5.83/46.28/17.082",
+      "license": "ODbL 1.0"
     }
   ],
   "disclaimer": "This atlas uses public or redistribution-safe data. Some infrastructure layers are metadata-only where public geometries or coordinates are unavailable. No coordinates are inferred or invented. Submarine cable routes are generalized public geometries or schematic arcs, not exact surveyed trench routes. This layer uses PeeringDB public facility data. It includes interconnection facilities, colocation sites, and data centers with coordinates. It is not exhaustive of every global data center.",
@@ -89,6 +97,18 @@
       "status": "present (remote)",
       "layer_name": "substations",
       "deployment_mode": "remote"
+    },
+    "openinframap_power_lines": {
+      "url": "pmtiles://https://0ubjomuu7dbyf9q9.public.blob.vercel-storage.com/openinframap_power_lines.pmtiles",
+      "status": "present (remote)",
+      "layer_name": "openinframap_power_lines",
+      "deployment_mode": "remote"
+    },
+    "openinframap_substations": {
+      "url": "pmtiles://https://0ubjomuu7dbyf9q9.public.blob.vercel-storage.com/openinframap_substations.pmtiles",
+      "status": "present (remote)",
+      "layer_name": "openinframap_substations",
+      "deployment_mode": "remote"
     }
   },
   "license_warnings": [
@@ -105,6 +125,11 @@
     {
       "layer": "power_grid",
       "message": "OpenStreetMap Power Lines for Europe via ArcGIS Online is ODbL 1.0; attribution and share-alike obligations apply.",
+      "active": true
+    },
+    {
+      "layer": "openinframap_power_extract",
+      "message": "OpenInfraMap-compatible power extract uses OpenStreetMap data under ODbL 1.0; attribution and share-alike obligations apply.",
       "active": true
     }
   ],
@@ -126,6 +151,18 @@
       "minLat": 36.03223741,
       "maxLon": 39.66827809,
       "maxLat": 70.17186417
+    },
+    "openinframap_power_lines": {
+      "minLon": 7.937016,
+      "minLat": 42.1813549,
+      "maxLon": 28.7233732,
+      "maxLat": 51.3202304
+    },
+    "openinframap_substations": {
+      "minLon": 8.639914,
+      "minLat": 42.9016011,
+      "maxLon": 25.5224818,
+      "maxLat": 49.4629181
     }
   }
 }
