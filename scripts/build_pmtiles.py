@@ -50,14 +50,14 @@ LAYERS = {
         "input_ndjson": "power_lines.ndjson",
         "output_pmtiles": "power_lines.pmtiles",
         "layer_name": "power_lines",
-        "description": "European power lines from OpenStreetMap / PyPSA-Eur",
+        "description": "Global power lines from OpenStreetMap / Geofabrik extracts",
         "maximum_zoom": "10",
     },
     "substations": {
         "input_ndjson": "substations.ndjson",
         "output_pmtiles": "substations.pmtiles",
         "layer_name": "substations",
-        "description": "Substations from PyPSA-Eur buses.csv",
+        "description": "Global substations from OpenStreetMap / Geofabrik extracts",
     },
 }
 
@@ -232,6 +232,17 @@ def _find_buses_csv() -> Path | None:
 
 def _generate_substations_ndjson(_data: dict, path: Path) -> int:
     fc = _load_feature_collection(FRONTEND_DATA / "substations.json")
+    if fc:
+        pmtiles_input = (fc.get("metadata") or {}).get("pmtiles_input")
+        if pmtiles_input:
+            source = PROJECT_ROOT / str(pmtiles_input)
+            if not source.exists():
+                print(f"ERROR: substations pmtiles_input not found: {source}", file=sys.stderr)
+                return 0
+            shutil.copyfile(source, path)
+            with open(path, encoding="utf-8") as f:
+                return sum(1 for line in f if line.strip())
+
     count = 0
     with open(path, "w", encoding="utf-8") as f:
         if fc:

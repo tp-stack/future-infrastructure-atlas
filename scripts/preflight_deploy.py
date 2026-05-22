@@ -1,8 +1,8 @@
 """Preflight checks for Vercel deploys.
 
 The deploy target should not upload raw data or large PMTiles as source/static
-assets. Europe power lines are intentionally remote-only unless the local public
-PMTiles file is below the selected threshold.
+assets. Large/remote PMTiles must be served from object storage unless a local
+public PMTiles file is explicitly below the selected threshold.
 """
 
 from __future__ import annotations
@@ -18,6 +18,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 CORE_PATH = PROJECT_ROOT / "frontend" / "public" / "data" / "atlas_core.json"
 PUBLIC_POWER_LINES = PROJECT_ROOT / "frontend" / "public" / "tiles" / "power_lines.pmtiles"
 ARTIFACT_POWER_LINES = PROJECT_ROOT / "data" / "tiles" / "power_lines.pmtiles"
+PUBLIC_SUBSTATIONS = PROJECT_ROOT / "frontend" / "public" / "tiles" / "substations.pmtiles"
+ARTIFACT_SUBSTATIONS = PROJECT_ROOT / "data" / "tiles" / "substations.pmtiles"
 
 FORBIDDEN_STAGED_PREFIXES = (
     "data/raw/",
@@ -33,6 +35,23 @@ POWER_LINES_HOBBY_MESSAGE = (
     "power_lines.pmtiles is 190.37 MB. Use object storage or Vercel Pro. "
     "Do not deploy this file inside the Hobby source upload."
 )
+
+REMOTE_TILE_CHECKS = {
+    "power_lines": {
+        "filename": "power_lines.pmtiles",
+        "env": "POWER_LINES_PMTILES_URL",
+        "public": PUBLIC_POWER_LINES,
+        "artifact": ARTIFACT_POWER_LINES,
+        "large_message": POWER_LINES_HOBBY_MESSAGE,
+    },
+    "substations": {
+        "filename": "substations.pmtiles",
+        "env": "SUBSTATIONS_PMTILES_URL",
+        "public": PUBLIC_SUBSTATIONS,
+        "artifact": ARTIFACT_SUBSTATIONS,
+        "large_message": "substations.pmtiles must use object storage or be deployed as an explicitly small local asset.",
+    },
+}
 
 
 def _posix(path: str) -> str:
@@ -65,11 +84,12 @@ def _manual_steps() -> str:
     return """
 Manual object-storage steps:
 1. Create a public Cloudflare R2 bucket or another object store with HTTP Range Request support.
-2. Upload data/tiles/power_lines.pmtiles.
+2. Upload data/tiles/power_lines.pmtiles and data/tiles/substations.pmtiles.
 3. Configure CORS for GET, HEAD, and OPTIONS.
 4. Copy the public HTTPS URL.
 5. Set the environment variable:
    $env:POWER_LINES_PMTILES_URL="https://<domain>/power_lines.pmtiles"
+   $env:SUBSTATIONS_PMTILES_URL="https://<domain>/substations.pmtiles"
 6. Rebuild atlas_core:
    python scripts/build_atlas_core.py
 7. Run:
@@ -91,6 +111,41 @@ def _check_staged_files(max_local_pmtiles_mb: float) -> list[str]:
     return errors
 
 
+def _check_tile_url(core: dict, key: str, max_local_pmtiles_mb: float) -> list[str]:
+    errors: list[str] = []
+    cfg = REMOTE_TILE_CHECKS[key]
+    entry = (core.get("tile_registry") or {}).get(key) or {}
+    url = str(entry.get("url") or "")
+    status = str(entry.get("status") or "")
+
+    if url.startswith("pmtiles://https://"):
+        remote_url = url.removeprefix("pmtiles://")
+        if not remote_url.startswith("https://"):
+            errors.append(f"Remote {key} PMTiles URL must start with https://.")
+        return errors
+
+    filename = str(cfg["filename"])
+    local_url = url in {f"pmtiles:///tiles/{filename}", f"/tiles/{filename}"}
+    public_path = cfg["public"]
+    artifact_path = cfg["artifact"]
+    local_path = public_path if public_path.exists() else artifact_path
+    local_size = _size_mb(local_path) if local_path.exists() else 0
+
+    if local_url:
+        if not public_path.exists():
+            errors.append(f"atlas_core.json points to local {filename}, but frontend/public/tiles/{filename} is missing.")
+        elif local_size > max_local_pmtiles_mb:
+            errors.append(str(cfg["large_message"]))
+        return errors
+
+    remote_env = os.environ.get(str(cfg["env"]), "").strip()
+    if not remote_env and local_path.exists() and ("remote_required" in status or local_size > max_local_pmtiles_mb):
+        errors.append(str(cfg["large_message"]))
+    elif not url:
+        errors.append(f"atlas_core.json has no {key} tile URL. Set {cfg['env']} or provide a small local PMTiles file.")
+    return errors
+
+
 def _check_core(max_local_pmtiles_mb: float) -> list[str]:
     errors: list[str] = []
     if not CORE_PATH.exists():
@@ -101,44 +156,16 @@ def _check_core(max_local_pmtiles_mb: float) -> list[str]:
     except (OSError, json.JSONDecodeError, ValueError) as exc:
         return [f"atlas_core.json is invalid: {exc}"]
 
-    power_lines = (core.get("tile_registry") or {}).get("power_lines") or {}
-    power_url = str(power_lines.get("url") or "")
-    status = str(power_lines.get("status") or "")
-
     source_rows = core.get("sources") or []
     source_text = json.dumps(source_rows, ensure_ascii=False)
     warning_text = json.dumps(core.get("license_warnings") or [], ensure_ascii=False)
     if "OpenStreetMap" not in source_text or "ODbL" not in source_text:
-        errors.append("OpenStreetMap Europe power-line ODbL source is missing from atlas_core.sources.")
+        errors.append("OpenStreetMap power-grid ODbL source is missing from atlas_core.sources.")
     if "ODbL" not in warning_text or "share-alike" not in warning_text:
         errors.append("ODbL share-alike warning is missing from atlas_core.license_warnings.")
 
-    if power_url.startswith("pmtiles://https://"):
-        remote_url = power_url.removeprefix("pmtiles://")
-        if not remote_url.startswith("https://"):
-            errors.append("Remote power_lines PMTiles URL must start with https://.")
-        return errors
-
-    local_url = power_url in {"pmtiles:///tiles/power_lines.pmtiles", "/tiles/power_lines.pmtiles"}
-    local_path = PUBLIC_POWER_LINES if PUBLIC_POWER_LINES.exists() else ARTIFACT_POWER_LINES
-    local_size = _size_mb(local_path) if local_path.exists() else 0
-
-    if local_url:
-        if not PUBLIC_POWER_LINES.exists():
-            errors.append("atlas_core.json points to local power_lines.pmtiles, but frontend/public/tiles/power_lines.pmtiles is missing.")
-        elif local_size > max_local_pmtiles_mb:
-            errors.append(POWER_LINES_HOBBY_MESSAGE)
-        return errors
-
-    remote_env = os.environ.get("POWER_LINES_PMTILES_URL", "").strip()
-    if not remote_env and local_path.exists() and local_size > max_local_pmtiles_mb:
-        if "remote_required" in status:
-            errors.append(POWER_LINES_HOBBY_MESSAGE)
-        else:
-            errors.append(POWER_LINES_HOBBY_MESSAGE)
-    elif not power_url:
-        errors.append("atlas_core.json has no power_lines tile URL. Set POWER_LINES_PMTILES_URL or provide a small local PMTiles file.")
-
+    for key in REMOTE_TILE_CHECKS:
+        errors.extend(_check_tile_url(core, key, max_local_pmtiles_mb))
     return errors
 
 

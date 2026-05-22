@@ -66,6 +66,17 @@ function isPowerLineTileError(event: unknown): boolean {
   );
 }
 
+function isSubstationTileError(event: unknown): boolean {
+  const raw = event as unknown as { sourceId?: string; error?: { message?: string } };
+  const sourceId = raw.sourceId || "";
+  const message = raw.error?.message || "";
+  return (
+    sourceId === "substations_tiles" ||
+    message.includes("substations") ||
+    message.includes("substations.pmtiles")
+  );
+}
+
 function or(a: unknown, b: unknown): unknown { return a || b; }
 
 function str(v: unknown): string { return v != null ? String(v) : ""; }
@@ -168,8 +179,8 @@ function powerLineColorExpression(): maplibregl.ExpressionSpecification {
   ] as maplibregl.ExpressionSpecification;
 }
 
-function boundsFromCore(core?: AtlasCore): LonLatBounds | null {
-  const raw = core?.bounds?.power_lines;
+function boundsFromCore(core: AtlasCore | undefined, key: "power_lines" | "substations"): LonLatBounds | null {
+  const raw = core?.bounds?.[key];
   if (!raw || typeof raw !== "object") return null;
   const b = raw as Record<string, unknown>;
   const minLon = num(b.minLon);
@@ -483,8 +494,8 @@ export default function AtlasMap({
     const ppBounds = computeFeatureCollectionBounds(ppFC);
     const dcBounds = computeFeatureCollectionBounds(dcFC);
     const cableBounds = computeFeatureCollectionBounds(cableFC);
-    const lineBounds = lineFC ? computeFeatureCollectionBounds(lineFC) : boundsFromCore(core);
-    const substationBounds = substationFC ? computeFeatureCollectionBounds(substationFC) : null;
+    const lineBounds = lineFC ? computeFeatureCollectionBounds(lineFC) : boundsFromCore(core, "power_lines");
+    const substationBounds = substationFC ? computeFeatureCollectionBounds(substationFC) : boundsFromCore(core, "substations");
 
     const allBounds = [ppBounds, dcBounds, cableBounds, lineBounds, substationBounds].filter(Boolean) as LonLatBounds[];
     if (allBounds.length > 0) {
@@ -524,6 +535,10 @@ export default function AtlasMap({
     m.on("error", (event) => {
       if (isPowerLineTileError(event)) {
         setMapError("Power-line PMTiles failed to load. Check CORS, Range requests, or tile URL.");
+        return;
+      }
+      if (isSubstationTileError(event)) {
+        setMapError("Substation PMTiles failed to load. Check CORS, Range requests, or tile URL.");
         return;
       }
       const message = event.error?.message || "MapLibre reported a render error";

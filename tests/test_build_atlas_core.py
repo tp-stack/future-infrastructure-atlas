@@ -119,3 +119,57 @@ def test_build_atlas_core_from_fixture(tmp_path, monkeypatch):
 
     raw = json.dumps(core, ensure_ascii=False)
     assert len(raw) < 10 * 1024  # must be tiny
+
+
+def test_build_atlas_core_accepts_remote_grid_tile_urls(monkeypatch):
+    monkeypatch.setenv("POWER_LINES_PMTILES_URL", "https://tiles.example/power_lines.pmtiles")
+    monkeypatch.setenv("SUBSTATIONS_PMTILES_URL", "https://tiles.example/substations.pmtiles")
+    data = {
+        "metadata": {
+            "counts": {
+                "power_plants_mapped": 1,
+                "power_plants_total": 1,
+                "power_plants_rejected": 0,
+                "cables_mapped": 0,
+                "cables_unmapped": 0,
+                "cables_total": 0,
+                "data_centers_mapped": 0,
+                "data_centers_unmapped": 0,
+                "data_centers_total": 0,
+            },
+            "sources": [],
+            "disclaimer": "",
+        }
+    }
+
+    core = build_atlas_core(data)
+
+    assert core["tile_registry"]["power_lines"]["url"] == "pmtiles://https://tiles.example/power_lines.pmtiles"
+    assert core["tile_registry"]["power_lines"]["deployment_mode"] == "remote"
+    assert core["tile_registry"]["substations"]["url"] == "pmtiles://https://tiles.example/substations.pmtiles"
+    assert core["tile_registry"]["substations"]["deployment_mode"] == "remote"
+
+
+def test_build_atlas_core_derives_substation_bounds(tmp_path, monkeypatch):
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    (data_dir / "power_lines.json").write_text(
+        json.dumps({"type": "FeatureCollection", "features": [], "metadata": {"total_features": 0}}),
+        encoding="utf-8",
+    )
+    (data_dir / "substations.json").write_text(
+        json.dumps({
+            "type": "FeatureCollection",
+            "features": [
+                {"type": "Feature", "geometry": {"type": "Point", "coordinates": [10, 45]}, "properties": {}},
+                {"type": "Feature", "geometry": {"type": "Point", "coordinates": [20, 35]}, "properties": {}},
+            ],
+            "metadata": {"total_features": 2},
+        }),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr("scripts.build_atlas_core.FRONTEND_DATA", data_dir)
+
+    core = build_atlas_core({"metadata": {"counts": {}, "sources": [], "disclaimer": ""}})
+
+    assert core["bounds"]["substations"] == {"minLon": 10.0, "minLat": 35.0, "maxLon": 20.0, "maxLat": 45.0}

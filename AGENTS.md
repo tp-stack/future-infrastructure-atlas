@@ -306,10 +306,11 @@ The atlas now has two parallel delivery paths:
 | PMTiles vector tiles | `frontend/public/tiles/*.pmtiles` | Heavy render path for `power_plants`, `submarine_cables`, `data_centers`, `power_lines`, and `substations`. |
 | Artifact storage | `data/tiles/*.pmtiles` | Build artifacts before deciding whether to expose tiles publicly or move them to object storage. |
 
-Power-grid layers are sourced from PyPSA-style exports:
-- `scripts/fetch_power_lines.py` builds Europe `power_lines.json` and `substations.json` from PyPSA-Eur `lines.csv`, `links.csv`, and `buses.csv`.
-- `scripts/fetch_pypsa_usa_power_grid.py` converts PyPSA-USA CSV exports or caller-provided CSV URLs into the same `power_lines.json` / `substations.json` schema. It can also try `--github-release latest` or a release tag, but current PyPSA-USA releases may not publish ready-made CSV assets. Use `--merge-output` to append North America features to the existing Europe outputs.
-- `scripts/build_pmtiles.py --layer power_lines` and `--layer substations` write NDGeoJSON cache inputs and build the corresponding `.pmtiles`.
+Power-grid layers use OSM-compatible electricity schemas:
+- `scripts/fetch_osm_global_power_grid.py` ingests fresh Geofabrik PBF extracts by region into ignored NDJSON, then writes metadata-only `power_lines.json` and `substations.json` with `pmtiles_input` references.
+- `scripts/fetch_osm_europe_power_lines.py` preserves the existing Europe all-voltage OSM ArcGIS-derived pipeline for the first global pass.
+- `scripts/fetch_power_lines.py` and `scripts/fetch_pypsa_usa_power_grid.py` remain available for PyPSA-style CSV imports, but the global expansion path is Geofabrik OSM.
+- `scripts/build_pmtiles.py --layer power_lines` and `--layer substations` read either direct GeoJSON fallback features or metadata `pmtiles_input` NDJSON and build the corresponding `.pmtiles`.
 
 Frontend layer factories live in `frontend/src/map/pmtiles.ts`. Keep PMTiles layer ids aligned with `AtlasMap.tsx` interaction ids:
 - `power_lines_tiles-layer`

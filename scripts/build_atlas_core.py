@@ -20,9 +20,14 @@ LEGACY_POWER_CACHE = PROJECT_ROOT / "scripts" / "data" / "cache"
 POWER_CACHE = PROJECT_ROOT / "data" / "cache" / "pypsa_eur"
 DEFAULT_MAX_LOCAL_PMTILES_MB = 100.0
 POWER_LINES_REMOTE_ENV = "POWER_LINES_PMTILES_URL"
+SUBSTATIONS_REMOTE_ENV = "SUBSTATIONS_PMTILES_URL"
 POWER_LINES_REMOTE_WARNING = (
     "Power-line PMTiles require remote object storage for Hobby-safe deploys. "
     "Set POWER_LINES_PMTILES_URL to a public HTTPS PMTiles URL with CORS and Range request support."
+)
+SUBSTATIONS_REMOTE_WARNING = (
+    "Substation PMTiles should be served from remote object storage for consistent deploys. "
+    "Set SUBSTATIONS_PMTILES_URL to a public HTTPS PMTiles URL with CORS and Range request support."
 )
 
 
@@ -60,10 +65,16 @@ def _local_tile_entry(key: str, filename: str) -> dict:
     }
 
 
-def _power_lines_tile_entry(max_local_mb: float) -> tuple[dict, dict | None]:
-    remote_url = os.environ.get(POWER_LINES_REMOTE_ENV, "").strip()
-    local_path = TILES_DIR / "power_lines.pmtiles"
-    artifact_path = ARTIFACT_TILES_DIR / "power_lines.pmtiles"
+def _remote_capable_tile_entry(
+    key: str,
+    filename: str,
+    env_name: str,
+    max_local_mb: float,
+    remote_warning: str,
+) -> tuple[dict, dict | None]:
+    remote_url = os.environ.get(env_name, "").strip()
+    local_path = TILES_DIR / filename
+    artifact_path = ARTIFACT_TILES_DIR / filename
 
     if remote_url:
         if remote_url.startswith("https://"):
@@ -71,7 +82,7 @@ def _power_lines_tile_entry(max_local_mb: float) -> tuple[dict, dict | None]:
                 {
                     "url": f"pmtiles://{remote_url}",
                     "status": "present (remote)",
-                    "layer_name": "power_lines",
+                    "layer_name": key,
                     "deployment_mode": "remote",
                 },
                 None,
@@ -79,13 +90,13 @@ def _power_lines_tile_entry(max_local_mb: float) -> tuple[dict, dict | None]:
         return (
             {
                 "url": "",
-                "status": f"missing (invalid {POWER_LINES_REMOTE_ENV}; must start with https://)",
-                "layer_name": "power_lines",
+                "status": f"missing (invalid {env_name}; must start with https://)",
+                "layer_name": key,
                 "deployment_mode": "invalid_remote",
             },
             {
-                "layer": "power_lines",
-                "message": f"{POWER_LINES_REMOTE_ENV} must start with https://.",
+                "layer": key,
+                "message": f"{env_name} must start with https://.",
                 "active": True,
             },
         )
@@ -95,9 +106,9 @@ def _power_lines_tile_entry(max_local_mb: float) -> tuple[dict, dict | None]:
         if size_mb <= max_local_mb:
             return (
                 {
-                    "url": "pmtiles:///tiles/power_lines.pmtiles",
+                    "url": f"pmtiles:///tiles/{filename}",
                     "status": f"present ({size_mb:.2f} MB)",
-                    "layer_name": "power_lines",
+                    "layer_name": key,
                     "deployment_mode": "local",
                 },
                 None,
@@ -106,12 +117,12 @@ def _power_lines_tile_entry(max_local_mb: float) -> tuple[dict, dict | None]:
             {
                 "url": "",
                 "status": f"remote_required ({size_mb:.2f} MB local file exceeds {max_local_mb:.0f} MB deploy threshold)",
-                "layer_name": "power_lines",
+                "layer_name": key,
                 "deployment_mode": "remote_required",
             },
             {
-                "layer": "power_lines",
-                "message": POWER_LINES_REMOTE_WARNING,
+                "layer": key,
+                "message": remote_warning,
                 "active": True,
             },
         )
@@ -122,12 +133,12 @@ def _power_lines_tile_entry(max_local_mb: float) -> tuple[dict, dict | None]:
             {
                 "url": "",
                 "status": f"remote_required ({size_mb:.2f} MB artifact in data/tiles; not publicly served)",
-                "layer_name": "power_lines",
+                "layer_name": key,
                 "deployment_mode": "remote_required",
             },
             {
-                "layer": "power_lines",
-                "message": POWER_LINES_REMOTE_WARNING,
+                "layer": key,
+                "message": remote_warning,
                 "active": True,
             },
         )
@@ -136,12 +147,12 @@ def _power_lines_tile_entry(max_local_mb: float) -> tuple[dict, dict | None]:
         {
             "url": "",
             "status": "missing",
-            "layer_name": "power_lines",
+            "layer_name": key,
             "deployment_mode": "missing",
         },
         {
-            "layer": "power_lines",
-            "message": "power_lines.pmtiles is missing. Build it or set POWER_LINES_PMTILES_URL.",
+            "layer": key,
+            "message": f"{filename} is missing. Build it or set {env_name}.",
             "active": True,
         },
     )
@@ -184,6 +195,53 @@ def _geojson_metadata(name: str) -> dict:
         return {}
 
 
+def _geojson_feature_bounds(name: str) -> dict | None:
+    path = FRONTEND_DATA / name
+    if not path.exists():
+        return None
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, json.JSONDecodeError):
+        return None
+    bounds: dict[str, float] | None = None
+
+    def add_coord(coord: object) -> None:
+        nonlocal bounds
+        if not isinstance(coord, list) or len(coord) < 2:
+            return
+        lon = coord[0]
+        lat = coord[1]
+        if not isinstance(lon, (int, float)) or not isinstance(lat, (int, float)):
+            return
+        if bounds is None:
+            bounds = {"minLon": float(lon), "minLat": float(lat), "maxLon": float(lon), "maxLat": float(lat)}
+        else:
+            bounds["minLon"] = min(bounds["minLon"], float(lon))
+            bounds["minLat"] = min(bounds["minLat"], float(lat))
+            bounds["maxLon"] = max(bounds["maxLon"], float(lon))
+            bounds["maxLat"] = max(bounds["maxLat"], float(lat))
+
+    def walk(value: object) -> None:
+        if not isinstance(value, list) or not value:
+            return
+        if len(value) >= 2 and isinstance(value[0], (int, float)) and isinstance(value[1], (int, float)):
+            add_coord(value)
+            return
+        for item in value:
+            walk(item)
+
+    features = data.get("features") or []
+    if not isinstance(features, list):
+        return None
+    for feature in features:
+        if isinstance(feature, dict):
+            geometry = feature.get("geometry") or {}
+            if isinstance(geometry, dict):
+                walk(geometry.get("coordinates"))
+    return bounds
+
+
 def _count_geojson_features_or_metadata(name: str) -> int:
     metadata = _geojson_metadata(name)
     total = metadata.get("total_features")
@@ -210,6 +268,7 @@ def build_atlas_core(data: dict) -> dict:
     sources = data.get("metadata", {}).get("sources", [])
     disclaimer = data.get("metadata", {}).get("disclaimer", "")
     power_lines_metadata = _geojson_metadata("power_lines.json")
+    substations_metadata = _geojson_metadata("substations.json")
     power_lines_count = _count_geojson_features_or_metadata("power_lines.json")
     substations_count = _count_geojson_features_or_metadata("substations.json") or _count_csv_rows(
         POWER_CACHE / "buses.csv",
@@ -219,13 +278,26 @@ def build_atlas_core(data: dict) -> dict:
     power_grid_source_url = power_lines_metadata.get("source_url") or "https://www.arcgis.com/home/item.html?id=7ba3a1052a324e8c9383481afa9c1fce"
     power_grid_license = power_lines_metadata.get("license") or "ODbL 1.0"
     max_local_pmtiles_mb = _max_local_pmtiles_mb()
-    power_lines_tile, power_lines_setup_warning = _power_lines_tile_entry(max_local_pmtiles_mb)
-    setup_warnings = [power_lines_setup_warning] if power_lines_setup_warning else []
+    power_lines_tile, power_lines_setup_warning = _remote_capable_tile_entry(
+        "power_lines",
+        "power_lines.pmtiles",
+        POWER_LINES_REMOTE_ENV,
+        max_local_pmtiles_mb,
+        POWER_LINES_REMOTE_WARNING,
+    )
+    substations_tile, substations_setup_warning = _remote_capable_tile_entry(
+        "substations",
+        "substations.pmtiles",
+        SUBSTATIONS_REMOTE_ENV,
+        max_local_pmtiles_mb,
+        SUBSTATIONS_REMOTE_WARNING,
+    )
+    setup_warnings = [w for w in (power_lines_setup_warning, substations_setup_warning) if w]
     sources = _merge_sources(
         sources,
         [
             {
-                "key": "osm_europe_power_lines",
+                "key": "osm_power_grid",
                 "name": power_grid_source,
                 "url": power_grid_source_url,
                 "license": power_grid_license,
@@ -265,7 +337,7 @@ def build_atlas_core(data: dict) -> dict:
             "submarine_cables": _local_tile_entry("submarine_cables", "submarine_cables.pmtiles"),
             "data_centers": _local_tile_entry("data_centers", "data_centers.pmtiles"),
             "power_lines": power_lines_tile,
-            "substations": _local_tile_entry("substations", "substations.pmtiles"),
+            "substations": substations_tile,
         },
         "license_warnings": [
             {
@@ -292,6 +364,7 @@ def build_atlas_core(data: dict) -> dict:
         },
         "bounds": {
             "power_lines": power_lines_metadata.get("bounds"),
+            "substations": substations_metadata.get("bounds") or _geojson_feature_bounds("substations.json"),
         },
     }
 

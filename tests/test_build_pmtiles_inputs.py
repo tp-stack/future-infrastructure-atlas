@@ -145,6 +145,37 @@ def test_generate_substations_ndjson(tmp_path, monkeypatch):
     assert feat["properties"]["voltage"] == 220
 
 
+def test_generate_substations_ndjson_uses_pmtiles_input(tmp_path, monkeypatch):
+    data_dir = tmp_path / "data"
+    project_root = tmp_path / "project"
+    cache_dir = project_root / "data" / "cache" / "osm_global_power_grid"
+    data_dir.mkdir()
+    cache_dir.mkdir(parents=True)
+    source = cache_dir / "substations.ndjson"
+    source.write_text(
+        json.dumps({
+            "type": "Feature",
+            "geometry": {"type": "Point", "coordinates": [10, 45]},
+            "properties": {"id": "osm-node-1", "voltage": 220},
+        }) + "\n",
+        encoding="utf-8",
+    )
+    substations = {
+        "type": "FeatureCollection",
+        "features": [],
+        "metadata": {"pmtiles_input": "data/cache/osm_global_power_grid/substations.ndjson"},
+    }
+    (data_dir / "substations.json").write_text(json.dumps(substations), encoding="utf-8")
+    monkeypatch.setattr("scripts.build_pmtiles.FRONTEND_DATA", data_dir)
+    monkeypatch.setattr("scripts.build_pmtiles.PROJECT_ROOT", project_root)
+
+    out = tmp_path / "substations.ndjson"
+    count = _generate_substations_ndjson({}, out)
+
+    assert count == 1
+    assert out.read_text(encoding="utf-8") == source.read_text(encoding="utf-8")
+
+
 def test_layer_configs_have_required_keys():
     assert "power_lines" in LAYERS
     assert "substations" in LAYERS

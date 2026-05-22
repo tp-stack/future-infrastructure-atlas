@@ -78,7 +78,7 @@ const LAYER_CONFIG: LayerConfig[] = [
     getMapped: (c: AtlasCounts) => c.power_lines_mapped ?? 1,
     getTotal: (c: AtlasCounts) => c.power_lines_total ?? c.power_lines_mapped ?? 1,
     getCoverage: () => "ok",
-    tooltip: "European power lines from OpenStreetMap, including line, minor_line, and cable features across all tagged voltages (ODbL 1.0)",
+    tooltip: "OSM power lines from OpenStreetMap, including line, minor_line, and cable features across tagged voltages (ODbL 1.0)",
   },
   {
     key: "substations",
@@ -87,7 +87,7 @@ const LAYER_CONFIG: LayerConfig[] = [
     getMapped: (c: AtlasCounts) => c.substations_mapped ?? 1,
     getTotal: (c: AtlasCounts) => c.substations_total ?? c.substations_mapped ?? 1,
     getCoverage: () => "ok",
-    tooltip: "European substations from PyPSA-Eur buses.csv (ODbL 1.0)",
+    tooltip: "Electric substations from OSM/PyPSA-compatible source data (ODbL 1.0)",
   },
 ];
 

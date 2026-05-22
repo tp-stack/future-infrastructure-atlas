@@ -633,9 +633,33 @@ This checks:
 
 If a file exceeds the size limit, it is moved to `data/tiles/` and marked for object storage (Cloudflare R2, S3, Vercel Blob, etc.).
 
+#### Global OSM electricity grid
+
+The electricity grid layers use one frontend layer each:
+- `power_lines`: OSM `power=line`, `power=minor_line`, and `power=cable`
+- `substations`: OSM `power=substation`
+
+Fresh global expansion is handled by Geofabrik PBF extracts:
+
+```powershell
+python scripts/fetch_osm_global_power_grid.py --regions north-america
+python scripts/fetch_osm_global_power_grid.py --regions south-america --append
+python scripts/fetch_osm_global_power_grid.py --regions africa --append
+python scripts/fetch_osm_global_power_grid.py --regions asia --append
+python scripts/fetch_osm_global_power_grid.py --regions australia-oceania --append
+```
+
+For parser smoke tests, keep scratch outputs away from deploy metadata:
+
+```powershell
+python scripts/fetch_osm_global_power_grid.py --regions greenland --limit 100 --no-europe-existing --cache-dir data/cache/osm_global_power_grid_smoke --frontend-data-dir data/cache/osm_global_power_grid_smoke/frontend_data
+```
+
+The script deletes each raw PBF after processing unless `--keep-raw` is set. Generated PBF, NDJSON, and PMTiles files stay under ignored `data/raw/`, `data/cache/`, and `data/tiles/` paths.
+
 #### Deploying large PMTiles
 
-The Europe all-voltage `power_lines.pmtiles` file is about 190.37 MB. Do not deploy it as a normal Vercel frontend/static asset on Hobby-safe deploys. Upload it to object storage and point the atlas registry at the remote file instead.
+The all-voltage `power_lines.pmtiles` file is about 190.37 MB before global expansion and will grow as more continents are added. Do not deploy large PMTiles as normal Vercel frontend/static assets on Hobby-safe deploys. Upload `power_lines.pmtiles` and `substations.pmtiles` to object storage and point the atlas registry at the remote files instead.
 
 Object storage requirements:
 - Public HTTPS URL
@@ -661,13 +685,14 @@ Generic CORS guidance:
 Cloudflare R2 manual flow:
 
 1. Create a public bucket.
-2. Upload `data/tiles/power_lines.pmtiles`.
+2. Upload `data/tiles/power_lines.pmtiles` and `data/tiles/substations.pmtiles`.
 3. Configure CORS with the origins, methods, allowed headers, and exposed headers above.
 4. Copy the public URL.
 5. Set the local environment variable:
 
 ```powershell
 $env:POWER_LINES_PMTILES_URL="https://<domain>/power_lines.pmtiles"
+$env:SUBSTATIONS_PMTILES_URL="https://<domain>/substations.pmtiles"
 ```
 
 6. Rebuild the registry:
@@ -682,7 +707,7 @@ python scripts/build_atlas_core.py
 python scripts/preflight_deploy.py --max-local-pmtiles-mb 100
 ```
 
-When `POWER_LINES_PMTILES_URL` is set, `atlas_core.json` writes `tile_registry.power_lines.url` as `pmtiles://https://<domain>/power_lines.pmtiles`. Without it, large local power-line PMTiles remain blocked from deploy by design.
+When `POWER_LINES_PMTILES_URL` or `SUBSTATIONS_PMTILES_URL` is set, `atlas_core.json` writes the corresponding tile registry URL as `pmtiles://https://<domain>/<file>.pmtiles`. Without a remote URL, large or artifact-only local PMTiles remain blocked from deploy by design.
 
 #### Deployment with PMTiles
 

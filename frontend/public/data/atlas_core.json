@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-21T06:12:22.913114Z",
+  "generated_at": "2026-05-22T06:29:17.777170Z",
   "architecture": "atlas_core + PMTiles",
   "counts": {
     "power_plants_total": 34936,
@@ -55,7 +55,7 @@
       "license": "to_verify — requires license review before production/commercial use"
     },
     {
-      "key": "osm_europe_power_lines",
+      "key": "osm_power_grid",
       "name": "OpenStreetMap Power Lines for Europe via ArcGIS Online",
       "url": "https://services-eu1.arcgis.com/zci5bUiJ8olAal7N/arcgis/rest/services/OpenStreetMap_Power_Lines_for_Europe/FeatureServer/0",
       "license": "ODbL 1.0"
@@ -85,9 +85,10 @@
       "deployment_mode": "remote"
     },
     "substations": {
-      "url": "/tiles/substations.pmtiles",
-      "status": "artifact_only (3.40 MB in data/tiles; not publicly served)",
-      "layer_name": "substations"
+      "url": "pmtiles://https://0ubjomuu7dbyf9q9.public.blob.vercel-storage.com/substations.pmtiles",
+      "status": "present (remote)",
+      "layer_name": "substations",
+      "deployment_mode": "remote"
     }
   },
   "license_warnings": [
@@ -119,6 +120,12 @@
       "minLat": 32.6487817,
       "maxLon": 47.2252786,
       "maxLat": 78.9231671
+    },
+    "substations": {
+      "minLon": -9.42156977,
+      "minLat": 36.03223741,
+      "maxLon": 39.66827809,
+      "maxLat": 70.17186417
     }
   }
 }

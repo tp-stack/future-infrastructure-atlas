@@ -135,7 +135,7 @@ function renderFields(asset: Asset, type: string) {
     const line = asset as PowerLine;
     fields.push({ label: "Voltage", value: line.voltage ? `${line.voltage} kV` : "N/A" });
     fields.push({ label: "Circuits", value: line.circuits ? String(line.circuits) : "N/A" });
-    if (line.cables) fields.push({ label: "Cables", value: String(line.cables) });
+    fields.push({ label: "Cables", value: line.cables ? String(line.cables) : "N/A" });
     fields.push({ label: "Length", value: line.length_km ? `${line.length_km.toLocaleString()} km` : "N/A" });
     fields.push({ label: "Country", value: line.country || "N/A" });
     fields.push({ label: "Type", value: line.type || "N/A" });

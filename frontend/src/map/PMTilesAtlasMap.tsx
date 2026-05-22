@@ -47,6 +47,17 @@ function isPowerLineTileError(event: unknown): boolean {
   );
 }
 
+function isSubstationTileError(event: unknown): boolean {
+  const raw = event as unknown as { sourceId?: string; error?: { message?: string } };
+  const sourceId = raw.sourceId || "";
+  const message = raw.error?.message || "";
+  return (
+    sourceId === "substations_tiles" ||
+    message.includes("substations") ||
+    message.includes("substations.pmtiles")
+  );
+}
+
 interface LayerToggle {
   key: string;
   label: string;
@@ -123,6 +134,8 @@ export default function PMTilesAtlasMap({ core }: Props) {
         ...s,
         error: isPowerLineTileError(event)
           ? "Power-line PMTiles failed to load. Check CORS, Range requests, or tile URL."
+          : isSubstationTileError(event)
+          ? "Substation PMTiles failed to load. Check CORS, Range requests, or tile URL."
           : event.error?.message || "MapLibre reported a render error",
       }));
     });
@@ -180,9 +193,14 @@ export default function PMTilesAtlasMap({ core }: Props) {
         if (props.capacity_mw) lines.push(`Capacity: ${props.capacity_mw} MW`);
         if (props.op) lines.push(`Operator: ${props.op}`);
         if (props.c) lines.push(`Country: ${props.c}`);
-        if (props.voltage) lines.push(`Voltage: ${props.voltage} kV`);
-        if (props.circuits != null) lines.push(`Circuits: ${props.circuits}`);
-        if (props.length_km) lines.push(`Length: ${props.length_km} km`);
+        if (feat.layer?.id === "power_lines_tiles-layer" || feat.layer?.id === "substations_tiles-layer") {
+          lines.push(`Voltage: ${props.voltage ? `${props.voltage} kV` : "N/A"}`);
+        }
+        if (feat.layer?.id === "power_lines_tiles-layer") {
+          lines.push(`Circuits: ${props.circuits || "N/A"}`);
+          lines.push(`Cables: ${props.cables || "N/A"}`);
+          lines.push(`Length: ${props.length_km ? `${props.length_km} km` : "N/A"}`);
+        }
         if (props.country) lines.push(`Country: ${props.country}`);
         if (props.type) lines.push(`Type: ${props.type}`);
         if (props.source) lines.push(`Source: ${props.source}`);
@@ -256,6 +274,7 @@ export default function PMTilesAtlasMap({ core }: Props) {
           </div>
           <div style={{ fontFamily: "monospace", fontSize: 11, color: "#d69a13", textAlign: "left", background: "rgba(255,255,255,0.05)", padding: "10px 14px", borderRadius: 4 }}>
             $env:POWER_LINES_PMTILES_URL="https://&lt;domain&gt;/power_lines.pmtiles"<br />
+            $env:SUBSTATIONS_PMTILES_URL="https://&lt;domain&gt;/substations.pmtiles"<br />
             python scripts/build_atlas_core.py
           </div>
           <div style={{ marginTop: 12, fontSize: 11, color: "#6a6a72" }}>

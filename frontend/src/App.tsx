@@ -129,14 +129,17 @@ export default function App() {
         }
       }
 
-      try {
-        const resp = await fetch("/data/substations.json", { signal: controller.signal });
-        if (resp.ok) {
-          const substationData: GeoJSON.FeatureCollection = await resp.json();
-          setSubstationsData(substationData);
+      const hasSubstationTiles = loadedCore?.tile_registry?.substations?.status?.startsWith("present");
+      if (!hasSubstationTiles) {
+        try {
+          const resp = await fetch("/data/substations.json", { signal: controller.signal });
+          if (resp.ok) {
+            const substationData: GeoJSON.FeatureCollection = await resp.json();
+            if (substationData.features?.length) setSubstationsData(substationData);
+          }
+        } catch {
+          // substations layer is optional; map works without it
         }
-      } catch {
-        // substations layer is optional; map works without it
       }
     }
 
@@ -220,6 +223,8 @@ export default function App() {
   const dcsMapped = (counts?.data_centers_mapped ?? 0) as number;
   const dcsTotal = (counts?.data_centers_total ?? 0) as number;
   const ppTotal = (counts?.power_plants_mapped ?? 0) as number;
+  const powerLinesMapped = (counts?.power_lines_mapped ?? 0) as number;
+  const substationsMapped = (counts?.substations_mapped ?? 0) as number;
   const hasCoverageWarning = cablesMapped < cablesTotal || dcsMapped < dcsTotal;
 
   const activeFilterCount = useMemo(
@@ -451,6 +456,8 @@ export default function App() {
             <div className="top-bar-left">
               <span className="top-bar-title">Global Infrastructure Atlas</span>
               <span className="top-bar-stat">{ppTotal.toLocaleString()} power plants</span>
+              <span className="top-bar-stat">{powerLinesMapped.toLocaleString()} lines</span>
+              <span className="top-bar-stat">{substationsMapped.toLocaleString()} substations</span>
               <span className="top-bar-stat">{cablesMapped.toLocaleString()} / {cablesTotal.toLocaleString()} cables</span>
               <span className="top-bar-stat">{dcsMapped.toLocaleString()} / {dcsTotal.toLocaleString()} data centers</span>
             </div>
