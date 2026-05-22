@@ -1,7 +1,7 @@
 import { Protocol } from "pmtiles";
 import maplibregl from "maplibre-gl";
 import { getLightTopoLayers, getLightTopoSources, MAPLIBRE_GLYPHS_URL } from "./basemaps";
-import { CABLE_COLOR, DATA_CENTER_COLOR, DATA_CENTER_STROKE_COLOR, FUEL_COLORS, POWER_LINE_DEFAULT_COLOR, POWER_LINE_HVDC_COLOR, SUBSTATION_COLOR, SUBSTATION_STROKE_COLOR } from "./layers";
+import { CABLE_COLOR, DATA_CENTER_COLOR, DATA_CENTER_STROKE_COLOR, FUEL_COLORS, POWER_CABLE_COLOR, POWER_CABLE_HVDC_COLOR, POWER_LINE_DEFAULT_COLOR, POWER_LINE_HVDC_COLOR, SUBSTATION_COLOR, SUBSTATION_STROKE_COLOR } from "./layers";
 
 let registered = false;
 
@@ -66,6 +66,25 @@ function powerLineColorExpression(): maplibregl.ExpressionSpecification {
     [">", ["coalesce", ["get", "voltage"], 0], 0],
     "#8d93a1",
     POWER_LINE_DEFAULT_COLOR,
+  ] as maplibregl.ExpressionSpecification;
+}
+
+export const POWER_CABLE_FILTER: maplibregl.FilterSpecification = [
+  "any",
+  ["==", ["get", "power"], "cable"],
+  ["==", ["get", "underground"], true],
+  ["==", ["get", "underground"], "true"],
+  ["==", ["get", "underground"], 1],
+];
+
+export const POWER_OVERHEAD_FILTER: maplibregl.FilterSpecification = ["!", POWER_CABLE_FILTER];
+
+function powerCableColorExpression(): maplibregl.ExpressionSpecification {
+  return [
+    "case",
+    ["==", ["get", "type"], "HVDC"],
+    POWER_CABLE_HVDC_COLOR,
+    POWER_CABLE_COLOR,
   ] as maplibregl.ExpressionSpecification;
 }
 
@@ -144,6 +163,7 @@ export function getPMTilesLayers(
       type: "line",
       source: "power_lines_tiles",
       "source-layer": "power_lines",
+      filter: POWER_OVERHEAD_FILTER,
       paint: {
         "line-color": powerLineColorExpression(),
         "line-width": [
@@ -153,6 +173,24 @@ export function getPMTilesLayers(
           10, 2.5,
         ],
         "line-opacity": 0.7,
+      },
+    });
+    layers.push({
+      id: "power_lines_cables_tiles-layer",
+      type: "line",
+      source: "power_lines_tiles",
+      "source-layer": "power_lines",
+      filter: POWER_CABLE_FILTER,
+      paint: {
+        "line-color": powerCableColorExpression(),
+        "line-width": [
+          "interpolate", ["linear"], ["zoom"],
+          2, 0.9,
+          6, 1.7,
+          10, 3.2,
+        ],
+        "line-opacity": 0.9,
+        "line-dasharray": [2, 1.2],
       },
     });
   }

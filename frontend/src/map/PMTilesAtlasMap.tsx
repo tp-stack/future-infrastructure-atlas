@@ -173,7 +173,7 @@ export default function PMTilesAtlasMap({ core }: Props) {
 
       const popup = new maplibregl.Popup({ closeButton: true, closeOnClick: true });
       const getInteractiveTileLayers = () => (
-        ["power_plants_tiles-layer", "submarine_cables_tiles-layer", "data_centers_tiles-layer", "power_lines_tiles-layer", "substations_tiles-layer"]
+        ["power_plants_tiles-layer", "submarine_cables_tiles-layer", "data_centers_tiles-layer", "power_lines_tiles-layer", "power_lines_cables_tiles-layer", "substations_tiles-layer"]
           .filter((id) => m.getLayer(id))
       );
 
@@ -193,10 +193,10 @@ export default function PMTilesAtlasMap({ core }: Props) {
         if (props.capacity_mw) lines.push(`Capacity: ${props.capacity_mw} MW`);
         if (props.op) lines.push(`Operator: ${props.op}`);
         if (props.c) lines.push(`Country: ${props.c}`);
-        if (feat.layer?.id === "power_lines_tiles-layer" || feat.layer?.id === "substations_tiles-layer") {
+        if (feat.layer?.id === "power_lines_tiles-layer" || feat.layer?.id === "power_lines_cables_tiles-layer" || feat.layer?.id === "substations_tiles-layer") {
           lines.push(`Voltage: ${props.voltage ? `${props.voltage} kV` : "N/A"}`);
         }
-        if (feat.layer?.id === "power_lines_tiles-layer") {
+        if (feat.layer?.id === "power_lines_tiles-layer" || feat.layer?.id === "power_lines_cables_tiles-layer") {
           lines.push(`Circuits: ${props.circuits || "N/A"}`);
           lines.push(`Cables: ${props.cables || "N/A"}`);
           lines.push(`Length: ${props.length_km ? `${props.length_km} km` : "N/A"}`);
@@ -235,7 +235,7 @@ export default function PMTilesAtlasMap({ core }: Props) {
     // Get existing layer ids
     const existingLayers = m.getStyle().layers?.map((l) => l.id) || [];
     // Remove existing tile layers
-    for (const id of ["power_plants_tiles-layer", "submarine_cables_tiles-layer", "data_centers_tiles-layer", "power_lines_tiles-layer", "substations_tiles-layer"]) {
+    for (const id of ["power_plants_tiles-layer", "submarine_cables_tiles-layer", "data_centers_tiles-layer", "power_lines_tiles-layer", "power_lines_cables_tiles-layer", "substations_tiles-layer"]) {
       if (existingLayers.includes(id)) {
         try { m.removeLayer(id); } catch { /* */ }
       }

@@ -33,6 +33,8 @@ export const POWER_LINE_COLORS: Record<number, string> = {
 
 export const POWER_LINE_DEFAULT_COLOR = "#666666";
 export const POWER_LINE_HVDC_COLOR = "#800080";
+export const POWER_CABLE_COLOR = "#0f9eb5";
+export const POWER_CABLE_HVDC_COLOR = "#8f4dd8";
 export const SUBSTATION_COLOR = "#2f6b4f";
 export const SUBSTATION_STROKE_COLOR = "#ffffff";
 

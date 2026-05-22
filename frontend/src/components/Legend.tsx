@@ -1,4 +1,4 @@
-import { CABLE_COLOR, DATA_CENTER_COLOR, FUEL_COLORS } from "../map/layers";
+import { CABLE_COLOR, DATA_CENTER_COLOR, FUEL_COLORS, POWER_CABLE_COLOR } from "../map/layers";
 
 const FUEL_KEYS = Object.keys(FUEL_COLORS).filter((k) => k !== "Other");
 
@@ -15,6 +15,10 @@ export default function Legend() {
       <div className="layer-toggle" style={{ cursor: "default", marginTop: 4 }}>
         <span className="layer-dot" style={{ background: CABLE_COLOR }} />
         Submarine Cables
+      </div>
+      <div className="layer-toggle" style={{ cursor: "default" }}>
+        <span className="layer-dot layer-dot--dash" style={{ background: "transparent", color: POWER_CABLE_COLOR }} />
+        Underground Power Cables
       </div>
       <div className="layer-toggle" style={{ cursor: "default" }}>
         <span className="layer-dot" style={{ background: DATA_CENTER_COLOR }} />

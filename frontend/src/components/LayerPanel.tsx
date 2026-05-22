@@ -1,5 +1,5 @@
 import type { FilterState, AtlasCounts, Asset } from "../map/types";
-import { CABLE_COLOR, DATA_CENTER_COLOR, POWER_LINE_COLORS, SUBSTATION_COLOR } from "../map/layers";
+import { CABLE_COLOR, DATA_CENTER_COLOR, POWER_CABLE_COLOR, POWER_LINE_COLORS, SUBSTATION_COLOR } from "../map/layers";
 
 interface Props {
   visibleLayers: Record<string, boolean>;
@@ -78,7 +78,7 @@ const LAYER_CONFIG: LayerConfig[] = [
     getMapped: (c: AtlasCounts) => c.power_lines_mapped ?? 1,
     getTotal: (c: AtlasCounts) => c.power_lines_total ?? c.power_lines_mapped ?? 1,
     getCoverage: () => "ok",
-    tooltip: "OSM power lines from OpenStreetMap, including line, minor_line, and cable features across tagged voltages (ODbL 1.0)",
+    tooltip: `OSM power lines from OpenStreetMap. Underground and power=cable geometries render as dashed ${POWER_CABLE_COLOR} lines when present in the tile (ODbL 1.0).`,
   },
   {
     key: "substations",

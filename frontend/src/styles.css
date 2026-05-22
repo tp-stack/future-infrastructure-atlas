@@ -290,6 +290,17 @@ html, body, #root {
   flex-shrink: 0;
 }
 
+.layer-dot--dash {
+  width: 14px;
+  height: 3px;
+  border-radius: 999px;
+  background-image: repeating-linear-gradient(
+    90deg,
+    currentColor 0 4px,
+    transparent 4px 7px
+  );
+}
+
 .layer-info {
   flex: 1;
   display: flex;
