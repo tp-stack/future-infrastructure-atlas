@@ -363,10 +363,10 @@ export default function AtlasMap({
       try {
         (m.getSource("data-centers-source") as maplibregl.GeoJSONSource)?.setData(buildDataCenterGeoJSON(data, filters));
       } catch (error) { setMapError(error instanceof Error ? error.message : String(error)); }
-      try {
-        (m.getSource("submarine-cables-source") as maplibregl.GeoJSONSource)?.setData(buildCableGeoJSON(data));
-      } catch (error) { setMapError(error instanceof Error ? error.message : String(error)); }
     }
+    try {
+      (m.getSource("submarine-cables-source") as maplibregl.GeoJSONSource)?.setData(buildCableGeoJSON(data));
+    } catch (error) { setMapError(error instanceof Error ? error.message : String(error)); }
     if (powerLinesData) {
       try {
         if (!m.getSource("power-lines-source") && (!usePMTiles || tileStatus?.power_lines !== "present")) {
@@ -403,6 +403,35 @@ export default function AtlasMap({
         const tileLayers = getPMTilesLayers(tileStatus, { power_plants: true, cables: true, data_centers: true, power_lines: true, substations: true });
         for (const layer of tileLayers) {
           m.addLayer(layer);
+        }
+        if (tileStatus.submarine_cables !== "present") {
+          const cableGeoJSON = buildCableGeoJSON(data);
+          m.addSource("submarine-cables-source", { type: "geojson", data: cableGeoJSON });
+          m.addLayer({
+            id: "submarine-cable-lines",
+            type: "line",
+            source: "submarine-cables-source",
+            paint: {
+              "line-color": [
+                "case",
+                ["boolean", ["feature-state", "hover"], false],
+                CABLE_HOVER_COLOR,
+                CABLE_COLOR,
+              ],
+              "line-width": [
+                "case",
+                ["boolean", ["feature-state", "hover"], false],
+                4,
+                2.5,
+              ],
+              "line-opacity": [
+                "case",
+                ["boolean", ["feature-state", "hover"], false],
+                1,
+                0.85,
+              ],
+            },
+          });
         }
         if (tileStatus.power_lines !== "present" && powerLinesData) {
           m.addSource("power-lines-source", { type: "geojson", data: powerLinesData });
