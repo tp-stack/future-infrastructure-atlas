@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-22T07:30:19.662176Z",
+  "generated_at": "2026-05-23T04:48:50.467353Z",
   "architecture": "atlas_core + PMTiles",
   "counts": {
     "power_plants_total": 34936,
@@ -16,13 +16,13 @@
     "cable_geometry_source": "KMCD Internet Infrastructure Map",
     "cable_geometry_license_status": "to_verify",
     "cable_geometry_review_required": true,
-    "power_lines_total": 1020943,
-    "power_lines_mapped": 1020943,
-    "substations_total": 6863,
-    "substations_mapped": 6863,
-    "openinframap_power_lines_mapped": 206251,
-    "openinframap_substations_mapped": 74950,
-    "power_grid_source": "OpenStreetMap Power Lines for Europe via ArcGIS Online",
+    "power_lines_total": 1499479,
+    "power_lines_mapped": 1499479,
+    "substations_total": 288480,
+    "substations_mapped": 288480,
+    "openinframap_power_lines_mapped": 1499479,
+    "openinframap_substations_mapped": 288480,
+    "power_grid_source": "OpenStreetMap power grid via Geofabrik extracts",
     "power_grid_license_status": "ODbL 1.0"
   },
   "sources": [
@@ -58,14 +58,14 @@
     },
     {
       "key": "osm_power_grid",
-      "name": "OpenStreetMap Power Lines for Europe via ArcGIS Online",
-      "url": "https://services-eu1.arcgis.com/zci5bUiJ8olAal7N/arcgis/rest/services/OpenStreetMap_Power_Lines_for_Europe/FeatureServer/0",
+      "name": "OpenStreetMap power grid via Geofabrik extracts",
+      "url": "https://download.geofabrik.de/",
       "license": "ODbL 1.0"
     },
     {
       "key": "openinframap_power_extract",
-      "name": "OpenStreetMap power infrastructure via OpenInfraMap-compatible Overpass extract",
-      "url": "https://openinframap.org/#5.83/46.28/17.082",
+      "name": "OpenStreetMap power grid via Geofabrik extracts",
+      "url": "https://download.geofabrik.de/",
       "license": "ODbL 1.0"
     }
   ],
@@ -124,7 +124,7 @@
     },
     {
       "layer": "power_grid",
-      "message": "OpenStreetMap Power Lines for Europe via ArcGIS Online is ODbL 1.0; attribution and share-alike obligations apply.",
+      "message": "OpenStreetMap power grid via Geofabrik extracts is ODbL 1.0; attribution and share-alike obligations apply.",
       "active": true
     },
     {
@@ -141,28 +141,28 @@
   },
   "bounds": {
     "power_lines": {
-      "minLon": -28.8031066,
-      "minLat": 32.6487817,
-      "maxLon": 47.2252786,
-      "maxLat": 78.9231671
+      "minLon": -179.1993392,
+      "minLat": -54.7972139,
+      "maxLon": 179.3807539,
+      "maxLat": 82.5247908
     },
     "substations": {
-      "minLon": -9.42156977,
-      "minLat": 36.03223741,
-      "maxLon": 39.66827809,
-      "maxLat": 70.17186417
+      "minLon": -179.4987147,
+      "minLat": -53.2915156,
+      "maxLon": 179.380746,
+      "maxLat": 71.5247366
     },
     "openinframap_power_lines": {
-      "minLon": 7.937016,
-      "minLat": 42.1813549,
-      "maxLon": 28.7233732,
-      "maxLat": 51.3202304
+      "minLon": -179.1993392,
+      "minLat": -54.7972139,
+      "maxLon": 179.3807539,
+      "maxLat": 82.5247908
     },
     "openinframap_substations": {
-      "minLon": 8.639914,
-      "minLat": 42.9016011,
-      "maxLon": 25.5224818,
-      "maxLat": 49.4629181
+      "minLon": -179.4987147,
+      "minLat": -53.2915156,
+      "maxLon": 179.380746,
+      "maxLat": 71.5247366
     }
   }
 }

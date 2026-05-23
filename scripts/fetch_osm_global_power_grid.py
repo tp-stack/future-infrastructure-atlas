@@ -390,25 +390,42 @@ def make_stats() -> dict[str, Any]:
     }
 
 
-def download(url: str, dest: Path, force: bool = False) -> Path:
+def download(url: str, dest: Path, force: bool = False, retries: int = 3) -> Path:
     dest.parent.mkdir(parents=True, exist_ok=True)
     if dest.exists() and dest.stat().st_size > 0 and not force:
         print(f"using cached: {dest}")
         return dest
-    print(f"downloading {url}")
-    with urllib.request.urlopen(url, timeout=300) as response, dest.open("wb") as out:
-        total = int(response.headers.get("Content-Length") or 0)
-        done = 0
-        while True:
-            chunk = response.read(1024 * 1024)
-            if not chunk:
-                break
-            out.write(chunk)
-            done += len(chunk)
-            if total:
-                print(f"  {done / total * 100:5.1f}% ({done / 1024 / 1024:.1f} MB)", end="\r")
-    print(f"\nsaved: {dest} ({dest.stat().st_size / 1024 / 1024:.1f} MB)")
-    return dest
+    last_error: Exception | None = None
+    for attempt in range(1, retries + 1):
+        if dest.exists():
+            dest.unlink()
+        print(f"downloading {url}" + (f" (attempt {attempt}/{retries})" if retries > 1 else ""))
+        try:
+            with urllib.request.urlopen(url, timeout=300) as response, dest.open("wb") as out:
+                total = int(response.headers.get("Content-Length") or 0)
+                done = 0
+                while True:
+                    chunk = response.read(1024 * 1024)
+                    if not chunk:
+                        break
+                    out.write(chunk)
+                    done += len(chunk)
+                    if total:
+                        print(f"  {done / total * 100:5.1f}% ({done / 1024 / 1024:.1f} MB)", end="\r")
+            if total and dest.stat().st_size != total:
+                raise RuntimeError(
+                    f"incomplete download for {url}: got {dest.stat().st_size:,} bytes, expected {total:,}"
+                )
+            print(f"\nsaved: {dest} ({dest.stat().st_size / 1024 / 1024:.1f} MB)")
+            return dest
+        except Exception as exc:
+            last_error = exc
+            if dest.exists():
+                dest.unlink()
+            print(f"\ndownload failed: {exc}", file=sys.stderr)
+            if attempt < retries:
+                time.sleep(min(30, attempt * 5))
+    raise RuntimeError(f"failed to download {url} after {retries} attempts") from last_error
 
 
 def process_pbf(
@@ -622,20 +639,20 @@ def main() -> None:
             with line_ndjson.open(encoding="utf-8") as f:
                 for raw in f:
                     if raw.strip():
-                        _record_line_stats(json.loads(raw), stats)
+                        feature = json.loads(raw)
+                        _record_line_stats(feature, stats)
+                        region = str((feature.get("properties") or {}).get("region") or "")
+                        if region and region not in stats["regions"]:
+                            stats["regions"].append(region)
         if substation_ndjson.exists():
             with substation_ndjson.open(encoding="utf-8") as f:
                 for raw in f:
                     if raw.strip():
-                        _record_substation_stats(json.loads(raw), stats)
-        for meta_file in [frontend_data_dir / "power_lines.json", frontend_data_dir / "substations.json"]:
-            if meta_file.exists():
-                old = json.loads(meta_file.read_text(encoding="utf-8"))
-                meta = old.get("metadata") or {}
-                for region in meta.get("regions", []):
-                    if region not in stats["regions"]:
-                        stats["regions"].append(region)
-
+                        feature = json.loads(raw)
+                        _record_substation_stats(feature, stats)
+                        region = str((feature.get("properties") or {}).get("region") or "")
+                        if region and region not in stats["regions"]:
+                            stats["regions"].append(region)
     mode = "a" if args.append else "w"
     with line_ndjson.open(mode, encoding="utf-8") as line_out, substation_ndjson.open(mode, encoding="utf-8") as substation_out:
         if not args.no_europe_existing:

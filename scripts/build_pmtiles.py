@@ -63,8 +63,8 @@ LAYERS = {
         "input_ndjson": "openinframap_power_lines.ndjson",
         "output_pmtiles": "openinframap_power_lines.pmtiles",
         "layer_name": "openinframap_power_lines",
-        "description": "OpenInfraMap-compatible OSM power-line viewport extract",
-        "maximum_zoom": "12",
+        "description": "OpenInfraMap-compatible global OSM power-line extract",
+        "maximum_zoom": "10",
     },
     "openinframap_substations": {
         "input_ndjson": "openinframap_substations.ndjson",
