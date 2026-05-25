@@ -1,13 +1,18 @@
-"""Stripe billing helpers for the commercial API."""
+"""Stripe billing helpers for the commercial API.
+
+Stripe is imported lazily to allow the module to be loaded without Stripe
+installed.  This is critical for startup isolation: the commercial API routes
+still require Stripe, but the site selection router and app factory can be
+imported without it.
+"""
 
 from __future__ import annotations
 
 import os
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-import stripe
-
-from atlas.api.models import CheckoutSessionRequest
+if TYPE_CHECKING:
+    from atlas.api.models import CheckoutSessionRequest
 
 
 PLAN_PRICE_ENV = {
@@ -15,6 +20,15 @@ PLAN_PRICE_ENV = {
     "scale": "STRIPE_PRICE_SCALE",
     "enterprise": "STRIPE_PRICE_ENTERPRISE",
 }
+
+
+def is_stripe_available() -> bool:
+    """Return True if the stripe package can be imported."""
+    try:
+        import stripe  # noqa: F401
+        return True
+    except ImportError:
+        return False
 
 
 def get_stripe_api_key() -> str:
@@ -46,6 +60,7 @@ class StripeService:
     """Thin wrapper around Stripe Checkout and webhooks."""
 
     def _configure(self) -> None:
+        import stripe
         stripe.api_key = get_stripe_api_key()
 
     def create_checkout_session(
@@ -57,6 +72,7 @@ class StripeService:
         cancel_url: str | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
+        import stripe
         self._configure()
         app_url = get_public_app_url().rstrip("/")
         session_metadata = {
@@ -80,6 +96,7 @@ class StripeService:
         return dict(stripe.checkout.Session.create(**params))
 
     def verify_webhook_signature(self, payload: bytes, signature: str, endpoint_secret: str) -> dict[str, Any]:
+        import stripe
         self._configure()
         try:
             event = stripe.Webhook.construct_event(payload, signature, endpoint_secret)

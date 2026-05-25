@@ -17,7 +17,9 @@ const UnmappedPanel = lazy(() => import("./components/UnmappedPanel"));
 const SourcePanel = lazy(() => import("./components/SourcePanel"));
 const AssetDetailsPanel = lazy(() => import("./components/AssetDetailsPanel"));
 const CommercialApiConsole = lazy(() => import("./components/CommercialApiConsole"));
+const SiteSelectionPanel = lazy(() => import("./components/site_selection/SiteSelectionPanel"));
 import type { AtlasData, AtlasCore, FilterState, Asset, PowerPlant, Cable } from "./map/types";
+import type { CandidateSite } from "./api/siteSelectionApi";
 import type { InteractableType } from "./map/interaction";
 import type { CableFilterState } from "./map/cables";
 import { DEFAULT_CABLE_FILTERS, buildCableCompanyStats, cableBounds, splitCableOperators } from "./map/cables";
@@ -68,6 +70,10 @@ export default function App() {
   const [viewMode, setViewMode] = useState<ViewMode>(() => queryParams.get("globe") === "1" ? "globe" : "map");
   const [theme, setTheme] = useState<AtlasTheme>(() => getTheme());
   const [gridContinentFilters, setGridContinentFilters] = useState<GridContinentFilters>(DEFAULT_GRID_CONTINENT_FILTERS);
+  const [mapBounds, setMapBounds] = useState<[number, number, number, number] | null>(null);
+  const [showSiteSelection, setShowSiteSelection] = useState(false);
+  const [candidateSites, setCandidateSites] = useState<CandidateSite[]>([]);
+  const [selectedCandidate, setSelectedCandidate] = useState<CandidateSite | null>(null);
 
   const openApiDashboard = useCallback(() => {
     window.location.href = "/?commercialApi=1";
@@ -299,6 +305,10 @@ export default function App() {
     setGridContinentFilters((prev) => ({ ...prev, [key]: !prev[key] }));
   }, []);
 
+  useEffect(() => {
+    if (!showSiteSelection) setCandidateSites([]);
+  }, [showSiteSelection]);
+
   const handlePopup = useCallback((asset: Asset | null) => {
     setSelectedAsset(asset);
     if (!asset) {
@@ -394,6 +404,15 @@ export default function App() {
       setNavigateTo({ lon: asset.lon, lat: asset.lat, zoom: 10 });
     }
   }, [data]);
+
+  const handleBoundsChanged = useCallback((bounds: [number, number, number, number]) => {
+    setMapBounds(bounds);
+  }, []);
+
+  const handleCandidateClick = useCallback((candidate: CandidateSite) => {
+    setSelectedCandidate(candidate);
+    setNavigateTo({ lon: candidate.lon, lat: candidate.lat, zoom: 12 });
+  }, []);
 
   const hasZeroCanvasPoints = viewMode !== "globe" && Boolean(
     canvasDiag?.active && data && canvasDiag.powerPlantsDrawn === 0 && canvasDiag.recordsReceived > 1000
@@ -564,6 +583,14 @@ export default function App() {
           <Suspense fallback={null}>
             <SourcePanel metadata={data.metadata} core={core ?? undefined} />
           </Suspense>
+          {showSiteSelection && (
+            <Suspense fallback={<div className="panel-section"><div className="panel-loading">Loading site selection...</div></div>}>
+              <SiteSelectionPanel
+                mapBounds={mapBounds}
+                onCandidatesGenerated={setCandidateSites}
+              />
+            </Suspense>
+          )}
           <div className="panel-footer">
             Generated {new Date(data.metadata.generated_at).toLocaleString()}
           </div>
@@ -642,6 +669,13 @@ export default function App() {
                 title="Open commercial API and pricing workbench"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 7c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3z"/><path d="M4 7v5c0 1.7 3.6 3 8 3s8-1.3 8-3V7"/><path d="M4 12v5c0 1.7 3.6 3 8 3s8-1.3 8-3v-5"/></svg>
+              </button>
+              <button
+                className={`toolbar-btn ${showSiteSelection ? "active" : ""}`}
+                onClick={() => setShowSiteSelection((v) => !v)}
+                title="Site selection analysis"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
               </button>
               {activeFilterCount > 0 && (
                 <span className="top-bar-filter-badge">{activeFilterCount} filter{activeFilterCount > 1 ? "s" : ""} active</span>
@@ -731,6 +765,9 @@ export default function App() {
               cableCompanyStats={cableCompanyStats}
               cableFilters={cableFilters}
               theme={theme}
+              onBoundsChanged={handleBoundsChanged}
+              candidateSites={candidateSites}
+              onCandidateClick={handleCandidateClick}
             />
           )}
 

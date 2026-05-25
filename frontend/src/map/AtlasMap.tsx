@@ -11,6 +11,8 @@ import type { CableCompanyStat, CableFilterState } from "./cables";
 import { DEFAULT_CABLE_FILTERS, pmtilesCableColorExpression, cableOperatorContainsExpression } from "./cables";
 import { buildFuelCircleColorExpression } from "./fuelMatch";
 import { registerPMTilesProtocol, getPMTilesSources, getPMTilesLayers, POWER_CABLE_FILTER, POWER_OVERHEAD_FILTER, type TileStatus } from "./pmtiles";
+import type { CandidateSite } from "../api/siteSelectionApi";
+import { buildCandidateSitesGeoJSON, getCandidateSiteLayerId, getCandidateSiteSourceId, getCandidateSitePaint } from "../layers/candidateSitesLayer";
 import { useDebounce } from "../utils/debounce";
 import {
   computeFeatureCollectionBounds,
@@ -44,6 +46,9 @@ interface Props {
   cableCompanyStats?: CableCompanyStat[];
   cableFilters?: CableFilterState;
   theme?: AtlasTheme;
+  onBoundsChanged?: (bounds: [number, number, number, number]) => void;
+  candidateSites?: CandidateSite[];
+  onCandidateClick?: (candidate: CandidateSite) => void;
 }
 
 const GEOJSON_INTERACTIVE_LAYERS = ["power-points", "data-center-points", "submarine-cable-lines", "power-line-lines", "power-line-cables", "substation-points"];
@@ -363,6 +368,9 @@ export default function AtlasMap({
   cableCompanyStats = [],
   cableFilters = DEFAULT_CABLE_FILTERS,
   theme = "dark",
+  onBoundsChanged,
+  candidateSites,
+  onCandidateClick,
 }: Props) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
@@ -627,6 +635,17 @@ export default function AtlasMap({
 
   useEffect(() => {
     const m = map.current;
+    if (!m || !onBoundsChanged) return;
+    const handler = () => {
+      const b = m.getBounds();
+      onBoundsChanged([b.getWest(), b.getSouth(), b.getEast(), b.getNorth()]);
+    };
+    m.on("moveend", handler);
+    return () => { m.off("moveend", handler); };
+  }, [onBoundsChanged]);
+
+  useEffect(() => {
+    const m = map.current;
     if (!m) return;
 
     const onLoad = () => {
@@ -742,6 +761,39 @@ export default function AtlasMap({
       ]);
     }
   }, [cableCompanyStats, cableFilters, layerOpacity]);
+
+  useEffect(() => {
+    const m = map.current;
+    if (!m) return;
+    const layerId = getCandidateSiteLayerId();
+    const sourceId = getCandidateSiteSourceId();
+
+    if (candidateSites && candidateSites.length > 0) {
+      const geojson = buildCandidateSitesGeoJSON(candidateSites);
+      if (m.getSource(sourceId)) {
+        (m.getSource(sourceId) as maplibregl.GeoJSONSource).setData(geojson);
+      } else {
+        m.addSource(sourceId, { type: "geojson", data: geojson });
+        m.addLayer({
+          id: layerId,
+          type: "circle",
+          source: sourceId,
+          paint: getCandidateSitePaint(),
+        });
+      }
+      if (!m.getLayer(layerId)) {
+        m.addLayer({
+          id: layerId,
+          type: "circle",
+          source: sourceId,
+          paint: getCandidateSitePaint(),
+        });
+      }
+    } else {
+      if (m.getLayer(layerId)) m.removeLayer(layerId);
+      if (m.getSource(sourceId)) m.removeSource(sourceId);
+    }
+  }, [candidateSites]);
 
   useEffect(() => {
     const m = map.current;
@@ -916,6 +968,25 @@ export default function AtlasMap({
       m.off("mouseleave", handleMouseLeave);
     };
   }, [onPopup, onSelectedAsset, onHoveredAsset, interactiveLayerIds, usePMTiles]);
+
+  useEffect(() => {
+    const m = map.current;
+    if (!m || !candidateSites || !onCandidateClick) return;
+    const layerId = getCandidateSiteLayerId();
+    if (!m.getLayer(layerId)) return;
+
+    const handler = (e: maplibregl.MapMouseEvent & { features?: maplibregl.MapGeoJSONFeature[] }) => {
+      const features = m.queryRenderedFeatures(e.point, { layers: [layerId] });
+      if (!features || features.length === 0) return;
+      const props = features[0].properties as Record<string, unknown>;
+      const id = props.id as string;
+      const candidate = candidateSites.find((c) => c.candidate_site_id === id);
+      if (candidate) onCandidateClick(candidate);
+    };
+
+    m.on("click", layerId, handler);
+    return () => { m.off("click", layerId, handler); };
+  }, [candidateSites, onCandidateClick]);
 
   const handleCanvasDiagnostics = useCallback((d: CanvasDiagnostics) => {
     onCanvasDiagnostics?.(d);
