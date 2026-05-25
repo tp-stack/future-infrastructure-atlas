@@ -4,6 +4,8 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 MIGRATION_SQL = PROJECT_ROOT / "database" / "migrations" / "001_initial_schema.sql"
 DATASET_MIGRATION_SQL = PROJECT_ROOT / "database" / "migrations" / "002_dataset_registry.sql"
+COMMERCIAL_API_MIGRATION_SQL = PROJECT_ROOT / "database" / "migrations" / "003_commercial_api.sql"
+STRIPE_BILLING_MIGRATION_SQL = PROJECT_ROOT / "database" / "migrations" / "004_stripe_billing.sql"
 DATASET_SEED_SQL = PROJECT_ROOT / "database" / "seeds" / "002_seed_datasets.sql"
 
 
@@ -17,6 +19,14 @@ def _dataset_sql() -> str:
 
 def _dataset_seed_sql() -> str:
     return DATASET_SEED_SQL.read_text(encoding="utf-8").lower()
+
+
+def _commercial_api_sql() -> str:
+    return COMMERCIAL_API_MIGRATION_SQL.read_text(encoding="utf-8").lower()
+
+
+def _stripe_billing_sql() -> str:
+    return STRIPE_BILLING_MIGRATION_SQL.read_text(encoding="utf-8").lower()
 
 
 def test_migration_sql_file_exists():
@@ -122,3 +132,41 @@ def test_dataset_seed_sql_exists_and_uses_on_conflict():
 
     assert "insert into dim_dataset" in sql
     assert "on conflict (dataset_key) do update" in sql
+
+
+def test_commercial_api_migration_tables_are_present():
+    assert COMMERCIAL_API_MIGRATION_SQL.is_file()
+    sql = _commercial_api_sql()
+
+    for table_name in [
+        "api_plan",
+        "api_customer",
+        "api_key",
+        "api_usage_event",
+        "api_export_job",
+        "data_rights_grant",
+    ]:
+        assert f"create table if not exists {table_name}" in sql
+
+
+def test_commercial_api_migration_hashes_keys_and_tracks_rights():
+    sql = _commercial_api_sql()
+
+    assert "key_hash text unique not null" in sql
+    assert "commercial_api_allowed boolean not null default false" in sql
+    assert "redistribution_allowed boolean not null default false" in sql
+    assert "license_review_status" in sql
+    assert "share_alike_risk boolean not null default true" in sql
+
+
+def test_stripe_billing_migration_extends_customer_and_plans():
+    assert STRIPE_BILLING_MIGRATION_SQL.is_file()
+    sql = _stripe_billing_sql()
+
+    assert "add column if not exists stripe_price_id" in sql
+    assert "add column if not exists stripe_customer_id" in sql
+    assert "add column if not exists stripe_subscription_id" in sql
+    assert "idx_api_customer_stripe_customer_id" in sql
+    assert "'launch'" in sql
+    assert "'scale'" in sql
+    assert "'enterprise'" in sql

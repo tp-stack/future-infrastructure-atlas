@@ -1,9 +1,12 @@
 import type { FilterState, AtlasCounts, Asset } from "../map/types";
+import type { CableCompanyStat, CableFilterState, CableViewMode } from "../map/cables";
 import { CABLE_COLOR, DATA_CENTER_COLOR, POWER_CABLE_COLOR, POWER_LINE_COLORS, SUBSTATION_COLOR } from "../map/layers";
+import { GRID_CONTINENTS, type GridContinentFilters, type GridContinentKey } from "../map/continents";
 
 interface Props {
   visibleLayers: Record<string, boolean>;
   onToggle: (key: string) => void;
+  onSetAllLayers?: (visible: boolean) => void;
   filters: FilterState;
   onFilterChange: (filters: FilterState) => void;
   fuelTypes: string[];
@@ -16,6 +19,13 @@ interface Props {
   onSearchResultClick?: (asset: Asset) => void;
   layerOpacity?: Record<string, number>;
   onOpacityChange?: (key: string, value: number) => void;
+  cableCompanyStats?: CableCompanyStat[];
+  cableFilters?: CableFilterState;
+  onCableFiltersChange?: (filters: CableFilterState) => void;
+  onFitCables?: () => void;
+  showGridContinentControls?: boolean;
+  gridContinentFilters?: GridContinentFilters;
+  onGridContinentToggle?: (key: GridContinentKey) => void;
 }
 
 type LayerConfig = {
@@ -96,6 +106,7 @@ export default function LayerPanel({
   layerOpacity,
   onOpacityChange,
   onToggle,
+  onSetAllLayers,
   filters,
   onFilterChange,
   fuelTypes,
@@ -106,12 +117,47 @@ export default function LayerPanel({
   onSearchChange,
   searchResults,
   onSearchResultClick,
+  cableCompanyStats = [],
+  cableFilters,
+  onCableFiltersChange,
+  onFitCables,
+  showGridContinentControls = false,
+  gridContinentFilters,
+  onGridContinentToggle,
 }: Props) {
   const activeFilters = [filters.fuelType, filters.country, filters.minMw > 0 ? `${filters.minMw}+ MW` : ""].filter(Boolean);
+  const activeCableCompany = cableCompanyStats.find((stat) => stat.operator === cableFilters?.operator);
+
+  const setCableMode = (mode: CableViewMode) => {
+    if (!cableFilters || !onCableFiltersChange) return;
+    onCableFiltersChange({ ...cableFilters, mode });
+  };
+
+  const setCableOperator = (operator: string) => {
+    if (!cableFilters || !onCableFiltersChange) return;
+    const isActive = cableFilters.operator === operator;
+    onCableFiltersChange({
+      ...cableFilters,
+      operator: isActive ? "" : operator,
+      mode: isActive ? "all" : "company",
+    });
+  };
 
   return (
     <div className="panel-section">
-      <h2>Layers</h2>
+      <div className="layer-section-header">
+        <h2>Layers</h2>
+        {onSetAllLayers && (
+          <div className="layer-bulk-actions" aria-label="Bulk layer controls">
+            <button type="button" onClick={() => onSetAllLayers(true)}>
+              All On
+            </button>
+            <button type="button" onClick={() => onSetAllLayers(false)}>
+              All Off
+            </button>
+          </div>
+        )}
+      </div>
       {LAYER_CONFIG.map((cfg) => {
         const c = counts!;
         const mapped = cfg.getMapped(c);
@@ -156,6 +202,86 @@ export default function LayerPanel({
         );
       })}
 
+      {showGridContinentControls && gridContinentFilters && onGridContinentToggle && (
+        <div className={`grid-continent-control ${visibleLayers.power_lines ? "" : "disabled"}`}>
+          <div className="grid-continent-header">
+            <h2>Electric Grid Continents</h2>
+            <span>{GRID_CONTINENTS.filter((continent) => gridContinentFilters[continent.key]).length} / {GRID_CONTINENTS.length} on</span>
+          </div>
+          <div className="grid-continent-switches" aria-label="Electric grid continent switches">
+            {GRID_CONTINENTS.map((continent) => (
+              <button
+                key={continent.key}
+                type="button"
+                className={gridContinentFilters[continent.key] ? "active" : ""}
+                onClick={() => onGridContinentToggle(continent.key)}
+                aria-pressed={gridContinentFilters[continent.key]}
+                title={`${gridContinentFilters[continent.key] ? "Hide" : "Show"} electric grid in ${continent.label}`}
+              >
+                {continent.shortLabel}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {cableFilters && onCableFiltersChange && (
+        <div className="cable-focus">
+          <div className="cable-focus-header">
+            <div>
+              <h2>Cable Companies</h2>
+              <div className="cable-focus-subtitle">
+                {activeCableCompany
+                  ? `${activeCableCompany.count.toLocaleString()} mapped cable${activeCableCompany.count === 1 ? "" : "s"}`
+                  : "Color and focus cables by operator"}
+              </div>
+            </div>
+            <button type="button" className="cable-action-btn" onClick={onFitCables} disabled={!onFitCables}>
+              Fit
+            </button>
+          </div>
+
+          <div className="segmented-control" aria-label="Cable view mode">
+            {(["all", "company", "selected"] as CableViewMode[]).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                className={cableFilters.mode === mode ? "active" : ""}
+                onClick={() => setCableMode(mode)}
+              >
+                {mode === "all" ? "All" : mode === "company" ? "Company" : "Selected"}
+              </button>
+            ))}
+          </div>
+
+          <div className="cable-company-list">
+            {cableCompanyStats.map((stat) => (
+              <button
+                key={stat.operator}
+                type="button"
+                className={`cable-company-chip ${cableFilters.operator === stat.operator ? "active" : ""}`}
+                onClick={() => setCableOperator(stat.operator)}
+                title={`${stat.operator}: ${stat.count.toLocaleString()} mapped cables`}
+              >
+                <span className="cable-company-swatch" style={{ background: stat.color }} />
+                <span className="cable-company-name">{stat.operator}</span>
+                <span className="cable-company-count">{stat.count.toLocaleString()}</span>
+              </button>
+            ))}
+          </div>
+
+          {(cableFilters.operator || cableFilters.selectedCableName) && (
+            <button
+              type="button"
+              className="cable-clear-btn"
+              onClick={() => onCableFiltersChange({ operator: "", mode: "all", selectedCableName: "" })}
+            >
+              Clear cable focus
+            </button>
+          )}
+        </div>
+      )}
+
       {onSearchChange && (
         <>
           <h2 style={{ marginTop: 14 }}>Search</h2>
@@ -164,7 +290,7 @@ export default function LayerPanel({
               type="text"
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
-              placeholder="Name, country, city..."
+              placeholder="Name, company, landing point..."
               className="search-input"
             />
           </div>

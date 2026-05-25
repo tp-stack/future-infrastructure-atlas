@@ -9,10 +9,14 @@ description = "Safe repository skeleton for the FUTURE Infrastructure Atlas geos
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+  "fastapi>=0.115",
   "osmium>=4.3",
   "psycopg[binary]>=3.1",
   "PyYAML>=6.0",
   "pytest>=8.0",
+  "uvicorn[standard]>=0.30",
+  "stripe>=9.0",
+  "python-dotenv>=1.0",
 ]
 
 [tool.setuptools.packages.find]

@@ -1,4 +1,6 @@
 import type { AtlasData, FilterState } from "./types";
+import type { CableCompanyStat, CableFilterState } from "./cables";
+import { DEFAULT_CABLE_FILTERS, getCableCompanyMeta, shouldIncludeCable } from "./cables";
 import { parseCoord, validPointFromRecord, toValidPoint, isValidLonLat } from "./coords";
 
 export interface LonLatBounds {
@@ -118,11 +120,16 @@ export function buildDataCenterGeoJSON(
   return { type: "FeatureCollection", features };
 }
 
-export function buildCableGeoJSON(data: AtlasData): GeoJSON.FeatureCollection {
+export function buildCableGeoJSON(
+  data: AtlasData,
+  cableFilters: CableFilterState = DEFAULT_CABLE_FILTERS,
+  companyStats: CableCompanyStat[] = [],
+): GeoJSON.FeatureCollection {
   const features: GeoJSON.Feature[] = [];
 
   for (const c of data.cables) {
     if (c.mapped_status !== "mapped") continue;
+    if (!shouldIncludeCable(c, companyStats, cableFilters)) continue;
 
     const lines = cableLines(c.geometry);
     if (lines.length === 0) continue;
@@ -131,6 +138,7 @@ export function buildCableGeoJSON(data: AtlasData): GeoJSON.FeatureCollection {
       ? { type: "LineString", coordinates: lines[0] }
       : { type: "MultiLineString", coordinates: lines };
     const name = c.n || "";
+    const companyMeta = getCableCompanyMeta(c, companyStats, cableFilters);
 
     features.push({
       type: "Feature",
@@ -144,6 +152,14 @@ export function buildCableGeoJSON(data: AtlasData): GeoJSON.FeatureCollection {
         confidence: c.confidence ?? 0,
         name,
         operators: c.operators || "",
+        operator_list: companyMeta.operators.join(", "),
+        primary_operator: companyMeta.primaryOperator,
+        operator_group: companyMeta.operatorGroup,
+        operator_color: companyMeta.operatorColor,
+        operator_count: companyMeta.operatorCount,
+        is_company_match: companyMeta.isCompanyMatch,
+        is_selected: companyMeta.isSelected,
+        is_dimmed: companyMeta.isDimmed,
         landing_points: c.landing_points || "",
         length_km: c.length_km || "",
       },

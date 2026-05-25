@@ -71,7 +71,7 @@ export default function SimpleAtlasMap({ data }: Props) {
       center: [10, 20],
       zoom: 1.35,
       renderWorldCopies: false,
-      preserveDrawingBuffer: true,
+      canvasContextAttributes: { preserveDrawingBuffer: true },
     });
 
     m.addControl(new maplibregl.NavigationControl(), "top-right");

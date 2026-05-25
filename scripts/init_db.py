@@ -18,6 +18,8 @@ SQL_FILES = [
     PROJECT_ROOT / "database" / "seeds" / "001_seed_sources.sql",
     PROJECT_ROOT / "database" / "migrations" / "002_dataset_registry.sql",
     PROJECT_ROOT / "database" / "seeds" / "002_seed_datasets.sql",
+    PROJECT_ROOT / "database" / "migrations" / "003_commercial_api.sql",
+    PROJECT_ROOT / "database" / "migrations" / "004_stripe_billing.sql",
 ]
 
 

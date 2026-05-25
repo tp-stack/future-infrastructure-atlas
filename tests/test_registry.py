@@ -3,6 +3,7 @@ from atlas.registry import (
     load_layers,
     load_sources,
     validate_all_registries,
+    validate_commercial_api_policy,
     validate_layers,
     validate_sources,
 )
@@ -135,3 +136,31 @@ def test_duplicate_source_keys_are_detected():
 
     assert not result.ok
     assert any("Duplicate source key" in error for error in result.errors)
+
+
+def test_commercial_api_policy_is_valid():
+    result = validate_commercial_api_policy()
+
+    assert result.ok, result.errors
+
+
+def test_commercial_api_policy_detects_overlapping_allowed_and_blocked_usage():
+    result = validate_commercial_api_policy(
+        {
+            "required_rights_fields": [
+                "commercial_api_allowed",
+                "redistribution_allowed",
+                "attribution_required",
+                "share_alike_risk",
+                "license_review_status",
+                "rights_evidence_path",
+            ],
+            "safe_allowed_usage": ["owned"],
+            "blocked_allowed_usage": ["owned"],
+            "blocked_license_values": ["to_verify"],
+            "approved_license_review_statuses": ["approved"],
+        }
+    )
+
+    assert not result.ok
+    assert any("overlap" in error for error in result.errors)

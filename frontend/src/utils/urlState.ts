@@ -37,16 +37,32 @@ export function layersToParam(layers: Record<string, boolean>): string | null {
   if (layers.cables) active.push("cb");
   if (layers.data_centers) active.push("dc");
   if (layers.power_lines) active.push("pl");
-  return active.length === 4 ? null : active.join(",");
+  if (layers.substations) active.push("ss");
+  if (layers.heatmap) active.push("hm");
+  const defaultActive = ["pp", "cb", "dc", "pl", "ss"];
+  if (active.length === defaultActive.length && defaultActive.every((key, index) => active[index] === key)) return null;
+  return active.length === 0 ? "none" : active.join(",");
 }
 
 export function paramToLayers(param: string | undefined): Record<string, boolean> | null {
   if (!param) return null;
+  if (param === "none") {
+    return {
+      power_plants: false,
+      cables: false,
+      data_centers: false,
+      power_lines: false,
+      substations: false,
+      heatmap: false,
+    };
+  }
   const active = param.split(",");
   return {
     power_plants: active.includes("pp"),
     cables: active.includes("cb"),
     data_centers: active.includes("dc"),
     power_lines: active.includes("pl"),
+    substations: active.includes("ss"),
+    heatmap: active.includes("hm"),
   };
 }

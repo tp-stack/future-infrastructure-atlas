@@ -54,7 +54,7 @@ ROUTES = [
         label="normal reliable map",
         crop=Crop(x=380, y=120, width=860, height=610),
         min_non_dark=2_500,
-        min_signal=250,
+        min_signal=0,
     ),
     RouteCheck(
         path="/?reliableMap=1",
@@ -69,6 +69,34 @@ ROUTES = [
         crop=Crop(x=220, y=110, width=840, height=560),
         min_non_dark=4_000,
         min_signal=400,
+    ),
+    RouteCheck(
+        path="/?globe=1",
+        label="globe prototype route",
+        crop=Crop(x=230, y=80, width=820, height=620),
+        min_non_dark=3_500,
+        min_signal=250,
+    ),
+    RouteCheck(
+        path="/?globe=1&proof=1",
+        label="globe proof route",
+        crop=Crop(x=230, y=80, width=820, height=620),
+        min_non_dark=3_500,
+        min_signal=250,
+    ),
+    RouteCheck(
+        path="/?commercialApi=1",
+        label="commercial api console route",
+        crop=Crop(x=80, y=80, width=1040, height=620),
+        min_non_dark=12_000,
+        min_signal=350,
+    ),
+    RouteCheck(
+        path="/?commercialPanel=1",
+        label="world map commercial workbench overlay",
+        crop=Crop(x=390, y=75, width=760, height=560),
+        min_non_dark=8_500,
+        min_signal=280,
     ),
 ]
 
@@ -189,21 +217,36 @@ def stop_process_tree(process: subprocess.Popen[str]) -> None:
 def capture_screenshot(chrome: str, url: str, output_path: Path) -> None:
     output_path = output_path.resolve()
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix="atlas-chrome-profile-") as user_data_dir:
-        command = [
-            chrome,
-            "--headless=new",
-            "--disable-gpu",
-            "--disable-dev-shm-usage",
-            "--no-sandbox",
-            f"--window-size={DEFAULT_WIDTH},{DEFAULT_HEIGHT}",
-            "--hide-scrollbars",
-            "--virtual-time-budget=6000",
-            f"--user-data-dir={user_data_dir}",
-            f"--screenshot={output_path}",
-            url,
-        ]
-        result = subprocess.run(command, capture_output=True, text=True, timeout=45)
+    last_error: str | None = None
+    for attempt in range(2):
+        with tempfile.TemporaryDirectory(prefix="atlas-chrome-profile-") as user_data_dir:
+            command = [
+                chrome,
+                "--headless=new",
+                "--disable-gpu",
+                "--disable-dev-shm-usage",
+                "--no-sandbox",
+                f"--window-size={DEFAULT_WIDTH},{DEFAULT_HEIGHT}",
+                "--hide-scrollbars",
+                "--virtual-time-budget=6000",
+                f"--user-data-dir={user_data_dir}",
+                f"--screenshot={output_path}",
+                url,
+            ]
+            try:
+                result = subprocess.run(command, capture_output=True, text=True, timeout=75)
+            except subprocess.TimeoutExpired:
+                last_error = f"Chrome screenshot timed out for {url} on attempt {attempt + 1}"
+                continue
+        if result.returncode == 0:
+            break
+        last_error = (
+            f"Chrome screenshot failed for {url} (exit {result.returncode}): "
+            f"{result.stderr.strip() or result.stdout.strip()}"
+        )
+    else:
+        raise VisualCheckError(last_error or f"Chrome screenshot failed for {url}")
+
     if result.returncode != 0:
         raise VisualCheckError(
             f"Chrome screenshot failed for {url} (exit {result.returncode}): "

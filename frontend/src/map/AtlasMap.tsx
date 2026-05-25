@@ -5,8 +5,10 @@ import type { AtlasData, FilterState, Asset, AtlasCore } from "./types";
 import InfrastructureCanvasOverlay from "./InfrastructureCanvasOverlay";
 import type { CanvasDiagnostics } from "./InfrastructureCanvasOverlay";
 import { buildPowerPlantGeoJSON, buildDataCenterGeoJSON, buildCableGeoJSON } from "./geojson";
-import { getLightTopoStyle } from "./basemaps";
+import { getThemedTopoStyle } from "./basemaps";
 import { CABLE_COLOR, CABLE_HOVER_COLOR, DATA_CENTER_COLOR, DATA_CENTER_STROKE_COLOR, POWER_CABLE_COLOR, POWER_CABLE_HVDC_COLOR, POWER_LINE_DEFAULT_COLOR, POWER_LINE_HVDC_COLOR, SUBSTATION_COLOR, SUBSTATION_STROKE_COLOR } from "./layers";
+import type { CableCompanyStat, CableFilterState } from "./cables";
+import { DEFAULT_CABLE_FILTERS, pmtilesCableColorExpression, cableOperatorContainsExpression } from "./cables";
 import { buildFuelCircleColorExpression } from "./fuelMatch";
 import { registerPMTilesProtocol, getPMTilesSources, getPMTilesLayers, POWER_CABLE_FILTER, POWER_OVERHEAD_FILTER, type TileStatus } from "./pmtiles";
 import { useDebounce } from "../utils/debounce";
@@ -20,6 +22,7 @@ import {
   FIT_WORLD_MAX_LON,
   type LonLatBounds,
 } from "./viewport";
+import type { AtlasTheme } from "../utils/theme";
 
 interface Props {
   data: AtlasData;
@@ -34,10 +37,13 @@ interface Props {
   selectedAssetId?: string | null;
   canvasEnabled?: boolean;
   core?: AtlasCore;
-  navigateTo?: { lon: number; lat: number; zoom?: number } | null;
+  navigateTo?: { lon: number; lat: number; zoom?: number; bounds?: LonLatBounds } | null;
   layerOpacity?: Record<string, number>;
   powerLinesData?: GeoJSON.FeatureCollection | null;
   substationsData?: GeoJSON.FeatureCollection | null;
+  cableCompanyStats?: CableCompanyStat[];
+  cableFilters?: CableFilterState;
+  theme?: AtlasTheme;
 }
 
 const GEOJSON_CLUSTER_LAYERS = ["power-clusters", "power-cluster-count", "power-points", "data-center-points", "submarine-cable-lines", "power-line-lines", "power-line-cables", "substation-points"];
@@ -133,9 +139,14 @@ function getCableFromProps(p: Record<string, unknown>): Asset {
     kind: "submarine_cable",
     n: str(or(p.name, p.n)),
     source: str(p.source),
+    geometry: [],
+    mapped_status: "mapped",
     geometry_precision: str(p.geometry_precision),
     source_license: str(p.source_license),
     confidence: num(p.confidence),
+    operators: str(p.operators),
+    landing_points: str(p.landing_points),
+    length_km: str(p.length_km),
   } as Asset;
 }
 
@@ -198,6 +209,59 @@ function powerCableColorExpression(): maplibregl.ExpressionSpecification {
     POWER_CABLE_HVDC_COLOR,
     POWER_CABLE_COLOR,
   ] as maplibregl.ExpressionSpecification;
+}
+
+function cableLineOpacityExpression(baseOpacity: number): maplibregl.ExpressionSpecification {
+  return [
+    "case",
+    ["boolean", ["get", "is_selected"], false],
+    Math.min(1, baseOpacity + 0.1),
+    ["boolean", ["get", "is_dimmed"], false],
+    Math.min(baseOpacity, 0.22),
+    baseOpacity,
+  ] as maplibregl.ExpressionSpecification;
+}
+
+function cableLineWidthExpression(): maplibregl.ExpressionSpecification {
+  return [
+    "case",
+    ["boolean", ["get", "is_selected"], false],
+    5,
+    ["boolean", ["feature-state", "hover"], false],
+    4,
+    ["interpolate", ["linear"], ["zoom"], 0, 1.2, 4, 2.2, 8, 3.8],
+  ] as maplibregl.ExpressionSpecification;
+}
+
+function cableMapLibreColorExpression(): maplibregl.ExpressionSpecification {
+  return [
+    "case",
+    ["boolean", ["feature-state", "hover"], false],
+    CABLE_HOVER_COLOR,
+    ["coalesce", ["get", "operator_color"], CABLE_COLOR],
+  ] as maplibregl.ExpressionSpecification;
+}
+
+function pmtilesCableOpacityExpression(filters: CableFilterState, baseOpacity: number): maplibregl.ExpressionSpecification {
+  if (filters.mode === "selected" && filters.selectedCableName) {
+    return [
+      "case",
+      ["any", ["==", ["get", "n"], filters.selectedCableName], ["==", ["get", "name"], filters.selectedCableName]],
+      Math.min(1, baseOpacity + 0.1),
+      0.04,
+    ] as maplibregl.ExpressionSpecification;
+  }
+
+  if ((filters.mode === "company" || filters.mode === "selected") && filters.operator) {
+    return [
+      "case",
+      cableOperatorContainsExpression(filters.operator),
+      baseOpacity,
+      0.18,
+    ] as maplibregl.ExpressionSpecification;
+  }
+
+  return baseOpacity as unknown as maplibregl.ExpressionSpecification;
 }
 
 function boundsFromCore(core: AtlasCore | undefined, key: "power_lines" | "substations" | "openinframap_power_lines" | "openinframap_substations"): LonLatBounds | null {
@@ -328,6 +392,9 @@ export default function AtlasMap({
   canvasEnabled, core, navigateTo, layerOpacity,
   powerLinesData,
   substationsData,
+  cableCompanyStats = [],
+  cableFilters = DEFAULT_CABLE_FILTERS,
+  theme = "dark",
 }: Props) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
@@ -365,7 +432,7 @@ export default function AtlasMap({
       } catch (error) { setMapError(error instanceof Error ? error.message : String(error)); }
     }
     try {
-      (m.getSource("submarine-cables-source") as maplibregl.GeoJSONSource)?.setData(buildCableGeoJSON(data));
+      (m.getSource("submarine-cables-source") as maplibregl.GeoJSONSource)?.setData(buildCableGeoJSON(data, cableFilters, cableCompanyStats));
     } catch (error) { setMapError(error instanceof Error ? error.message : String(error)); }
     if (powerLinesData) {
       try {
@@ -385,7 +452,7 @@ export default function AtlasMap({
         (m.getSource("substations-source") as maplibregl.GeoJSONSource)?.setData(substationsData);
       } catch (error) { setMapError(error instanceof Error ? error.message : String(error)); }
     }
-  }, [data, filters, setMapError, usePMTiles, tileStatus, powerLinesData, substationsData]);
+  }, [data, filters, setMapError, usePMTiles, tileStatus, powerLinesData, substationsData, cableFilters, cableCompanyStats]);
 
   const { call: debouncedUpdateSources, cancel: cancelUpdate } = useDebounce(doUpdateSources, 300);
 
@@ -405,31 +472,16 @@ export default function AtlasMap({
           m.addLayer(layer);
         }
         if (tileStatus.submarine_cables !== "present") {
-          const cableGeoJSON = buildCableGeoJSON(data);
+          const cableGeoJSON = buildCableGeoJSON(data, cableFilters, cableCompanyStats);
           m.addSource("submarine-cables-source", { type: "geojson", data: cableGeoJSON });
           m.addLayer({
             id: "submarine-cable-lines",
             type: "line",
             source: "submarine-cables-source",
             paint: {
-              "line-color": [
-                "case",
-                ["boolean", ["feature-state", "hover"], false],
-                CABLE_HOVER_COLOR,
-                CABLE_COLOR,
-              ],
-              "line-width": [
-                "case",
-                ["boolean", ["feature-state", "hover"], false],
-                4,
-                2.5,
-              ],
-              "line-opacity": [
-                "case",
-                ["boolean", ["feature-state", "hover"], false],
-                1,
-                0.85,
-              ],
+              "line-color": cableMapLibreColorExpression(),
+              "line-width": cableLineWidthExpression(),
+              "line-opacity": cableLineOpacityExpression(layerOpacity?.cables ?? 0.85),
             },
           });
         }
@@ -444,7 +496,7 @@ export default function AtlasMap({
       } else {
         const ppGeoJSON = buildPowerPlantGeoJSON(data, filters);
         const dcGeoJSON = buildDataCenterGeoJSON(data, filters);
-        const cableGeoJSON = buildCableGeoJSON(data);
+        const cableGeoJSON = buildCableGeoJSON(data, cableFilters, cableCompanyStats);
 
         m.addSource("power-plants-source", {
           type: "geojson",
@@ -467,28 +519,13 @@ export default function AtlasMap({
         m.addLayer({
           id: "submarine-cable-lines",
           type: "line",
-          source: "submarine-cables-source",
-          paint: {
-            "line-color": [
-              "case",
-              ["boolean", ["feature-state", "hover"], false],
-              CABLE_HOVER_COLOR,
-              CABLE_COLOR,
-            ],
-            "line-width": [
-              "case",
-              ["boolean", ["feature-state", "hover"], false],
-              4,
-              2.5,
-            ],
-            "line-opacity": [
-              "case",
-              ["boolean", ["feature-state", "hover"], false],
-              1,
-              0.85,
-            ],
-          },
-        });
+            source: "submarine-cables-source",
+            paint: {
+              "line-color": cableMapLibreColorExpression(),
+              "line-width": cableLineWidthExpression(),
+              "line-opacity": cableLineOpacityExpression(layerOpacity?.cables ?? 0.85),
+            },
+          });
 
         addPowerPlantLayers(m);
 
@@ -547,7 +584,7 @@ export default function AtlasMap({
     } catch (error) {
       setMapError(error instanceof Error ? error.message : String(error));
     }
-  }, [core, data, filters, setMapError, usePMTiles, tileStatus, powerLinesData, substationsData]);
+  }, [core, data, filters, setMapError, usePMTiles, tileStatus, powerLinesData, substationsData, cableFilters, cableCompanyStats, layerOpacity]);
 
   const fitToData = useCallback((opts?: { maxZoom?: number; padding?: number }) => {
     const m = map.current;
@@ -555,7 +592,7 @@ export default function AtlasMap({
 
     const ppFC = buildPowerPlantGeoJSON(data, filters);
     const dcFC = buildDataCenterGeoJSON(data, filters);
-    const cableFC = buildCableGeoJSON(data);
+    const cableFC = buildCableGeoJSON(data, cableFilters, cableCompanyStats);
     const lineFC = powerLinesData;
     const substationFC = substationsData;
 
@@ -580,7 +617,7 @@ export default function AtlasMap({
     } else {
       m.fitBounds(boundsToFitBounds(getDefaultGlobalBounds()), { padding: 20, maxZoom: 2.5 });
     }
-  }, [core, data, filters, powerLinesData, substationsData]);
+  }, [core, data, filters, powerLinesData, substationsData, cableFilters, cableCompanyStats]);
 
   const resetToGlobalView = useCallback(() => {
     const m = map.current;
@@ -593,11 +630,11 @@ export default function AtlasMap({
     if (!mapContainer.current || map.current) return;
     const m = new maplibregl.Map({
       container: mapContainer.current,
-      style: getLightTopoStyle(),
+      style: getThemedTopoStyle(theme),
       center: [10, 30],
       zoom: 1.8,
       renderWorldCopies: false,
-      preserveDrawingBuffer: true,
+      canvasContextAttributes: { preserveDrawingBuffer: true },
       maxBounds: [[FIT_WORLD_MIN_LON, -85], [FIT_WORLD_MAX_LON, 85]],
     });
     m.addControl(new maplibregl.NavigationControl(), "top-right");
@@ -616,7 +653,7 @@ export default function AtlasMap({
     });
     map.current = m;
     setMapInstance(m);
-  }, [setMapError]);
+  }, [setMapError, theme]);
 
   useEffect(() => {
     initMap();
@@ -633,6 +670,14 @@ export default function AtlasMap({
 
   useEffect(() => {
     if (!map.current || !navigateTo) return;
+    if (navigateTo.bounds) {
+      map.current.fitBounds(boundsToFitBounds(expandBounds(navigateTo.bounds, 2)), {
+        padding: 80,
+        maxZoom: navigateTo.zoom ?? 5,
+        duration: 900,
+      });
+      return;
+    }
     map.current.flyTo({ center: [navigateTo.lon, navigateTo.lat], zoom: navigateTo.zoom ?? 5, duration: 1500 });
   }, [navigateTo]);
 
@@ -702,6 +747,14 @@ export default function AtlasMap({
       const opacity = layerOpacity[key];
       if (opacity == null) return;
       const type = m.getLayer(id)?.type;
+      if (id === "submarine-cable-lines") {
+        m.setPaintProperty(id, "line-opacity", cableLineOpacityExpression(opacity));
+        return;
+      }
+      if (id === "submarine_cables_tiles-layer") {
+        m.setPaintProperty(id, "line-opacity", pmtilesCableOpacityExpression(cableFilters, opacity));
+        return;
+      }
       if (type === "circle") {
         m.setPaintProperty(id, "circle-opacity", opacity);
       } else if (type === "line") {
@@ -728,7 +781,30 @@ export default function AtlasMap({
     setOpacity("openinframap_power_cables_tiles-layer", "power_lines");
     setOpacity("substations_tiles-layer", "substations");
     setOpacity("openinframap_substations_tiles-layer", "substations");
-  }, [layerOpacity]);
+  }, [layerOpacity, cableFilters]);
+
+  useEffect(() => {
+    const m = map.current;
+    if (!m || !layersAddedRef.current) return;
+    const cableOpacity = layerOpacity?.cables ?? 0.85;
+
+    if (m.getLayer("submarine-cable-lines")) {
+      m.setPaintProperty("submarine-cable-lines", "line-color", cableMapLibreColorExpression());
+      m.setPaintProperty("submarine-cable-lines", "line-width", cableLineWidthExpression());
+      m.setPaintProperty("submarine-cable-lines", "line-opacity", cableLineOpacityExpression(cableOpacity));
+    }
+
+    if (m.getLayer("submarine_cables_tiles-layer")) {
+      m.setPaintProperty("submarine_cables_tiles-layer", "line-color", pmtilesCableColorExpression(cableCompanyStats));
+      m.setPaintProperty("submarine_cables_tiles-layer", "line-opacity", pmtilesCableOpacityExpression(cableFilters, cableOpacity));
+      m.setPaintProperty("submarine_cables_tiles-layer", "line-width", [
+        "interpolate", ["linear"], ["zoom"],
+        0, 1.2,
+        4, 2.2,
+        8, 3.8,
+      ]);
+    }
+  }, [cableCompanyStats, cableFilters, layerOpacity]);
 
   useEffect(() => {
     const m = map.current;
@@ -946,6 +1022,8 @@ export default function AtlasMap({
           hoveredAssetId={null}
           selectedAssetId={selectedAssetId}
           graticuleVisible={graticuleVisible}
+          cableCompanyStats={cableCompanyStats}
+          cableFilters={cableFilters}
         />
       )}
       {!mapStatus.layersReady && !mapStatus.error && (

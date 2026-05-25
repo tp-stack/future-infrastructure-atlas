@@ -5,9 +5,10 @@ interface Props {
   asset: Asset | null;
   assetType?: InteractableType | null;
   onClose: () => void;
+  onFitAsset?: (asset: Asset) => void;
 }
 
-export default function AssetDetailsPanel({ asset, assetType, onClose }: Props) {
+export default function AssetDetailsPanel({ asset, assetType, onClose, onFitAsset }: Props) {
   if (!asset) return null;
 
   const type = assetType || asset.kind || ("f" in asset ? "power_plant" : "op" in asset ? "data_center" : "submarine_cable");
@@ -27,6 +28,11 @@ export default function AssetDetailsPanel({ asset, assetType, onClose }: Props) 
         <div className="asset-details-body">
           {renderFields(asset, type)}
         </div>
+        {onFitAsset && (type === "submarine_cable" || type === "power_plant" || type === "data_center") && (
+          <button className="asset-details-fit" type="button" onClick={() => onFitAsset(asset)}>
+            {type === "submarine_cable" ? "Fit cable route" : "Center on map"}
+          </button>
+        )}
         {hasLicenseWarning && (
           <div className="asset-details-warning">
             Source license: to_verify — requires review before production/commercial use.

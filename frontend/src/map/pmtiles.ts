@@ -2,6 +2,7 @@ import { Protocol } from "pmtiles";
 import maplibregl from "maplibre-gl";
 import { getLightTopoLayers, getLightTopoSources, MAPLIBRE_GLYPHS_URL } from "./basemaps";
 import { CABLE_COLOR, DATA_CENTER_COLOR, DATA_CENTER_STROKE_COLOR, FUEL_COLORS, POWER_CABLE_COLOR, POWER_CABLE_HVDC_COLOR, POWER_LINE_DEFAULT_COLOR, POWER_LINE_HVDC_COLOR, SUBSTATION_COLOR, SUBSTATION_STROKE_COLOR } from "./layers";
+import type { AtlasCore } from "./types";
 
 let registered = false;
 
@@ -54,7 +55,20 @@ function sourceSpecFor(
   return { type: "vector", url };
 }
 
-function powerLineColorExpression(): maplibregl.ExpressionSpecification {
+export function getTileStatusFromCore(core: AtlasCore): TileStatus {
+  const reg = core.tile_registry || {};
+  return {
+    power_plants: reg.power_plants?.status?.startsWith("present") ? "present" : "missing",
+    submarine_cables: reg.submarine_cables?.status?.startsWith("present") ? "present" : "missing",
+    data_centers: reg.data_centers?.status?.startsWith("present") ? "present" : "missing",
+    power_lines: reg.power_lines?.status?.startsWith("present") ? "present" : "missing",
+    substations: reg.substations?.status?.startsWith("present") ? "present" : "missing",
+    openinframap_power_lines: reg.openinframap_power_lines?.status?.startsWith("present") ? "present" : "missing",
+    openinframap_substations: reg.openinframap_substations?.status?.startsWith("present") ? "present" : "missing",
+  };
+}
+
+export function powerLineColorExpression(): maplibregl.ExpressionSpecification {
   return [
     "case",
     ["==", ["get", "type"], "HVDC"],
@@ -83,7 +97,7 @@ export const POWER_CABLE_FILTER: maplibregl.FilterSpecification = [
 
 export const POWER_OVERHEAD_FILTER: maplibregl.FilterSpecification = ["!", POWER_CABLE_FILTER];
 
-function powerCableColorExpression(): maplibregl.ExpressionSpecification {
+export function powerCableColorExpression(): maplibregl.ExpressionSpecification {
   return [
     "case",
     ["==", ["get", "type"], "HVDC"],

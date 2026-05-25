@@ -1,6 +1,8 @@
 import { useRef, useEffect, useCallback } from "react";
 import type maplibregl from "maplibre-gl";
 import type { AtlasData, FilterState, PowerPlant } from "./types";
+import type { CableCompanyStat, CableFilterState } from "./cables";
+import { DEFAULT_CABLE_FILTERS, getCableCompanyMeta, shouldIncludeCable } from "./cables";
 import { CABLE_COLOR, CABLE_HOVER_COLOR, DATA_CENTER_COLOR, DATA_CENTER_STROKE_COLOR, FUEL_COLORS } from "./layers";
 import { getLon, getLat, isValidLonLat } from "./coords";
 
@@ -15,6 +17,8 @@ interface Props {
   hoveredAssetId?: string | null;
   selectedAssetId?: string | null;
   graticuleVisible?: boolean;
+  cableCompanyStats?: CableCompanyStat[];
+  cableFilters?: CableFilterState;
 }
 
 export interface CanvasDiagnostics {
@@ -60,6 +64,8 @@ export default function InfrastructureCanvasOverlay({
   hoveredAssetId,
   selectedAssetId,
   graticuleVisible,
+  cableCompanyStats = [],
+  cableFilters = DEFAULT_CABLE_FILTERS,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -222,7 +228,7 @@ export default function InfrastructureCanvasOverlay({
 
       if (visibleLayers.cables && data?.cables) {
         const mappedCables = data.cables.filter(
-          (c) => c.mapped_status === "mapped" && c.geometry && c.geometry.length > 0
+          (c) => c.mapped_status === "mapped" && c.geometry && c.geometry.length > 0 && shouldIncludeCable(c, cableCompanyStats, cableFilters)
         );
         for (const c of mappedCables) {
           if (!c.geometry || c.geometry.length === 0) continue;
@@ -231,10 +237,11 @@ export default function InfrastructureCanvasOverlay({
           const id = `cable-${c.n}`;
           const isHovered = id === hoveredAssetId;
           const isSelected = id === selectedAssetId;
+          const companyMeta = getCableCompanyMeta(c, cableCompanyStats, cableFilters);
 
           ctx.lineWidth = isSelected ? 4 : isHovered ? 3 : 2;
-          ctx.strokeStyle = isSelected ? "#ffffff" : isHovered ? CABLE_HOVER_COLOR : CABLE_COLOR;
-          ctx.globalAlpha = isSelected ? 1 : isHovered ? 0.95 : 0.8;
+          ctx.strokeStyle = isSelected ? "#ffffff" : isHovered ? CABLE_HOVER_COLOR : companyMeta.operatorColor || CABLE_COLOR;
+          ctx.globalAlpha = companyMeta.isDimmed ? 0.22 : isSelected ? 1 : isHovered ? 0.95 : 0.82;
 
           for (const line of lines) {
             if (line.length < 2) continue;
@@ -338,7 +345,7 @@ export default function InfrastructureCanvasOverlay({
       const errMsg = e instanceof Error ? e.message : String(e);
       console.error("[CanvasOverlay] Draw error:", errMsg);
     }
-  }, [enabled, data, filters, visibleLayers, mapInstance, showTestPoints, onCanvasDiagnostics, hoveredAssetId, selectedAssetId, graticuleVisible]);
+  }, [enabled, data, filters, visibleLayers, mapInstance, showTestPoints, onCanvasDiagnostics, hoveredAssetId, selectedAssetId, graticuleVisible, cableCompanyStats, cableFilters]);
 
   drawRef.current = draw;
 

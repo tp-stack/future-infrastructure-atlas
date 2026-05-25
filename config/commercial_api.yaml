@@ -1,0 +1,38 @@
+commercial_api:
+  # Missing commercial rights metadata is treated as blocked. A source or dataset
+  # becomes sellable only after a reviewed data_rights_grant approves it.
+  default_license_review_status: not_reviewed
+  cors_allowed_origins:
+    - https://app.futureatlas.example
+    - http://127.0.0.1:5173
+    - http://localhost:5173
+    - http://127.0.0.1:4173
+    - http://localhost:4173
+  max_request_body_bytes: 1048576
+  required_rights_fields:
+    - commercial_api_allowed
+    - redistribution_allowed
+    - attribution_required
+    - share_alike_risk
+    - license_review_status
+    - rights_evidence_path
+  safe_allowed_usage:
+    - commercial_api_allowed
+    - redistribution_safe
+    - licensed_redistribution_only
+    - permissioned_redistribution_only
+    - owned
+    - public_domain
+    - cc_by_commercial
+  blocked_allowed_usage:
+    - metadata_registry_only_until_license_verified
+    - internal_prototype_pending_license_review
+    - licensed_redistribution_only_without_permission
+    - permissioned_redistribution_only_without_permission
+    - non_commercial_only
+  blocked_license_values:
+    - to_verify
+    - unknown
+    - non_commercial
+  approved_license_review_statuses:
+    - approved

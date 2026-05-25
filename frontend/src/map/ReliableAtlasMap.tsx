@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AtlasData, Asset, FilterState } from "./types";
 import type { InteractableType } from "./interaction";
 import { CABLE_COLOR, DATA_CENTER_COLOR, DATA_CENTER_STROKE_COLOR, FUEL_COLORS } from "./layers";
+import type { CableCompanyStat, CableFilterState } from "./cables";
+import { DEFAULT_CABLE_FILTERS } from "./cables";
 import {
   buildCableGeoJSON,
   buildDataCenterGeoJSON,
@@ -18,6 +20,8 @@ interface Props {
   graticuleVisible?: boolean;
   proof?: boolean;
   onAssetSelect?: (asset: Asset | null, assetType: InteractableType | null) => void;
+  cableCompanyStats?: CableCompanyStat[];
+  cableFilters?: CableFilterState;
 }
 
 interface ViewState {
@@ -194,6 +198,8 @@ export default function ReliableAtlasMap({
   graticuleVisible = true,
   proof = false,
   onAssetSelect,
+  cableCompanyStats = [],
+  cableFilters = DEFAULT_CABLE_FILTERS,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -208,9 +214,9 @@ export default function ReliableAtlasMap({
   const collections = useMemo(() => ({
     power: buildPowerPlantGeoJSON(data, filters),
     dataCenters: buildDataCenterGeoJSON(data, filters),
-    cables: buildCableGeoJSON(data),
+    cables: buildCableGeoJSON(data, cableFilters, cableCompanyStats),
     graticule: buildGraticuleGeoJSON(),
-  }), [data, filters]);
+  }), [data, filters, cableFilters, cableCompanyStats]);
 
   const resetGlobalView = useCallback(() => {
     setView(INITIAL_VIEW);
@@ -297,11 +303,12 @@ export default function ReliableAtlasMap({
     }
 
     if (visibleLayers.cables) {
-      ctx.strokeStyle = CABLE_COLOR;
       ctx.lineWidth = Math.max(1.4, Math.min(4, view.zoom * 1.1));
       ctx.globalAlpha = 0.9;
       for (const feature of collections.cables.features) {
         const props = feature.properties || {};
+        ctx.strokeStyle = String(props.operator_color || CABLE_COLOR);
+        ctx.globalAlpha = props.is_dimmed ? 0.22 : 0.9;
         const lines = geometryLines(feature.geometry);
         for (const line of lines) {
           const screenLine: Array<[number, number]> = [];

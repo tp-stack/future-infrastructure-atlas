@@ -64,6 +64,10 @@ def load_layers() -> list[dict[str, Any]]:
     return list(load_yaml("layers.yaml").get("layers", []))
 
 
+def load_commercial_api_policy() -> dict[str, Any]:
+    return dict(load_yaml("commercial_api.yaml").get("commercial_api", {}))
+
+
 def get_source_by_key(source_key: str) -> dict[str, Any] | None:
     return next((source for source in load_sources() if source.get("source_key") == source_key), None)
 
@@ -243,4 +247,40 @@ def validate_all_registries() -> ValidationResult:
     result.extend(validate_datasets())
     result.extend(validate_layers())
     result.extend(validate_registry_links())
+    result.extend(validate_commercial_api_policy())
+    return result
+
+
+def validate_commercial_api_policy(policy: dict[str, Any] | None = None) -> ValidationResult:
+    """Validate the commercial API rights policy overlay."""
+
+    result = ValidationResult()
+    policy_data = load_commercial_api_policy() if policy is None else policy
+    required_lists = [
+        "required_rights_fields",
+        "safe_allowed_usage",
+        "blocked_allowed_usage",
+        "blocked_license_values",
+        "approved_license_review_statuses",
+    ]
+    for key in required_lists:
+        if not isinstance(policy_data.get(key), list) or not policy_data.get(key):
+            result.add_error(f"commercial_api policy missing non-empty list: {key}")
+
+    required_rights_fields = set(policy_data.get("required_rights_fields", []))
+    expected_rights_fields = {
+        "commercial_api_allowed",
+        "redistribution_allowed",
+        "attribution_required",
+        "share_alike_risk",
+        "license_review_status",
+        "rights_evidence_path",
+    }
+    missing = expected_rights_fields - required_rights_fields
+    if missing:
+        result.add_error(f"commercial_api policy missing required rights fields: {sorted(missing)}")
+
+    if set(policy_data.get("safe_allowed_usage", [])) & set(policy_data.get("blocked_allowed_usage", [])):
+        result.add_error("commercial_api policy safe_allowed_usage and blocked_allowed_usage overlap")
+
     return result

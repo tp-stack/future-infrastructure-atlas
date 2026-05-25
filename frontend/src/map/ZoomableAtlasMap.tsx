@@ -5,6 +5,8 @@ import type { AtlasData, Asset, FilterState } from "./types";
 import type { InteractableType } from "./interaction";
 import { MAPLIBRE_GLYPHS_URL } from "./basemaps";
 import { CABLE_COLOR, DATA_CENTER_COLOR, DATA_CENTER_STROKE_COLOR, FUEL_COLORS } from "./layers";
+import type { CableCompanyStat, CableFilterState } from "./cables";
+import { DEFAULT_CABLE_FILTERS } from "./cables";
 import {
   buildCableGeoJSON,
   buildDataCenterGeoJSON,
@@ -21,6 +23,8 @@ interface Props {
   graticuleVisible?: boolean;
   proof?: boolean;
   onAssetSelect?: (asset: Asset | null, assetType: InteractableType | null) => void;
+  cableCompanyStats?: CableCompanyStat[];
+  cableFilters?: CableFilterState;
 }
 
 const DEFAULT_FILTERS: FilterState = { fuelType: "", country: "", minMw: 0 };
@@ -169,6 +173,8 @@ export default function ZoomableAtlasMap({
   graticuleVisible = true,
   proof = false,
   onAssetSelect,
+  cableCompanyStats = [],
+  cableFilters = DEFAULT_CABLE_FILTERS,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -180,10 +186,10 @@ export default function ZoomableAtlasMap({
   const collections = useMemo(() => {
     const power = buildPowerPlantGeoJSON(data, filters);
     const dataCenters = buildDataCenterGeoJSON(data, filters);
-    const cables = buildCableGeoJSON(data);
+    const cables = buildCableGeoJSON(data, cableFilters, cableCompanyStats);
     const graticule = buildGraticuleGeoJSON();
     return { power, dataCenters, cables, graticule };
-  }, [data, filters]);
+  }, [data, filters, cableFilters, cableCompanyStats]);
 
   const fitToData = useCallback((duration = 0, maxZoom = 2.8) => {
     const m = mapRef.current;
@@ -211,7 +217,7 @@ export default function ZoomableAtlasMap({
       center: [10, 20],
       zoom: 1.3,
       renderWorldCopies: false,
-      preserveDrawingBuffer: true,
+      canvasContextAttributes: { preserveDrawingBuffer: true },
       maxBounds: [[-179.5, -85], [179.5, 85]],
     });
 
@@ -256,9 +262,9 @@ export default function ZoomableAtlasMap({
         source: "submarine-cables-source",
         layout: { visibility: visibleLayers.cables ? "visible" : "none" },
         paint: {
-          "line-color": CABLE_COLOR,
+          "line-color": ["coalesce", ["get", "operator_color"], CABLE_COLOR],
           "line-width": ["interpolate", ["linear"], ["zoom"], 0, 1.6, 4, 2.8, 8, 4],
-          "line-opacity": 0.95,
+          "line-opacity": ["case", ["boolean", ["get", "is_dimmed"], false], 0.22, 0.95],
         },
       });
 
