@@ -32,6 +32,7 @@ def check_forbidden_phrases(text: str) -> list[str]:
 MAX_INDEX_SIZE_BYTES = 10_000_000
 
 INDEX_PATH = Path(__file__).resolve().parent.parent / "data" / "derived" / "site_selection" / "infrastructure_index.json"
+LAND_INDEX_PATH = Path(__file__).resolve().parent.parent / "data" / "derived" / "site_selection" / "land_index.json"
 
 
 def validate_infrastructure_index() -> list[str]:
@@ -93,6 +94,54 @@ def validate_infrastructure_index() -> list[str]:
     return errors
 
 
+def validate_land_index() -> list[str]:
+    """Validate the derived land suitability index."""
+    errors = []
+    if not LAND_INDEX_PATH.exists():
+        errors.append(f"LAND: Land index not found at {LAND_INDEX_PATH}")
+        return errors
+
+    size = LAND_INDEX_PATH.stat().st_size
+    if size > MAX_INDEX_SIZE_BYTES:
+        errors.append(f"LAND: Land index is {size} bytes, exceeds max {MAX_INDEX_SIZE_BYTES} bytes")
+
+    try:
+        with open(LAND_INDEX_PATH, "r", encoding="utf-8") as f:
+            index = json.load(f)
+    except Exception as e:
+        errors.append(f"LAND: Failed to parse land index: {e}")
+        return errors
+
+    metadata = index.get("metadata", {})
+    feature_counts = metadata.get("feature_counts", {})
+    print(f"  Land index size: {size} bytes ({size/1024/1024:.1f} MB)")
+    print(f"  Generated at: {metadata.get('generated_at', 'unknown')}")
+    print(f"  Feature counts:")
+    for k, v in feature_counts.items():
+        print(f"    {k}: {v}")
+    total = sum(v for v in feature_counts.values())
+    print(f"  Total features: {total}")
+
+    empty_categories = [k for k, v in feature_counts.items() if v == 0]
+    if empty_categories:
+        print(f"  WARNING: Empty land categories: {', '.join(empty_categories)}")
+
+    features = index.get("features", {})
+    ind = features.get("industrial_proxy_points", [])
+    if ind:
+        sample = ind[0]
+        if "notes" in sample:
+            errors.append("LAND: Per-feature notes found — they should be stripped to metadata")
+
+    for category, feature_list in features.items():
+        for feat in feature_list[:20]:
+            if "notes" in feat:
+                errors.append(f"LAND: Feature in {category} has 'notes' field")
+                break
+
+    return errors
+
+
 def main() -> int:
     errors = []
 
@@ -136,7 +185,11 @@ def main() -> int:
     if found:
         errors.append(f"FORBIDDEN: Evidence contains disallowed phrases: {found}")
 
-    # 5. Verify missing data flags reduce confidence
+    # 5b. Validate land index
+    land_errors = validate_land_index()
+    errors.extend(land_errors)
+
+    # 6. Verify missing data flags reduce confidence
     from atlas.site_selection.confidence import compute_confidence_score
     full_candidate = CandidateSite(
         candidate_site_id="full-data",

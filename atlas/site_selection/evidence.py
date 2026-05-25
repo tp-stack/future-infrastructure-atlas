@@ -63,6 +63,48 @@ def _fiber_proxy_evidence(candidate: CandidateSite) -> str:
     return f"Nearest fiber connectivity is approximately {dist:.1f} km away."
 
 
+def _land_proxy_evidence(candidate: CandidateSite) -> str:
+    """Build land suitability proxy evidence sentence."""
+    has_industrial = candidate.industrial_land_score is not None
+    has_zoning = candidate.zoning_compatibility_score is not None
+    has_brownfield = candidate.brownfield_score is not None
+    has_permitting = candidate.permitting_complexity_score is not None
+
+    sentences: list[str] = []
+
+    if has_industrial:
+        score = candidate.industrial_land_score
+        if score and score >= 70:
+            sentences.append(
+                f"Industrial zone proxy is favorable (score: {score:.0f}/100) — "
+                f"near power plant clusters indicating industrial/utility land use."
+            )
+        else:
+            sentences.append(
+                f"Industrial zone proxy is limited (score: {score:.0f}/100) — "
+                f"no nearby power plant clusters indicating industrial land use."
+            )
+    else:
+        sentences.append("Industrial land suitability is unknown — no proxy data available.")
+
+    if has_zoning:
+        sentences.append(f"Zoning compatibility score: {candidate.zoning_compatibility_score:.0f}/100.")
+    else:
+        sentences.append("Zoning is not verified — proximity to industrial zones does not confirm zoning approval.")
+
+    if has_brownfield:
+        sentences.append(f"Brownfield score: {candidate.brownfield_score:.0f}/100.")
+    else:
+        sentences.append("Brownfield potential is unknown.")
+
+    if has_permitting:
+        sentences.append(f"Permitting complexity score: {candidate.permitting_complexity_score:.0f}/100.")
+    else:
+        sentences.append("Permitting timeline is unknown — independent assessment required.")
+
+    return " ".join(sentences)
+
+
 def generate_evidence_summary(candidate: CandidateSite) -> str:
     parts: list[str] = []
 
@@ -82,6 +124,8 @@ def generate_evidence_summary(candidate: CandidateSite) -> str:
 
     if candidate.nearest_ixp_km is not None:
         parts.append(f"Nearest internet exchange point is approximately {candidate.nearest_ixp_km:.1f} km away.")
+
+    parts.append(_land_proxy_evidence(candidate))
 
     if candidate.flood_risk_score is not None:
         parts.append(f"Flood risk score: {candidate.flood_risk_score:.0f}/100.")

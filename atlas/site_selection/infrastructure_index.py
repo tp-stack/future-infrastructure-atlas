@@ -16,6 +16,7 @@ from typing import Any
 _INDEX_DIR = Path(__file__).resolve().parents[2] / "data" / "derived" / "site_selection"
 _INDEX_FILE = _INDEX_DIR / "infrastructure_index.json"
 _TELECOM_FILE = _INDEX_DIR / "telecom_index.json"
+_LAND_FILE = _INDEX_DIR / "land_index.json"
 
 _index_cache: dict[str, Any] | None = None
 _index_lock = Lock()
@@ -24,6 +25,10 @@ _index_load_error: str | None = None
 _telecom_cache: dict[str, Any] | None = None
 _telecom_lock = Lock()
 _telecom_load_error: str | None = None
+
+_land_cache: dict[str, Any] | None = None
+_land_lock = Lock()
+_land_load_error: str | None = None
 
 
 def get_index_path() -> str:
@@ -346,3 +351,79 @@ def get_telecom_proxy_source_summary() -> str:
     if not parts:
         return "No telecom proxy data available."
     return "Telecom proxy sources: " + "; ".join(parts) + "."
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Land Suitability Index (separate shard)
+# ═══════════════════════════════════════════════════════════════════
+
+
+def get_land_index_path() -> str:
+    return str(_LAND_FILE)
+
+
+def get_land_index_size_bytes() -> int:
+    if _LAND_FILE.exists():
+        return _LAND_FILE.stat().st_size
+    return 0
+
+
+def load_land_index(force_reload: bool = False) -> dict[str, Any]:
+    """Load the land suitability index from disk, caching it in memory."""
+    global _land_cache, _land_load_error
+
+    if not force_reload and _land_cache is not None:
+        return _land_cache
+
+    with _land_lock:
+        if not force_reload and _land_cache is not None:
+            return _land_cache
+
+        if not _LAND_FILE.exists():
+            _land_load_error = f"Land index not found at {_LAND_FILE}"
+            _land_cache = {"metadata": {"error": _land_load_error, "feature_counts": {}}, "features": {}}
+            return _land_cache
+
+        try:
+            with open(_LAND_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            _land_cache = data
+            _land_load_error = None
+        except Exception as e:
+            _land_load_error = str(e)
+            _land_cache = {"metadata": {"error": _land_load_error, "feature_counts": {}}, "features": {}}
+        return _land_cache
+
+
+def get_land_feature_counts() -> dict[str, int]:
+    """Return the land index feature counts per category."""
+    data = load_land_index()
+    return data.get("metadata", {}).get("feature_counts", {})
+
+
+def get_industrial_proxy_points() -> list[dict[str, Any]]:
+    """Return industrial zone proxy points derived from power plant clusters.
+
+    Compact keys: id, lat, lon, t='ind', q='der', n (count of plants),
+    mw (avg MW), c (country)
+    """
+    data = load_land_index()
+    return data.get("features", {}).get("industrial_proxy_points", [])
+
+
+def has_industrial_proxy_data() -> bool:
+    return len(get_industrial_proxy_points()) > 0
+
+
+def get_land_proxy_source_summary() -> str:
+    """Return a human-readable summary of available land proxy sources."""
+    ind = len(get_industrial_proxy_points())
+    dc = len(get_data_center_points())
+    parts = []
+    if ind > 0:
+        parts.append(f"{ind} industrial proxy points (derived from power plant clusters)")
+    if dc > 0:
+        parts.append(f"{dc} data center points (observed, weak land-use proxy)")
+    if not parts:
+        return "No land proxy data available."
+    return "Land proxy sources: " + "; ".join(parts) + "."

@@ -18,8 +18,10 @@ from atlas.site_selection.infrastructure_index import (
     get_facility_points,
     get_data_center_points,
     get_cable_landing_points,
+    get_industrial_proxy_points,
     load_infrastructure_index,
     load_telecom_index,
+    load_land_index,
 )
 from atlas.site_selection.models import CandidateSite, MissingDataFlag
 from atlas.site_selection.persistence import store_query_batch
@@ -132,6 +134,30 @@ def _get_grid_distance(
     return _ProxyDistance(None, None)
 
 
+def _get_industrial_land_distance(lat: float, lon: float, industrial_proxy: list[dict]) -> float | None:
+    """Compute nearest distance to an industrial proxy point.
+
+    Returns distance in km, or None if no industrial proxy data.
+    """
+    dist, _ = _nearest_distance(lat, lon, industrial_proxy)
+    return dist
+
+
+def _distance_to_land_score(distance_km: float | None) -> float | None:
+    """Convert distance to industrial proxy into a land suitability score (0-100)."""
+    if distance_km is None:
+        return None
+    if distance_km <= 1.0:
+        return 90.0
+    if distance_km <= 5.0:
+        return 70.0
+    if distance_km <= 20.0:
+        return 50.0
+    if distance_km <= 50.0:
+        return 30.0
+    return 20.0
+
+
 def _get_telecom_fiber_distance(
     lat: float, lon: float,
     ixp_proxy: list[dict],
@@ -202,6 +228,10 @@ def generate_candidates_from_bbox(
     data_center_points = infra.get("features", {}).get("data_center_points", [])
     cable_landing_points = infra.get("features", {}).get("cable_landing_points", [])
 
+    # Load land index for industrial zone proximity
+    land_idx = load_land_index()
+    industrial_proxy = land_idx.get("features", {}).get("industrial_proxy_points", [])
+
     area = {"type": "bbox", "coordinates": list(bbox)}
 
     candidates: list[CandidateSite] = []
@@ -213,6 +243,8 @@ def generate_candidates_from_bbox(
         grid_proxy = _get_grid_distance(lat, lon, substations, hv_points, power_plants_for_grid)
         fiber_proxy = _get_telecom_fiber_distance(lat, lon, ixp_proxy, facility_points, data_center_points, cable_landing_points)
         ixp_dist, _ = _nearest_distance(lat, lon, ixp_proxy)
+        ind_dist = _get_industrial_land_distance(lat, lon, industrial_proxy)
+        ind_score = _distance_to_land_score(ind_dist)
 
         geo = reverse_geocode(lat, lon)
 
@@ -242,11 +274,11 @@ def generate_candidates_from_bbox(
             fiber_proxy_level=fiber_proxy.proxy_level,
             nearest_ixp_km=ixp_dist,
             estimated_grid_capacity_mw=None,
+            industrial_land_score=ind_score,
             flood_risk_score=None,
             water_stress_score=None,
             regulatory_stability_score=None,
             market_demand_score=None,
-            zoning_compatibility_score=None,
             incentive_score=30.0,
         )
 
@@ -263,6 +295,14 @@ def generate_candidates_from_bbox(
         if fiber_proxy.is_proxy and fiber_proxy.distance_km is not None:
             if MissingDataFlag.FIBER_AVAILABILITY_UNKNOWN.value not in candidate.missing_data_flags:
                 candidate.missing_data_flags.append(MissingDataFlag.FIBER_AVAILABILITY_UNKNOWN.value)
+
+        # Land proxy transparency: proxy proximity does not confirm zoning, ownership, or permitting
+        if ind_score is not None:
+            for flag in [MissingDataFlag.LAND_OWNERSHIP_UNKNOWN.value,
+                         MissingDataFlag.ZONING_NOT_VERIFIED.value,
+                         MissingDataFlag.PERMITTING_TIMELINE_UNKNOWN.value]:
+                if flag not in candidate.missing_data_flags:
+                    candidate.missing_data_flags.append(flag)
 
         compute_confidence_score(candidate, scoring_profile_key)
         check_exclusions(candidate, profile)
