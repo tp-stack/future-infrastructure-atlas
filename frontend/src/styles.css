@@ -595,6 +595,57 @@ html, body, #root {
   z-index: 5;
 }
 
+.power-plant-view-toggle {
+  position: absolute;
+  top: 86px;
+  left: 14px;
+  z-index: 8;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  max-width: calc(100% - 28px);
+  padding: 0 12px;
+  border: 1px solid rgba(214, 154, 19, 0.24);
+  border-radius: 7px;
+  background: rgba(8, 10, 16, 0.78);
+  color: #f4efe6;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.26);
+  backdrop-filter: blur(10px);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1px;
+  white-space: nowrap;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.power-plant-view-toggle:hover {
+  border-color: rgba(214, 154, 19, 0.55);
+  background: rgba(16, 18, 24, 0.9);
+}
+
+.power-plant-view-toggle.active {
+  border-color: rgba(214, 154, 19, 0.68);
+  background: rgba(214, 154, 19, 0.16);
+  color: #fff3c4;
+}
+
+.power-plant-view-toggle__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #6a6a72;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.05);
+  flex: 0 0 auto;
+}
+
+.power-plant-view-toggle.active .power-plant-view-toggle__dot {
+  background: #d69a13;
+  box-shadow: 0 0 0 3px rgba(214, 154, 19, 0.18);
+}
+
 .map-status {
   position: absolute;
   left: 12px;
@@ -1980,6 +2031,7 @@ html, body, #root {
   .filter-group input,
   .toolbar-btn,
   .view-mode-option,
+  .power-plant-view-toggle,
   .map-ctrl-btn,
   .sidebar-reopen,
   .sidebar-toggle {
@@ -2093,6 +2145,13 @@ html, body, #root {
     font-size: 10px;
     padding: 6px 10px;
   }
+  .power-plant-view-toggle {
+    top: 104px;
+    left: 10px;
+    height: 38px;
+    padding: 0 11px;
+    font-size: 10px;
+  }
 
   .asset-details-panel {
     width: 92vw !important;
@@ -2166,6 +2225,12 @@ html, body, #root {
     padding: 0 8px;
     font-size: 9px;
     line-height: 20px;
+  }
+  .power-plant-view-toggle {
+    top: 96px;
+    max-width: calc(100% - 92px);
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .asset-details-panel {
     padding: 12px !important;

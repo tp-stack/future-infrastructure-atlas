@@ -73,15 +73,6 @@ const LAYER_CONFIG: LayerConfig[] = [
     tooltip: "PeeringDB public interconnection facilities, colocation sites, and data centers with coordinates. Not exhaustive of every global data center.",
   },
   {
-    key: "heatmap",
-    label: "Density heatmap",
-    dotColor: "#e8b02a",
-    getMapped: () => 1,
-    getTotal: () => 1,
-    getCoverage: () => "ok",
-    tooltip: "Power plant density heatmap overlay",
-  },
-  {
     key: "power_lines",
     label: "Power Lines",
     dotColor: POWER_LINE_COLORS[400] || "#e06000",

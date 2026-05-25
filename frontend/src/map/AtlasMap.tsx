@@ -46,8 +46,8 @@ interface Props {
   theme?: AtlasTheme;
 }
 
-const GEOJSON_CLUSTER_LAYERS = ["power-clusters", "power-cluster-count", "power-points", "data-center-points", "submarine-cable-lines", "power-line-lines", "power-line-cables", "substation-points"];
-const PMTILES_CLUSTER_LAYERS = [
+const GEOJSON_INTERACTIVE_LAYERS = ["power-points", "data-center-points", "submarine-cable-lines", "power-line-lines", "power-line-cables", "substation-points"];
+const PMTILES_INTERACTIVE_LAYERS = [
   "power_plants_tiles-layer",
   "data_centers_tiles-layer",
   "submarine_cables_tiles-layer",
@@ -279,41 +279,9 @@ function boundsFromCore(core: AtlasCore | undefined, key: "power_lines" | "subst
 
 function addPowerPlantLayers(m: maplibregl.Map, beforeId?: string) {
   m.addLayer({
-    id: "power-clusters",
-    type: "circle",
-    source: "power-plants-source",
-    filter: ["has", "point_count"],
-    paint: {
-      "circle-color": ["step", ["get", "point_count"], "#d69a13", 10, "#b8850a", 100, "#8a6508"],
-      "circle-radius": ["step", ["get", "point_count"], 18, 10, 24, 100, 32],
-      "circle-opacity": 0.85,
-      "circle-stroke-color": "#ffffff",
-      "circle-stroke-width": 1.5,
-    },
-  }, beforeId);
-
-  m.addLayer({
-    id: "power-cluster-count",
-    type: "symbol",
-    source: "power-plants-source",
-    filter: ["has", "point_count"],
-    layout: {
-      "text-field": ["get", "point_count_abbreviated"],
-      "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
-      "text-size": 11,
-    },
-    paint: {
-      "text-color": "#ffffff",
-      "text-halo-color": "rgba(43,32,8,0.7)",
-      "text-halo-width": 1.2,
-    },
-  }, beforeId);
-
-  m.addLayer({
     id: "power-points",
     type: "circle",
     source: "power-plants-source",
-    filter: ["!", ["has", "point_count"]],
     paint: {
       "circle-color": buildFuelCircleColorExpression(),
       "circle-radius": [
@@ -412,7 +380,7 @@ export default function AtlasMap({
 
   const tileStatus = core ? getTileStatusFromCore(core) : null;
   const usePMTiles = tileStatus !== null && Object.values(tileStatus).some((status) => status === "present");
-  const clusterLayers = usePMTiles ? PMTILES_CLUSTER_LAYERS : GEOJSON_CLUSTER_LAYERS;
+  const interactiveLayerIds = usePMTiles ? PMTILES_INTERACTIVE_LAYERS : GEOJSON_INTERACTIVE_LAYERS;
   const prevCableHover = useRef<string | null>(null);
 
   const setMapError = useCallback((message: string) => {
@@ -501,9 +469,6 @@ export default function AtlasMap({
         m.addSource("power-plants-source", {
           type: "geojson",
           data: ppGeoJSON,
-          cluster: true,
-          clusterMaxZoom: 7,
-          clusterRadius: 35,
         });
 
         m.addSource("data-centers-source", {
@@ -528,27 +493,6 @@ export default function AtlasMap({
           });
 
         addPowerPlantLayers(m);
-
-        m.addLayer({
-          id: "power-heatmap",
-          type: "heatmap",
-          source: "power-plants-source",
-          paint: {
-            "heatmap-weight": 1,
-            "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 0, 1, 5, 3, 10, 5],
-            "heatmap-color": [
-              "interpolate", ["linear"], ["heatmap-density"],
-              0, "rgba(214,154,19,0)",
-              0.2, "rgba(214,154,19,0.3)",
-              0.4, "#d69a13",
-              0.6, "#e8b02a",
-              0.8, "#f4d03f",
-              1, "#fef9e7",
-            ],
-            "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 0, 10, 5, 20, 10, 40],
-            "heatmap-opacity": 0.75,
-          },
-        });
 
         m.addLayer({
           id: "data-center-points",
@@ -727,9 +671,6 @@ export default function AtlasMap({
       setVis("substations_tiles-layer", "substations");
       setVis("openinframap_substations_tiles-layer", "substations");
     }
-    setVis("power-heatmap", "heatmap");
-    setVis("power-clusters", "power_plants");
-    setVis("power-cluster-count", "power_plants");
     setVis("power-points", "power_plants");
     setVis("data-center-points", "data_centers");
     setVis("submarine-cable-lines", "cables");
@@ -759,14 +700,10 @@ export default function AtlasMap({
         m.setPaintProperty(id, "circle-opacity", opacity);
       } else if (type === "line") {
         m.setPaintProperty(id, "line-opacity", opacity);
-      } else if (type === "heatmap") {
-        m.setPaintProperty(id, "heatmap-opacity", opacity);
       }
     };
 
-    setOpacity("power-clusters", "power_plants");
     setOpacity("power-points", "power_plants");
-    setOpacity("power-heatmap", "heatmap");
     setOpacity("data-center-points", "data_centers");
     setOpacity("submarine-cable-lines", "cables");
     setOpacity("power-line-lines", "power_lines");
@@ -813,7 +750,7 @@ export default function AtlasMap({
     const handleClick = (e: maplibregl.MapMouseEvent & { features?: maplibregl.MapGeoJSONFeature[] }) => {
       userInteractedRef.current = true;
 
-      const interactiveLayers = clusterLayers.filter((id) => m.getLayer(id));
+      const interactiveLayers = interactiveLayerIds.filter((id) => m.getLayer(id));
       const features = interactiveLayers.length > 0 ? m.queryRenderedFeatures(e.point, { layers: interactiveLayers }) : [];
       if (!features || features.length === 0) {
         onPopup(null);
@@ -857,18 +794,6 @@ export default function AtlasMap({
           onPopup(getSubstationFromProps(p));
           onSelectedAsset?.(`substation-${p.id ?? p.n ?? "?"}`);
         }
-        return;
-      }
-
-      if (layerId === "power-clusters") {
-        const clusterId = feat.properties?.cluster_id;
-        const source = m.getSource("power-plants-source") as maplibregl.GeoJSONSource;
-        source.getClusterExpansionZoom(clusterId).then((zoom: number) => {
-          const geom = feat.geometry as GeoJSON.Point;
-          const [lon, lat] = geom.coordinates;
-          if (!Number.isFinite(lon) || !Number.isFinite(lat)) return;
-          m.easeTo({ center: [lon, lat], zoom: Math.min(zoom + 1, 8) });
-        }).catch((error: Error) => setMapError(error.message));
         return;
       }
 
@@ -918,7 +843,7 @@ export default function AtlasMap({
     };
 
     const handleMouseMove = (e: maplibregl.MapMouseEvent) => {
-      const interactiveLayers = clusterLayers.filter((id) => m.getLayer(id));
+      const interactiveLayers = interactiveLayerIds.filter((id) => m.getLayer(id));
       const features = interactiveLayers.length > 0 ? m.queryRenderedFeatures(e.point, { layers: interactiveLayers }) : [];
       const hasFeatures = features && features.length > 0;
       m.getCanvas().style.cursor = hasFeatures ? "pointer" : "";
@@ -990,7 +915,7 @@ export default function AtlasMap({
       m.off("mousemove", handleMouseMove);
       m.off("mouseleave", handleMouseLeave);
     };
-  }, [onPopup, onSelectedAsset, onHoveredAsset, setMapError, clusterLayers, usePMTiles]);
+  }, [onPopup, onSelectedAsset, onHoveredAsset, interactiveLayerIds, usePMTiles]);
 
   const handleCanvasDiagnostics = useCallback((d: CanvasDiagnostics) => {
     onCanvasDiagnostics?.(d);

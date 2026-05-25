@@ -31,7 +31,7 @@ interface ViewState {
 }
 
 interface DrawItem {
-  kind: "cluster" | "power_plant" | "data_center" | "submarine_cable" | "proof";
+  kind: "power_plant" | "data_center" | "submarine_cable" | "proof";
   x: number;
   y: number;
   r: number;
@@ -343,75 +343,34 @@ export default function ReliableAtlasMap({
     }
 
     if (visibleLayers.power_plants) {
-      const cellSize = view.zoom < 5 ? (view.zoom < 2 ? 36 : 26) : 0;
-      const clusters = new Map<string, { x: number; y: number; lon: number; lat: number; count: number; props?: GeoJSON.GeoJsonProperties }>();
       for (const feature of collections.power.features) {
         if (feature.geometry.type !== "Point") continue;
         const [lon, lat] = feature.geometry.coordinates;
         const [x, y] = project(lon, lat, width, height, view);
         if (x < -50 || y < -50 || x > width + 50 || y > height + 50) continue;
 
-        if (cellSize > 0) {
-          const key = `${Math.floor(x / cellSize)}:${Math.floor(y / cellSize)}`;
-          const cluster = clusters.get(key);
-          if (cluster) {
-            cluster.x += x;
-            cluster.y += y;
-            cluster.lon += lon;
-            cluster.lat += lat;
-            cluster.count += 1;
-          } else {
-            clusters.set(key, { x, y, lon, lat, count: 1, props: feature.properties });
-          }
-        } else {
-          clusters.set(`${x}:${y}`, { x, y, lon, lat, count: 1, props: feature.properties });
-        }
-      }
-
-      for (const cluster of clusters.values()) {
-        const x = cluster.x / cluster.count;
-        const y = cluster.y / cluster.count;
-        const lon = cluster.lon / cluster.count;
-        const lat = cluster.lat / cluster.count;
-        if (cluster.count > 1) {
-          const r = clamp(8 + Math.log(cluster.count) * 4, 12, 31);
-          ctx.beginPath();
-          ctx.fillStyle = cluster.count > 250 ? "#d97706" : cluster.count > 25 ? "#f59e0b" : "#f7c948";
-          ctx.strokeStyle = "#fff7cc";
-          ctx.lineWidth = 1.5;
-          ctx.arc(x, y, r, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.stroke();
-          ctx.fillStyle = "#111827";
-          ctx.font = "700 11px Inter, system-ui, sans-serif";
-          ctx.textAlign = "center";
-          ctx.textBaseline = "middle";
-          ctx.fillText(cluster.count >= 1000 ? `${Math.round(cluster.count / 100) / 10}k` : String(cluster.count), x, y);
-          items.push({ kind: "cluster", x, y, r, lon, lat, count: cluster.count, title: `${cluster.count.toLocaleString()} power plants`, rows: [["Action", "Click to zoom in"]] });
-        } else {
-          const props = cluster.props || {};
-          const color = String(props.f || "") in FUEL_COLORS ? FUEL_COLORS[String(props.f || "") as keyof typeof FUEL_COLORS] : FUEL_COLORS.Other;
-          ctx.beginPath();
-          ctx.fillStyle = color;
-          ctx.strokeStyle = "rgba(255,255,255,0.78)";
-          ctx.lineWidth = 0.9;
-          ctx.arc(x, y, clamp(2.4 + view.zoom * 0.6, 3, 7), 0, Math.PI * 2);
-          ctx.fill();
-          ctx.stroke();
-          const { asset, assetType } = pointAsset("power_plant", props, lon, lat);
-          items.push({
-            kind: "power_plant",
-            x,
-            y,
-            r: 8,
-            lon,
-            lat,
-            title: String(props.n || props.name || "Power plant"),
-            rows: [["Fuel", props.f || props.fuel], ["Capacity", props.mw ? `${props.mw} MW` : props.capacity_mw], ["Country", props.c || props.country]],
-            asset,
-            assetType,
-          });
-        }
+        const props = feature.properties || {};
+        const color = String(props.f || "") in FUEL_COLORS ? FUEL_COLORS[String(props.f || "") as keyof typeof FUEL_COLORS] : FUEL_COLORS.Other;
+        ctx.beginPath();
+        ctx.fillStyle = color;
+        ctx.strokeStyle = "rgba(255,255,255,0.78)";
+        ctx.lineWidth = 0.9;
+        ctx.arc(x, y, clamp(2.4 + view.zoom * 0.6, 3, 7), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        const { asset, assetType } = pointAsset("power_plant", props, lon, lat);
+        items.push({
+          kind: "power_plant",
+          x,
+          y,
+          r: 8,
+          lon,
+          lat,
+          title: String(props.n || props.name || "Power plant"),
+          rows: [["Fuel", props.f || props.fuel], ["Capacity", props.mw ? `${props.mw} MW` : props.capacity_mw], ["Country", props.c || props.country]],
+          asset,
+          assetType,
+        });
       }
     }
 
@@ -526,12 +485,6 @@ export default function ReliableAtlasMap({
     if (!hit) {
       setPopup(null);
       onAssetSelect?.(null, null);
-      return;
-    }
-
-    if (hit.kind === "cluster") {
-      setView((current) => clampView({ centerLon: hit.lon, centerLat: hit.lat, zoom: Math.min(28, current.zoom * 2.2) }));
-      setPopup(null);
       return;
     }
 

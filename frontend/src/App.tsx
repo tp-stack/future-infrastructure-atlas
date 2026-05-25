@@ -30,7 +30,7 @@ import { toggleTheme, getTheme } from "./utils/theme";
 import { DEFAULT_GRID_CONTINENT_FILTERS, type GridContinentFilters, type GridContinentKey } from "./map/continents";
 
 type ViewMode = "map" | "globe";
-const MAP_LAYER_KEYS = ["power_plants", "cables", "data_centers", "power_lines", "substations", "heatmap"] as const;
+const MAP_LAYER_KEYS = ["power_plants", "cables", "data_centers", "power_lines", "substations"] as const;
 
 export default function App() {
   const queryParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : new URLSearchParams();
@@ -95,7 +95,6 @@ export default function App() {
     data_centers: true,
     power_lines: true,
     substations: true,
-    heatmap: false,
   });
   const [layerOpacity, setLayerOpacity] = useState<Record<string, number>>({
     power_plants: 0.85,
@@ -103,7 +102,6 @@ export default function App() {
     data_centers: 0.9,
     power_lines: 0.7,
     substations: 0.85,
-    heatmap: 0.75,
   });
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -667,6 +665,17 @@ export default function App() {
               <span>Visible points in current viewport: 0. Valid coordinates loaded: {canvasDiag?.validCoords?.toLocaleString()}. Camera may be outside data bounds. Use Reset Global View.</span>
             </div>
           )}
+
+          <button
+            type="button"
+            className={`power-plant-view-toggle ${visibleLayers.power_plants ? "active" : ""}`}
+            onClick={() => handleToggle("power_plants")}
+            aria-pressed={Boolean(visibleLayers.power_plants)}
+            title={visibleLayers.power_plants ? "Hide power plants" : "Show power plants"}
+          >
+            <span className="power-plant-view-toggle__dot" />
+            <span>{visibleLayers.power_plants ? "Power Plants On" : "Power Plants Off"}</span>
+          </button>
 
           {globeMap ? (
             <div className="map-container">

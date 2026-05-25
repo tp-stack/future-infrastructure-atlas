@@ -38,7 +38,6 @@ export function layersToParam(layers: Record<string, boolean>): string | null {
   if (layers.data_centers) active.push("dc");
   if (layers.power_lines) active.push("pl");
   if (layers.substations) active.push("ss");
-  if (layers.heatmap) active.push("hm");
   const defaultActive = ["pp", "cb", "dc", "pl", "ss"];
   if (active.length === defaultActive.length && defaultActive.every((key, index) => active[index] === key)) return null;
   return active.length === 0 ? "none" : active.join(",");
@@ -53,7 +52,6 @@ export function paramToLayers(param: string | undefined): Record<string, boolean
       data_centers: false,
       power_lines: false,
       substations: false,
-      heatmap: false,
     };
   }
   const active = param.split(",");
@@ -63,6 +61,5 @@ export function paramToLayers(param: string | undefined): Record<string, boolean
     data_centers: active.includes("dc"),
     power_lines: active.includes("pl"),
     substations: active.includes("ss"),
-    heatmap: active.includes("hm"),
   };
 }

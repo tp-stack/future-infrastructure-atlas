@@ -98,9 +98,6 @@ export default function SimpleAtlasMap({ data }: Props) {
       m.addSource("power-plants-source", {
         type: "geojson",
         data: ppFC,
-        cluster: true,
-        clusterRadius: 40,
-        clusterMaxZoom: 6,
       });
 
       m.addSource("data-centers-source", { type: "geojson", data: dcFC });
@@ -114,36 +111,9 @@ export default function SimpleAtlasMap({ data }: Props) {
       });
 
       m.addLayer({
-        id: "power-clusters",
-        type: "circle",
-        source: "power-plants-source",
-        filter: ["has", "point_count"],
-        paint: {
-          "circle-color": "#f2b705",
-          "circle-opacity": 0.9,
-          "circle-radius": ["step", ["get", "point_count"], 18, 10, 24, 100, 32],
-          "circle-stroke-color": "#ffffff",
-          "circle-stroke-width": 1.5,
-        },
-      });
-
-      m.addLayer({
-        id: "power-cluster-count",
-        type: "symbol",
-        source: "power-plants-source",
-        filter: ["has", "point_count"],
-        layout: {
-          "text-field": ["get", "point_count_abbreviated"],
-          "text-size": 11,
-        },
-        paint: { "text-color": "#ffffff", "text-halo-color": "rgba(0,0,0,0.5)", "text-halo-width": 1 },
-      });
-
-      m.addLayer({
         id: "power-points",
         type: "circle",
         source: "power-plants-source",
-        filter: ["!", ["has", "point_count"]],
         paint: {
           "circle-radius": 4,
           "circle-color": "#f2b705",
@@ -218,25 +188,12 @@ export default function SimpleAtlasMap({ data }: Props) {
       // Simple popup on click
       m.on("click", (e: maplibregl.MapMouseEvent) => {
         const features = m.queryRenderedFeatures(e.point, {
-          layers: ["power-points", "data-center-points", "submarine-cable-lines", "power-clusters", "proof-points"],
+          layers: ["power-points", "data-center-points", "submarine-cable-lines", "proof-points"],
         });
         if (!features || features.length === 0) return;
 
         const feat = features[0];
         const layerId = feat.layer?.id;
-
-        if (layerId === "power-clusters") {
-          const clusterId = feat.properties?.cluster_id;
-          (m.getSource("power-plants-source") as maplibregl.GeoJSONSource)
-            .getClusterExpansionZoom(clusterId)
-            .then((zoom: number) => {
-              const geom = feat.geometry as GeoJSON.Point;
-              const [lon, lat] = geom.coordinates;
-              if (!Number.isFinite(lon) || !Number.isFinite(lat)) return;
-              m.easeTo({ center: [lon, lat], zoom: Math.min(zoom + 1, 8) });
-            });
-          return;
-        }
 
         const props = feat.properties as Record<string, unknown>;
         const lines = [`Name: ${props.name || "Unknown"}`];

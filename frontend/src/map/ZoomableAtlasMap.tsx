@@ -31,8 +31,6 @@ const DEFAULT_FILTERS: FilterState = { fuelType: "", country: "", minMw: 0 };
 const DEFAULT_VISIBLE_LAYERS = { power_plants: true, cables: true, data_centers: true };
 const WORLD_BOUNDS: LonLatBounds = { minLon: -179.5, minLat: -60, maxLon: 179.5, maxLat: 85 };
 const INTERACTIVE_LAYERS = [
-  "power-clusters",
-  "power-cluster-count",
   "power-points",
   "data-center-points",
   "submarine-cable-lines",
@@ -241,9 +239,6 @@ export default function ZoomableAtlasMap({
       m.addSource("power-plants-source", {
         type: "geojson",
         data: collections.power,
-        cluster: true,
-        clusterRadius: 40,
-        clusterMaxZoom: 7,
       });
       m.addSource("data-centers-source", { type: "geojson", data: collections.dataCenters });
       m.addSource("submarine-cables-source", { type: "geojson", data: collections.cables });
@@ -269,42 +264,9 @@ export default function ZoomableAtlasMap({
       });
 
       m.addLayer({
-        id: "power-clusters",
-        type: "circle",
-        source: "power-plants-source",
-        filter: ["has", "point_count"],
-        layout: { visibility: visibleLayers.power_plants ? "visible" : "none" },
-        paint: {
-          "circle-color": ["step", ["get", "point_count"], "#f7c948", 25, "#f59e0b", 250, "#d97706"],
-          "circle-radius": ["step", ["get", "point_count"], 16, 25, 22, 250, 30],
-          "circle-opacity": 0.94,
-          "circle-stroke-color": "#fff7cc",
-          "circle-stroke-width": 1.5,
-        },
-      });
-
-      m.addLayer({
-        id: "power-cluster-count",
-        type: "symbol",
-        source: "power-plants-source",
-        filter: ["has", "point_count"],
-        layout: {
-          visibility: visibleLayers.power_plants ? "visible" : "none",
-          "text-field": ["get", "point_count_abbreviated"],
-          "text-size": 11,
-        },
-        paint: {
-          "text-color": "#111827",
-          "text-halo-color": "rgba(255, 255, 255, 0.85)",
-          "text-halo-width": 0.8,
-        },
-      });
-
-      m.addLayer({
         id: "power-points",
         type: "circle",
         source: "power-plants-source",
-        filter: ["!", ["has", "point_count"]],
         layout: { visibility: visibleLayers.power_plants ? "visible" : "none" },
         paint: {
           "circle-color": [
@@ -375,19 +337,6 @@ export default function ZoomableAtlasMap({
       }
 
       const feature = features[0];
-      if (feature.layer?.id === "power-clusters" || feature.layer?.id === "power-cluster-count") {
-        const source = m.getSource("power-plants-source") as maplibregl.GeoJSONSource | undefined;
-        const clusterId = feature.properties?.cluster_id;
-        if (!source || clusterId == null || feature.geometry.type !== "Point") return;
-        source.getClusterExpansionZoom(Number(clusterId))
-          .then((zoom) => {
-            const coords = (feature.geometry as GeoJSON.Point).coordinates;
-            m.easeTo({ center: [coords[0], coords[1]], zoom: Math.min(zoom + 1, 8) });
-          })
-          .catch((err: Error) => setError(err.message));
-        return;
-      }
-
       const props = feature.properties as Record<string, unknown>;
       let title = String(props.n || props.name || "Infrastructure asset");
       let rows: Array<[string, unknown]> = [];
@@ -451,8 +400,6 @@ export default function ZoomableAtlasMap({
       if (m.getLayer(id)) m.setLayoutProperty(id, "visibility", visible ? "visible" : "none");
     };
 
-    setVisibility("power-clusters", visibleLayers.power_plants);
-    setVisibility("power-cluster-count", visibleLayers.power_plants);
     setVisibility("power-points", visibleLayers.power_plants);
     setVisibility("data-center-points", visibleLayers.data_centers);
     setVisibility("submarine-cable-lines", visibleLayers.cables);

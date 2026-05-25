@@ -53,8 +53,6 @@ const DEFAULT_FILTERS: FilterState = { fuelType: "", country: "", minMw: 0 };
 const DEFAULT_VISIBLE_LAYERS = { power_plants: true, cables: true, data_centers: true };
 const WORLD_BOUNDS: LonLatBounds = { minLon: -179.5, minLat: -70, maxLon: 179.5, maxLat: 82 };
 const INTERACTIVE_LAYERS = [
-  "globe-power-clusters",
-  "globe-power-cluster-count",
   "globe-power-points",
   "globe-data-center-points",
   "globe-submarine-cable-lines",
@@ -433,9 +431,6 @@ export default function GlobeAtlasMap({
       m.addSource("globe-power-plants-source", {
         type: "geojson",
         data: collections.power,
-        cluster: true,
-        clusterRadius: 42,
-        clusterMaxZoom: 6,
       });
       m.addSource("globe-data-centers-source", { type: "geojson", data: collections.dataCenters });
       m.addSource("globe-submarine-cables-source", { type: "geojson", data: collections.cables });
@@ -461,43 +456,9 @@ export default function GlobeAtlasMap({
       });
 
       m.addLayer({
-        id: "globe-power-clusters",
-        type: "circle",
-        source: "globe-power-plants-source",
-        filter: ["has", "point_count"],
-        layout: { visibility: visibleLayers.power_plants ? "visible" : "none" },
-        paint: {
-          "circle-color": ["step", ["get", "point_count"], "#f7c948", 25, "#f59e0b", 250, "#d97706"],
-          "circle-radius": ["step", ["get", "point_count"], 15, 25, 21, 250, 29],
-          "circle-opacity": 0.9,
-          "circle-stroke-color": "rgba(255, 247, 204, 0.85)",
-          "circle-stroke-width": 1.4,
-        },
-      });
-
-      m.addLayer({
-        id: "globe-power-cluster-count",
-        type: "symbol",
-        source: "globe-power-plants-source",
-        filter: ["has", "point_count"],
-        layout: {
-          visibility: visibleLayers.power_plants ? "visible" : "none",
-          "text-field": ["get", "point_count_abbreviated"],
-          "text-size": 11,
-          "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
-        },
-        paint: {
-          "text-color": "#111827",
-          "text-halo-color": "rgba(255, 255, 255, 0.85)",
-          "text-halo-width": 0.8,
-        },
-      });
-
-      m.addLayer({
         id: "globe-power-points",
         type: "circle",
         source: "globe-power-plants-source",
-        filter: ["!", ["has", "point_count"]],
         layout: { visibility: visibleLayers.power_plants ? "visible" : "none" },
         paint: {
           "circle-color": [
@@ -569,19 +530,6 @@ export default function GlobeAtlasMap({
       }
 
       const feature = features[0];
-      if (feature.layer?.id === "globe-power-clusters" || feature.layer?.id === "globe-power-cluster-count") {
-        const source = m.getSource("globe-power-plants-source") as maplibregl.GeoJSONSource | undefined;
-        const clusterId = feature.properties?.cluster_id;
-        if (!source || clusterId == null || feature.geometry.type !== "Point") return;
-        source.getClusterExpansionZoom(Number(clusterId))
-          .then((zoom) => {
-            const coords = (feature.geometry as GeoJSON.Point).coordinates;
-            m.easeTo({ center: [coords[0], coords[1]], zoom: Math.min(zoom + 1, 7), duration: 650 });
-          })
-          .catch((err: Error) => setError(err.message));
-        return;
-      }
-
       const assetResult = assetFromFeature(feature, data);
       if (assetResult) {
         onAssetSelect?.(assetResult.asset, assetResult.type);
@@ -629,8 +577,6 @@ export default function GlobeAtlasMap({
       if (m.getLayer(id)) m.setLayoutProperty(id, "visibility", visible ? "visible" : "none");
     };
 
-    setVisibility("globe-power-clusters", Boolean(visibleLayers.power_plants));
-    setVisibility("globe-power-cluster-count", Boolean(visibleLayers.power_plants));
     setVisibility("globe-power-points", Boolean(visibleLayers.power_plants));
     setVisibility("globe-data-center-points", Boolean(visibleLayers.data_centers));
     setVisibility("globe-submarine-cable-lines", Boolean(visibleLayers.cables));

@@ -40,26 +40,9 @@ export const SUBSTATION_STROKE_COLOR = "#ffffff";
 
 export const LAYER_IDS = {
   POWER_PLANTS: "power-plants",
-  POWER_CLUSTERS: "power-plants-clusters",
-  POWER_CLUSTER_COUNT: "power-plants-cluster-count",
   CABLES: "submarine-cables",
   DATA_CENTERS: "data-centers",
 } as const;
-
-export const CLUSTER_PAINT = {
-  "circle-color": "#d69a13",
-  "circle-radius": ["step", ["get", "point_count"], 20, 50, 28, 200, 36],
-  "circle-opacity": 0.85,
-  "circle-stroke-width": 2,
-  "circle-stroke-color": "#fce488",
-};
-
-export const CLUSTER_COUNT_PAINT = {
-  "text-field": ["get", "point_count_abbreviated"],
-  "text-size": 10,
-  "text-color": "#0a0a0f",
-  "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
-};
 
 export const POWER_PAINT = {
   "circle-radius": [
