@@ -7,6 +7,7 @@ from atlas.site_selection.scoring import (
     compute_final_score,
     compute_grid_score,
     compute_fiber_score,
+    compute_cable_score,
     compute_land_score,
     compute_climate_score,
     compute_water_score,
@@ -34,6 +35,7 @@ def test_scores_are_in_range():
     scores, flags = score_candidate(candidate, profile)
     assert SCORE_MIN <= scores.grid_score <= SCORE_MAX
     assert SCORE_MIN <= scores.fiber_score <= SCORE_MAX
+    assert SCORE_MIN <= scores.cable_score <= SCORE_MAX
     assert SCORE_MIN <= scores.land_score <= SCORE_MAX
     assert SCORE_MIN <= scores.climate_score <= SCORE_MAX
     assert SCORE_MIN <= scores.water_score <= SCORE_MAX
@@ -261,6 +263,102 @@ def test_protected_area_proximity_none_when_no_data():
     from atlas.site_selection.evidence import generate_evidence_summary
     summary = generate_evidence_summary(candidate)
     assert "unknown" in summary.lower() or "no osm" in summary.lower()
+
+
+def test_cable_score_with_proximity():
+    profile = COMPUTE_PROFILES["regional_compute_5mw"]
+    candidate = CandidateSite(
+        candidate_site_id="test-cbl-1",
+        country="Test",
+        region="Test",
+        municipality="Test",
+        lat=0,
+        lon=0,
+        geometry={"type": "Point", "coordinates": [0, 0]},
+        area_ha=2,
+        compute_profile="regional_compute_5mw",
+        nearest_cable_landing_km=2.0,
+    )
+    score, flags = compute_cable_score(candidate)
+    assert score > 80, f"Cable landing proximity should score high, got {score}"
+    assert "CABLE_LANDING_UNKNOWN" not in flags
+
+
+def test_cable_score_without_proximity():
+    profile = COMPUTE_PROFILES["regional_compute_5mw"]
+    candidate = CandidateSite(
+        candidate_site_id="test-cbl-2",
+        country="Test",
+        region="Test",
+        municipality="Test",
+        lat=0,
+        lon=0,
+        geometry={"type": "Point", "coordinates": [0, 0]},
+        area_ha=2,
+        compute_profile="regional_compute_5mw",
+    )
+    score, flags = compute_cable_score(candidate)
+    assert score < 50, f"Unknown cable landing should score low, got {score}"
+    assert "CABLE_LANDING_UNKNOWN" in flags
+
+
+def test_cable_score_in_final_score():
+    profile = COMPUTE_PROFILES["regional_compute_5mw"]
+    candidate = CandidateSite(
+        candidate_site_id="test-cbl-3",
+        country="Test",
+        region="Test",
+        municipality="Test",
+        lat=0,
+        lon=0,
+        geometry={"type": "Point", "coordinates": [0, 0]},
+        area_ha=2,
+        compute_profile="regional_compute_5mw",
+        nearest_cable_landing_km=1.0,
+        nearest_substation_km=5.0,
+        estimated_grid_capacity_mw=10,
+        nearest_fiber_km=0.5,
+        industrial_land_score=50,
+    )
+    scores, flags = score_candidate(candidate, profile)
+    assert scores.cable_score > 0
+    assert candidate.cable_score > 0
+
+
+def test_cable_landing_evidence():
+    candidate = CandidateSite(
+        candidate_site_id="test-cbl-4",
+        country="Test",
+        region="Test",
+        municipality="Test",
+        lat=0,
+        lon=0,
+        geometry={"type": "Point", "coordinates": [0, 0]},
+        area_ha=2,
+        compute_profile="regional_compute_5mw",
+        nearest_cable_landing_km=5.0,
+    )
+    from atlas.site_selection.evidence import generate_evidence_summary
+    summary = generate_evidence_summary(candidate)
+    assert "cable landing" in summary.lower() or "submarine" in summary.lower()
+    assert "5.0" in summary
+
+
+def test_cable_landing_unknown_evidence():
+    candidate = CandidateSite(
+        candidate_site_id="test-cbl-5",
+        country="Test",
+        region="Test",
+        municipality="Test",
+        lat=0,
+        lon=0,
+        geometry={"type": "Point", "coordinates": [0, 0]},
+        area_ha=2,
+        compute_profile="regional_compute_5mw",
+    )
+    from atlas.site_selection.evidence import generate_evidence_summary
+    summary = generate_evidence_summary(candidate)
+    assert "unknown" in summary.lower()
 
 
 def test_proxy_confidence_penalty():

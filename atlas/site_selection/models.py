@@ -21,6 +21,7 @@ class MissingDataFlag(str, Enum):
     MARKET_DEMAND_PROXY_ONLY = "MARKET_DEMAND_PROXY_ONLY"
     ADMIN_GEOCODING_NOT_AVAILABLE = "ADMIN_GEOCODING_NOT_AVAILABLE"
     PROTECTED_AREA_PROXIMITY_OBSERVED = "PROTECTED_AREA_PROXIMITY_OBSERVED"
+    CABLE_LANDING_UNKNOWN = "CABLE_LANDING_UNKNOWN"
 
 
 @dataclass
@@ -60,6 +61,7 @@ class ExclusionResult:
 class ScoreBreakdown:
     grid_score: float = 0.0
     fiber_score: float = 0.0
+    cable_score: float = 0.0
     land_score: float = 0.0
     climate_score: float = 0.0
     water_score: float = 0.0
@@ -99,6 +101,7 @@ class CandidateSite:
     nearest_ixp_km: float | None = None
     fiber_proxy_level: str | None = None
     fiber_diversity_score: float | None = None
+    nearest_cable_landing_km: float | None = None
     nearest_protected_area_km: float | None = None
     latency_proxy_score: float | None = None
     industrial_land_score: float | None = None
@@ -120,6 +123,7 @@ class CandidateSite:
     incentive_score: float | None = None
     grid_score: float = 0.0
     fiber_score: float = 0.0
+    cable_score: float = 0.0
     land_score: float = 0.0
     climate_score: float = 0.0
     water_score: float = 0.0

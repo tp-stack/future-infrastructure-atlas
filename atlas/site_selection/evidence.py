@@ -174,6 +174,14 @@ def generate_evidence_summary(candidate: CandidateSite) -> str:
     if candidate.nearest_ixp_km is not None:
         parts.append(f"Nearest internet exchange point is approximately {candidate.nearest_ixp_km:.1f} km away.")
 
+    if candidate.nearest_cable_landing_km is not None:
+        parts.append(
+            f"Nearest submarine cable landing is approximately {candidate.nearest_cable_landing_km:.1f} km away "
+            f"(source: submarinecablemap.com via TeleGeography — cable landing points)."
+        )
+    else:
+        parts.append("Submarine cable landing proximity is unknown.")
+
     parts.append(_land_proxy_evidence(candidate))
 
     parts.append(_environmental_proxy_evidence(candidate))

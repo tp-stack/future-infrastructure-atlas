@@ -53,6 +53,7 @@ def _candidate_to_response(c: CandidateSite) -> CandidateSiteResponse:
         confidence_score=c.confidence_score,
         grid_score=c.grid_score,
         fiber_score=c.fiber_score,
+        cable_score=c.cable_score,
         land_score=c.land_score,
         climate_score=c.climate_score,
         water_score=c.water_score,

@@ -252,6 +252,7 @@ def generate_candidates_from_bbox(
         ind_dist = _get_industrial_land_distance(lat, lon, industrial_proxy)
         ind_score = _distance_to_land_score(ind_dist)
         pa_dist, _ = _nearest_distance(lat, lon, protected_areas)
+        cable_landing_dist, _ = _nearest_distance(lat, lon, cable_landing_points)
 
         geo = reverse_geocode(lat, lon)
 
@@ -282,6 +283,7 @@ def generate_candidates_from_bbox(
             nearest_ixp_km=ixp_dist,
             estimated_grid_capacity_mw=None,
             nearest_protected_area_km=pa_dist,
+            nearest_cable_landing_km=cable_landing_dist,
             industrial_land_score=ind_score,
             flood_risk_score=None,
             water_stress_score=None,

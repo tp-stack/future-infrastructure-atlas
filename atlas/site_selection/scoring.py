@@ -156,6 +156,16 @@ def compute_market_score(candidate: CandidateSite) -> tuple[float, list[str]]:
     return _clamp(score), flags
 
 
+def compute_cable_score(candidate: CandidateSite) -> tuple[float, list[str]]:
+    flags: list[str] = []
+    if candidate.nearest_cable_landing_km is not None:
+        score = _distance_score(candidate.nearest_cable_landing_km, 5.0, 100.0)
+    else:
+        score = 30.0
+        flags.append(MissingDataFlag.CABLE_LANDING_UNKNOWN.value)
+    return _clamp(score), flags
+
+
 def compute_incentive_score(candidate: CandidateSite) -> float:
     return _clamp(candidate.incentive_score if candidate.incentive_score is not None else 30.0)
 
@@ -171,6 +181,7 @@ def compute_final_score(scores: ScoreBreakdown, scoring_profile_key: str = "defa
     total = (
         profile.weights.get("grid_score", 0.3) * scores.grid_score
         + profile.weights.get("fiber_score", 0.2) * scores.fiber_score
+        + profile.weights.get("cable_score", 0.0) * scores.cable_score
         + profile.weights.get("land_score", 0.15) * scores.land_score
         + profile.weights.get("climate_score", 0.1) * scores.climate_score
         + profile.weights.get("water_score", 0.0) * scores.water_score
@@ -193,6 +204,9 @@ def score_candidate(candidate: CandidateSite, profile, scoring_profile_key: str 
     land_score, land_flags = compute_land_score(candidate)
     all_flags.extend(land_flags)
 
+    cable_score, cable_flags = compute_cable_score(candidate)
+    all_flags.extend(cable_flags)
+
     climate_score, climate_flags = compute_climate_score(candidate)
     all_flags.extend(climate_flags)
 
@@ -210,6 +224,7 @@ def score_candidate(candidate: CandidateSite, profile, scoring_profile_key: str 
     breakdown = ScoreBreakdown(
         grid_score=grid_score,
         fiber_score=fiber_score,
+        cable_score=cable_score,
         land_score=land_score,
         climate_score=climate_score,
         water_score=water_score,
@@ -221,6 +236,7 @@ def score_candidate(candidate: CandidateSite, profile, scoring_profile_key: str 
     final = compute_final_score(breakdown, scoring_profile_key)
     candidate.grid_score = grid_score
     candidate.fiber_score = fiber_score
+    candidate.cable_score = cable_score
     candidate.land_score = land_score
     candidate.climate_score = climate_score
     candidate.water_score = water_score

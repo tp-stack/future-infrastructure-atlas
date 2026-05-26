@@ -126,6 +126,7 @@ def test_query_response_contract(client):
         assert "confidence_score" in c
         assert "grid_score" in c
         assert "fiber_score" in c
+        assert "cable_score" in c
         assert "land_score" in c
         assert "climate_score" in c
         assert "regulatory_score" in c

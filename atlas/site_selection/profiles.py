@@ -70,7 +70,8 @@ SCORING_PROFILES: dict[str, ScoringProfile] = {
         description="Balanced scoring weights optimized for general compute site selection.",
         weights={
             "grid_score": 0.30,
-            "fiber_score": 0.20,
+            "fiber_score": 0.15,
+            "cable_score": 0.05,
             "land_score": 0.15,
             "climate_score": 0.10,
             "regulatory_score": 0.10,
@@ -90,7 +91,8 @@ SCORING_PROFILES: dict[str, ScoringProfile] = {
         description="Weights favoring regulatory stability, data sovereignty and grid capacity for sovereign AI infrastructure.",
         weights={
             "grid_score": 0.30,
-            "fiber_score": 0.18,
+            "fiber_score": 0.13,
+            "cable_score": 0.05,
             "land_score": 0.12,
             "climate_score": 0.08,
             "regulatory_score": 0.17,

@@ -87,6 +87,7 @@ class CandidateSiteResponse(BaseModel):
     confidence_score: float
     grid_score: float
     fiber_score: float
+    cable_score: float
     land_score: float
     climate_score: float
     water_score: float
