@@ -20,6 +20,7 @@ class MissingDataFlag(str, Enum):
     REGULATORY_SCORE_COUNTRY_LEVEL_ONLY = "REGULATORY_SCORE_COUNTRY_LEVEL_ONLY"
     MARKET_DEMAND_PROXY_ONLY = "MARKET_DEMAND_PROXY_ONLY"
     ADMIN_GEOCODING_NOT_AVAILABLE = "ADMIN_GEOCODING_NOT_AVAILABLE"
+    PROTECTED_AREA_PROXIMITY_OBSERVED = "PROTECTED_AREA_PROXIMITY_OBSERVED"
 
 
 @dataclass
@@ -98,6 +99,7 @@ class CandidateSite:
     nearest_ixp_km: float | None = None
     fiber_proxy_level: str | None = None
     fiber_diversity_score: float | None = None
+    nearest_protected_area_km: float | None = None
     latency_proxy_score: float | None = None
     industrial_land_score: float | None = None
     zoning_compatibility_score: float | None = None

@@ -17,6 +17,7 @@ _INDEX_DIR = Path(__file__).resolve().parents[2] / "data" / "derived" / "site_se
 _INDEX_FILE = _INDEX_DIR / "infrastructure_index.json"
 _TELECOM_FILE = _INDEX_DIR / "telecom_index.json"
 _LAND_FILE = _INDEX_DIR / "land_index.json"
+_ENVIRONMENTAL_FILE = _INDEX_DIR / "environmental_index.json"
 
 _index_cache: dict[str, Any] | None = None
 _index_lock = Lock()
@@ -29,6 +30,10 @@ _telecom_load_error: str | None = None
 _land_cache: dict[str, Any] | None = None
 _land_lock = Lock()
 _land_load_error: str | None = None
+
+_environmental_cache: dict[str, Any] | None = None
+_environmental_lock = Lock()
+_environmental_load_error: str | None = None
 
 
 def get_index_path() -> str:
@@ -427,3 +432,89 @@ def get_land_proxy_source_summary() -> str:
     if not parts:
         return "No land proxy data available."
     return "Land proxy sources: " + "; ".join(parts) + "."
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Environmental Constraint Index (separate shard)
+# ═══════════════════════════════════════════════════════════════════
+
+
+def get_environmental_index_path() -> str:
+    return str(_ENVIRONMENTAL_FILE)
+
+
+def get_environmental_index_size_bytes() -> int:
+    if _ENVIRONMENTAL_FILE.exists():
+        return _ENVIRONMENTAL_FILE.stat().st_size
+    return 0
+
+
+def load_environmental_index(force_reload: bool = False) -> dict[str, Any]:
+    """Load the environmental constraint index from disk, caching it in memory."""
+    global _environmental_cache, _environmental_load_error
+
+    if not force_reload and _environmental_cache is not None:
+        return _environmental_cache
+
+    with _environmental_lock:
+        if not force_reload and _environmental_cache is not None:
+            return _environmental_cache
+
+        if not _ENVIRONMENTAL_FILE.exists():
+            _environmental_load_error = f"Environmental index not found at {_ENVIRONMENTAL_FILE}"
+            _environmental_cache = {
+                "metadata": {"error": _environmental_load_error, "feature_counts": {}},
+                "features": {},
+            }
+            return _environmental_cache
+
+        try:
+            with open(_ENVIRONMENTAL_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            _environmental_cache = data
+            _environmental_load_error = None
+        except Exception as e:
+            _environmental_load_error = str(e)
+            _environmental_cache = {
+                "metadata": {"error": _environmental_load_error, "feature_counts": {}},
+                "features": {},
+            }
+        return _environmental_cache
+
+
+def get_environmental_feature_counts() -> dict[str, int]:
+    """Return the environmental index feature counts per category."""
+    data = load_environmental_index()
+    return data.get("metadata", {}).get("feature_counts", {})
+
+
+def get_protected_area_points() -> list[dict[str, Any]]:
+    """Return protected area proxy points (currently empty — no source data).
+
+    Expected compact keys: id, lat, lon, t='pa', name, category, country
+    """
+    data = load_environmental_index()
+    return data.get("features", {}).get("protected_area_points", [])
+
+
+def has_protected_area_data() -> bool:
+    return len(get_protected_area_points()) > 0
+
+
+def get_environmental_empty_categories() -> list[str]:
+    """Return list of environmental categories with zero features."""
+    counts = get_environmental_feature_counts()
+    return [k for k, v in counts.items() if v == 0]
+
+
+def get_environmental_proxy_source_summary() -> str:
+    """Return a human-readable summary of available environmental data."""
+    data = load_environmental_index()
+    metadata = data.get("metadata", {})
+    warning = metadata.get("empty_categories_warning", "")
+    counts = metadata.get("feature_counts", {})
+    if all(v == 0 for v in counts.values()):
+        return "No environmental constraint data available. " + warning
+    populated = {k: v for k, v in counts.items() if v > 0}
+    parts = [f"{k}: {v}" for k, v in populated.items()]
+    return "Environmental data sources: " + "; ".join(parts) + "."

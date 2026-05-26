@@ -36,6 +36,7 @@ data/tiles/**
 data/cache/**
 data/reports/**
 data/logs/**
+data/derived/**
 
 # Keep data directory documentation and placeholders
 !data/README.md

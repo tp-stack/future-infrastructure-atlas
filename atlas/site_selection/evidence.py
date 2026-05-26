@@ -105,6 +105,55 @@ def _land_proxy_evidence(candidate: CandidateSite) -> str:
     return " ".join(sentences)
 
 
+def _environmental_proxy_evidence(candidate: CandidateSite) -> str:
+    """Build environmental constraint evidence with source-quality labels."""
+    sentences: list[str] = []
+
+    # Flood risk
+    if candidate.flood_risk_score is not None:
+        sentences.append(f"Flood risk score: {candidate.flood_risk_score:.0f}/100 (source: {'verified' if candidate.flood_risk_score >= 0 else 'unknown'}).")
+    else:
+        sentences.append("Flood risk assessment is based on proxy data only — no flood hazard dataset available.")
+
+    # Protected area proximity
+    if candidate.nearest_protected_area_km is not None:
+        sentences.append(
+            f"Nearest protected area centroid is {candidate.nearest_protected_area_km:.1f} km away "
+            f"(source: OSM boundary=protected_area / leisure=nature_reserve from Geofabrik extracts). "
+            f"Proximity does not confirm overlap — polygon boundaries required for hard exclusion."
+        )
+    else:
+        sentences.append("Protected area proximity is unknown — no OSM protected-area data available for this region.")
+
+    # Water stress
+    if candidate.water_stress_score is not None:
+        sentences.append(f"Water stress score: {candidate.water_stress_score:.0f}/100 (source: {'verified' if candidate.water_stress_score >= 0 else 'unknown'}).")
+    else:
+        sentences.append("Water stress assessment is based on proxy data only — no water availability data available.")
+
+    # Heat risk
+    if candidate.heat_risk_score is not None:
+        sentences.append(f"Heat risk score: {candidate.heat_risk_score:.0f}/100.")
+    else:
+        sentences.append("Heat risk assessment is based on proxy data only — no temperature hazard dataset available.")
+
+    # Seismic risk
+    if candidate.seismic_risk_score is not None:
+        sentences.append(f"Seismic risk score: {candidate.seismic_risk_score:.0f}/100.")
+    else:
+        sentences.append("Seismic risk assessment is based on proxy data only — no seismic hazard dataset available.")
+
+    # Wildfire risk
+    if candidate.wildfire_risk_score is not None:
+        sentences.append(f"Wildfire risk score: {candidate.wildfire_risk_score:.0f}/100.")
+    else:
+        sentences.append("Wildfire risk assessment is based on proxy data only — no wildfire hazard dataset available.")
+
+    sentences.append("Environmental constraint data is incomplete — independent environmental due diligence is required.")
+
+    return " ".join(sentences)
+
+
 def generate_evidence_summary(candidate: CandidateSite) -> str:
     parts: list[str] = []
 
@@ -127,13 +176,7 @@ def generate_evidence_summary(candidate: CandidateSite) -> str:
 
     parts.append(_land_proxy_evidence(candidate))
 
-    if candidate.flood_risk_score is not None:
-        parts.append(f"Flood risk score: {candidate.flood_risk_score:.0f}/100.")
-    else:
-        parts.append("Flood risk assessment is based on proxy data only.")
-
-    if candidate.water_stress_score is not None:
-        parts.append(f"Water stress score: {candidate.water_stress_score:.0f}/100.")
+    parts.append(_environmental_proxy_evidence(candidate))
 
     if candidate.regulatory_stability_score is not None:
         parts.append(f"Regulatory stability score: {candidate.regulatory_stability_score:.0f}/100.")

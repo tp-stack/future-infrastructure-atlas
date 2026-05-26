@@ -29,6 +29,7 @@ from atlas.api.repository import CommercialRepository, CommercialRepositoryProto
 from atlas.api.security import API_KEY_HEADER, hash_api_key, sign_path
 from atlas.payments import StripeService, get_stripe_service, get_stripe_webhook_secret
 from atlas.registry import load_commercial_api_policy
+from atlas.site_selection.api import router as site_selection_router
 
 
 def _max_response_bytes() -> int:
@@ -405,6 +406,8 @@ def create_app(repository: CommercialRepositoryProtocol | None = None, billing_s
         billing_service: StripeService = Depends(get_billing_service),
     ) -> dict[str, str]:
         return await _stripe_webhook_handler(request, repository, billing_service)
+
+    app.include_router(site_selection_router)
 
     return app
 

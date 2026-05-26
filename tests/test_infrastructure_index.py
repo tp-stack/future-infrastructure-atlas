@@ -730,6 +730,148 @@ def test_industrial_proxy_points_exist():
     assert sample.get("n", 0) > 0, "Should have plant count (n) > 0"
 
 
+def test_environmental_index_builds_under_size_limit():
+    """Verify the environmental index is under 10 MB."""
+    from atlas.site_selection.infrastructure_index import get_environmental_index_size_bytes
+    size = get_environmental_index_size_bytes()
+    if size == 0:
+        pytest.skip("Environmental index not found")
+    assert size <= 10_000_000, f"Environmental index size {size} exceeds 10 MB limit"
+
+
+def test_protected_area_points_return_empty_list():
+    """Verify protected area points return empty list (no source data)."""
+    from atlas.site_selection.infrastructure_index import get_protected_area_points, has_protected_area_data
+    points = get_protected_area_points()
+    assert points == [], "Should return empty list"
+    assert has_protected_area_data() is False, "Should report no data"
+
+
+def test_environmental_index_all_categories_empty():
+    """Verify all environmental categories are empty (no source data)."""
+    from atlas.site_selection.infrastructure_index import get_environmental_feature_counts, get_environmental_empty_categories
+    counts = get_environmental_feature_counts()
+    empty = get_environmental_empty_categories()
+    # All categories should be empty
+    assert all(v == 0 for v in counts.values()), "All environmental categories should be empty"
+    assert len(empty) == len(counts), "All categories should be in empty list"
+
+
+def test_water_access_unknown_preserved():
+    """Verify WATER_ACCESS_UNKNOWN is set when water_stress_score is None."""
+    from atlas.site_selection.models import CandidateSite, MissingDataFlag
+    from atlas.site_selection.profiles import COMPUTE_PROFILES
+    from atlas.site_selection.scoring import score_candidate
+
+    profile = COMPUTE_PROFILES["regional_compute_5mw"]
+    candidate = CandidateSite(
+        candidate_site_id="test-water-unknown",
+        country="Test",
+        region="Test",
+        municipality="Test",
+        lat=52.37,
+        lon=4.89,
+        geometry={"type": "Point", "coordinates": [4.89, 52.37]},
+        area_ha=2,
+        compute_profile="regional_compute_5mw",
+    )
+    score_candidate(candidate, profile)
+    assert MissingDataFlag.WATER_ACCESS_UNKNOWN.value in candidate.missing_data_flags, \
+        "WATER_ACCESS_UNKNOWN should be set when no water data"
+
+
+def test_climate_risk_proxy_only_set_when_no_climate_data():
+    """Verify CLIMATE_RISK_PROXY_ONLY is set when heat_risk_score is None."""
+    from atlas.site_selection.models import CandidateSite, MissingDataFlag
+    from atlas.site_selection.profiles import COMPUTE_PROFILES
+    from atlas.site_selection.scoring import score_candidate
+
+    profile = COMPUTE_PROFILES["regional_compute_5mw"]
+    candidate = CandidateSite(
+        candidate_site_id="test-climate-proxy",
+        country="Test",
+        region="Test",
+        municipality="Test",
+        lat=52.37,
+        lon=4.89,
+        geometry={"type": "Point", "coordinates": [4.89, 52.37]},
+        area_ha=2,
+        compute_profile="regional_compute_5mw",
+    )
+    score_candidate(candidate, profile)
+    assert MissingDataFlag.CLIMATE_RISK_PROXY_ONLY.value in candidate.missing_data_flags, \
+        "CLIMATE_RISK_PROXY_ONLY should be set when no climate data"
+
+
+def test_environmental_evidence_requires_due_diligence():
+    """Verify environmental evidence states data is incomplete and due diligence is required."""
+    from atlas.site_selection.models import CandidateSite
+    from atlas.site_selection.evidence import _environmental_proxy_evidence
+
+    candidate = CandidateSite(
+        candidate_site_id="test-env-evidence",
+        country="Test",
+        region="Test",
+        municipality="Test",
+        lat=52.37,
+        lon=4.89,
+        geometry={"type": "Point", "coordinates": [4.89, 52.37]},
+        area_ha=2,
+        compute_profile="regional_compute_5mw",
+    )
+    evidence = _environmental_proxy_evidence(candidate)
+    assert "proxy data only" in evidence, "Should state proxy-based assessment"
+    assert "no flood hazard dataset" in evidence, "Should name missing dataset"
+    assert "no water availability data" in evidence, "Should name missing water data"
+    assert "no temperature hazard dataset" in evidence, "Should name missing heat data"
+    assert "no seismic hazard dataset" in evidence, "Should name missing seismic data"
+    assert "no wildfire hazard dataset" in evidence, "Should name missing wildfire data"
+    assert "due diligence" in evidence, "Should require due diligence"
+
+
+def test_no_heavy_environmental_source_loaded_at_runtime():
+    """Verify runtime does not load heavy raw environmental datasets."""
+    from atlas.site_selection.infrastructure_index import _ENVIRONMENTAL_FILE, load_environmental_index
+
+    assert str(_ENVIRONMENTAL_FILE).endswith("environmental_index.json"), \
+        "Runtime should load only the compact environmental index JSON"
+
+    idx = load_environmental_index()
+    assert "features" in idx, "Should have features key"
+    assert "metadata" in idx, "Should have metadata key"
+
+
+def test_proxy_environmental_risk_adds_soft_constraint_not_hard_exclusion():
+    """Verify proxy environmental risk adds soft constraint, not hard exclusion."""
+    from atlas.site_selection.exclusions import check_exclusions
+    from atlas.site_selection.models import CandidateSite
+    from atlas.site_selection.profiles import COMPUTE_PROFILES
+
+    profile = COMPUTE_PROFILES["regional_compute_5mw"]
+    candidate = CandidateSite(
+        candidate_site_id="test-proxy-env",
+        country="Test",
+        region="Test",
+        municipality="Test",
+        lat=52.37,
+        lon=4.89,
+        geometry={"type": "Point", "coordinates": [4.89, 52.37]},
+        area_ha=10,
+        compute_profile="regional_compute_5mw",
+        nearest_substation_km=5,
+        nearest_fiber_km=10,
+        flood_risk_score=85,
+        seismic_risk_score=90,
+        wildfire_risk_score=95,
+    )
+    check_exclusions(candidate, profile)
+    # Proxy environmental scores add soft constraints, not hard exclusions
+    assert candidate.excluded is False, "Should not be excluded for proxy environmental risks"
+    assert len(candidate.soft_constraints) >= 3, "Should have environmental soft constraints"
+    env_reasons = [r for r in candidate.soft_constraints if "flood" in r.lower() or "seismic" in r.lower() or "wildfire" in r.lower()]
+    assert len(env_reasons) == 3, f"Should have 3 environmental soft constraints: {env_reasons}"
+
+
 def test_telecom_index_sharding_prevents_main_index_size_regression():
     """Verify the main index did not grow from telecom additions."""
     from atlas.site_selection.infrastructure_index import get_index_size_bytes, get_telecom_index_size_bytes

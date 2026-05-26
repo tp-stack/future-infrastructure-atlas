@@ -33,6 +33,7 @@ MAX_INDEX_SIZE_BYTES = 10_000_000
 
 INDEX_PATH = Path(__file__).resolve().parent.parent / "data" / "derived" / "site_selection" / "infrastructure_index.json"
 LAND_INDEX_PATH = Path(__file__).resolve().parent.parent / "data" / "derived" / "site_selection" / "land_index.json"
+ENVIRONMENTAL_INDEX_PATH = Path(__file__).resolve().parent.parent / "data" / "derived" / "site_selection" / "environmental_index.json"
 
 
 def validate_infrastructure_index() -> list[str]:
@@ -142,6 +143,48 @@ def validate_land_index() -> list[str]:
     return errors
 
 
+def validate_environmental_index() -> list[str]:
+    """Validate the derived environmental constraint index."""
+    errors = []
+    if not ENVIRONMENTAL_INDEX_PATH.exists():
+        errors.append(f"ENV: Environmental index not found at {ENVIRONMENTAL_INDEX_PATH}")
+        return errors
+
+    size = ENVIRONMENTAL_INDEX_PATH.stat().st_size
+    if size > MAX_INDEX_SIZE_BYTES:
+        errors.append(f"ENV: Environmental index is {size} bytes, exceeds max {MAX_INDEX_SIZE_BYTES} bytes")
+
+    try:
+        with open(ENVIRONMENTAL_INDEX_PATH, "r", encoding="utf-8") as f:
+            index = json.load(f)
+    except Exception as e:
+        errors.append(f"ENV: Failed to parse environmental index: {e}")
+        return errors
+
+    metadata = index.get("metadata", {})
+    feature_counts = metadata.get("feature_counts", {})
+    print(f"  Environmental index size: {size} bytes ({size/1024/1024:.1f} MB)")
+    print(f"  Generated at: {metadata.get('generated_at', 'unknown')}")
+    print(f"  Feature counts:")
+    for k, v in feature_counts.items():
+        print(f"    {k}: {v}")
+    total = sum(v for v in feature_counts.values())
+    print(f"  Total features: {total}")
+
+    warning = metadata.get("empty_categories_warning", "")
+    if warning:
+        print(f"  NOTE: {warning[:120]}...")
+
+    features = index.get("features", {})
+    for category, feature_list in features.items():
+        for feat in feature_list[:20]:
+            if "notes" in feat:
+                errors.append(f"ENV: Feature in {category} has 'notes' field")
+                break
+
+    return errors
+
+
 def main() -> int:
     errors = []
 
@@ -188,6 +231,10 @@ def main() -> int:
     # 5b. Validate land index
     land_errors = validate_land_index()
     errors.extend(land_errors)
+
+    # 5c. Validate environmental index
+    env_errors = validate_environmental_index()
+    errors.extend(env_errors)
 
     # 6. Verify missing data flags reduce confidence
     from atlas.site_selection.confidence import compute_confidence_score

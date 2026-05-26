@@ -19,9 +19,11 @@ from atlas.site_selection.infrastructure_index import (
     get_data_center_points,
     get_cable_landing_points,
     get_industrial_proxy_points,
+    get_protected_area_points,
     load_infrastructure_index,
     load_telecom_index,
     load_land_index,
+    load_environmental_index,
 )
 from atlas.site_selection.models import CandidateSite, MissingDataFlag
 from atlas.site_selection.persistence import store_query_batch
@@ -232,6 +234,10 @@ def generate_candidates_from_bbox(
     land_idx = load_land_index()
     industrial_proxy = land_idx.get("features", {}).get("industrial_proxy_points", [])
 
+    # Load environmental index for protected area proximity
+    env_idx = load_environmental_index()
+    protected_areas = env_idx.get("features", {}).get("protected_area_points", [])
+
     area = {"type": "bbox", "coordinates": list(bbox)}
 
     candidates: list[CandidateSite] = []
@@ -245,6 +251,7 @@ def generate_candidates_from_bbox(
         ixp_dist, _ = _nearest_distance(lat, lon, ixp_proxy)
         ind_dist = _get_industrial_land_distance(lat, lon, industrial_proxy)
         ind_score = _distance_to_land_score(ind_dist)
+        pa_dist, _ = _nearest_distance(lat, lon, protected_areas)
 
         geo = reverse_geocode(lat, lon)
 
@@ -274,6 +281,7 @@ def generate_candidates_from_bbox(
             fiber_proxy_level=fiber_proxy.proxy_level,
             nearest_ixp_km=ixp_dist,
             estimated_grid_capacity_mw=None,
+            nearest_protected_area_km=pa_dist,
             industrial_land_score=ind_score,
             flood_risk_score=None,
             water_stress_score=None,
@@ -295,6 +303,11 @@ def generate_candidates_from_bbox(
         if fiber_proxy.is_proxy and fiber_proxy.distance_km is not None:
             if MissingDataFlag.FIBER_AVAILABILITY_UNKNOWN.value not in candidate.missing_data_flags:
                 candidate.missing_data_flags.append(MissingDataFlag.FIBER_AVAILABILITY_UNKNOWN.value)
+
+        # Protected area proximity observed — centroids, not reliable polygon overlap
+        if pa_dist is not None:
+            if MissingDataFlag.PROTECTED_AREA_PROXIMITY_OBSERVED.value not in candidate.missing_data_flags:
+                candidate.missing_data_flags.append(MissingDataFlag.PROTECTED_AREA_PROXIMITY_OBSERVED.value)
 
         # Land proxy transparency: proxy proximity does not confirm zoning, ownership, or permitting
         if ind_score is not None:
