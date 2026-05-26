@@ -1286,6 +1286,12 @@ html, body, #root {
   background: rgba(104, 212, 200, 0.12);
 }
 
+.toolbar-btn--canvas.active {
+  color: #d69a13;
+  border-color: #d69a13;
+  background: rgba(214, 154, 19, 0.12);
+}
+
 /* ─── Stats Dashboard ─── */
 
 .stats-summary {
