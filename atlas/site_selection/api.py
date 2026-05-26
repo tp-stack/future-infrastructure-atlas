@@ -11,7 +11,7 @@ from atlas.site_selection.candidate_generator import (
     generate_candidates_from_polygon,
 )
 from atlas.site_selection.infrastructure_index import get_feature_counts, get_index_path, get_index_size_bytes
-from atlas.site_selection.models import CandidateSite, MissingDataFlag
+from atlas.site_selection.models import CandidateSite, EvidenceQuality, GapRegisterItem, MissingDataFlag
 from atlas.site_selection.persistence import DISCLAIMER_TEXT, load_candidate, load_candidates_by_ids, storage_path, storage_is_writable
 from atlas.site_selection.profiles import COMPUTE_PROFILES, SCORING_PROFILES
 from atlas.site_selection.report_builder import (
@@ -26,6 +26,7 @@ from atlas.site_selection.schemas import (
     ComputeProfileResponse,
     ExportReportRequest,
     ExportReportResponse,
+    GapRegisterItemResponse,
     QueryRequest,
     QueryResponse,
     ScorePointRequest,
@@ -36,6 +37,85 @@ from atlas.site_selection.schemas import (
 router = APIRouter(prefix="/v1/site-selection", tags=["site-selection"])
 
 FINAL_OUTPUT_DISCLAIMER = DISCLAIMER_TEXT
+
+GAP_REGISTER_MAP: dict[str, GapRegisterItem] = {
+    MissingDataFlag.GRID_CAPACITY_UNKNOWN.value: GapRegisterItem(
+        category="Grid capacity", status="Unknown", impact="Score penalty, high uncertainty",
+        risk="High", action_required="Utility interconnection study required before site commitment",
+        flag_key=MissingDataFlag.GRID_CAPACITY_UNKNOWN.value,
+    ),
+    MissingDataFlag.SUBSTATION_CAPACITY_ESTIMATED.value: GapRegisterItem(
+        category="Substation capacity", status="Estimated (proxy)", impact="Moderate uncertainty",
+        risk="Medium", action_required="Obtain utility substation capacity data",
+        flag_key=MissingDataFlag.SUBSTATION_CAPACITY_ESTIMATED.value,
+    ),
+    MissingDataFlag.FIBER_AVAILABILITY_UNKNOWN.value: GapRegisterItem(
+        category="Fiber availability", status="Unknown", impact="Score penalty, connectivity risk",
+        risk="High", action_required="Carrier diversity audit and fiber route survey required",
+        flag_key=MissingDataFlag.FIBER_AVAILABILITY_UNKNOWN.value,
+    ),
+    MissingDataFlag.ZONING_NOT_VERIFIED.value: GapRegisterItem(
+        category="Zoning", status="Not verified", impact="Score penalty, legal risk",
+        risk="High", action_required="Municipal zoning and permitting review required",
+        flag_key=MissingDataFlag.ZONING_NOT_VERIFIED.value,
+    ),
+    MissingDataFlag.LAND_OWNERSHIP_UNKNOWN.value: GapRegisterItem(
+        category="Land ownership", status="Unknown", impact="Score penalty, acquisition risk",
+        risk="High", action_required="Title search and land acquisition feasibility study required",
+        flag_key=MissingDataFlag.LAND_OWNERSHIP_UNKNOWN.value,
+    ),
+    MissingDataFlag.PERMITTING_TIMELINE_UNKNOWN.value: GapRegisterItem(
+        category="Permitting timeline", status="Unknown", impact="Schedule risk",
+        risk="High", action_required="Regulatory pathway assessment required",
+        flag_key=MissingDataFlag.PERMITTING_TIMELINE_UNKNOWN.value,
+    ),
+    MissingDataFlag.WATER_ACCESS_UNKNOWN.value: GapRegisterItem(
+        category="Water availability", status="Unknown", impact="Cooling feasibility risk",
+        risk="High", action_required="Utility and hydrological study required",
+        flag_key=MissingDataFlag.WATER_ACCESS_UNKNOWN.value,
+    ),
+    MissingDataFlag.COMMERCIAL_PPA_NOT_VERIFIED.value: GapRegisterItem(
+        category="Commercial PPA", status="Not secured", impact="Energy cost risk",
+        risk="Medium", action_required="Energy market analysis and PPA negotiation required",
+        flag_key=MissingDataFlag.COMMERCIAL_PPA_NOT_VERIFIED.value,
+    ),
+    MissingDataFlag.CLIMATE_RISK_PROXY_ONLY.value: GapRegisterItem(
+        category="Climate risk", status="Proxy only", impact="Due diligence gap",
+        risk="Medium", action_required="Site-specific climate resilience study required",
+        flag_key=MissingDataFlag.CLIMATE_RISK_PROXY_ONLY.value,
+    ),
+    MissingDataFlag.REGULATORY_SCORE_COUNTRY_LEVEL_ONLY.value: GapRegisterItem(
+        category="Regulatory environment", status="Country-level only", impact="Local conditions unknown",
+        risk="Medium", action_required="Local regulatory and political risk assessment required",
+        flag_key=MissingDataFlag.REGULATORY_SCORE_COUNTRY_LEVEL_ONLY.value,
+    ),
+    MissingDataFlag.MARKET_DEMAND_PROXY_ONLY.value: GapRegisterItem(
+        category="Market demand", status="Proxy estimate", impact="Commercial validation gap",
+        risk="Medium", action_required="Commercial demand validation and offtake analysis required",
+        flag_key=MissingDataFlag.MARKET_DEMAND_PROXY_ONLY.value,
+    ),
+    MissingDataFlag.CABLE_LANDING_UNKNOWN.value: GapRegisterItem(
+        category="Submarine cable proximity", status="Unknown", impact="International connectivity risk",
+        risk="Medium", action_required="Submarine cable landing point survey required",
+        flag_key=MissingDataFlag.CABLE_LANDING_UNKNOWN.value,
+    ),
+}
+
+
+def _build_gap_register(flags: list[str]) -> list[GapRegisterItemResponse]:
+    gaps: list[GapRegisterItemResponse] = []
+    for flag in flags:
+        item = GAP_REGISTER_MAP.get(flag)
+        if item:
+            gaps.append(GapRegisterItemResponse(
+                category=item.category,
+                status=item.status,
+                impact=item.impact,
+                risk=item.risk,
+                action_required=item.action_required,
+                flag_key=item.flag_key,
+            ))
+    return gaps
 
 
 def _candidate_to_response(c: CandidateSite) -> CandidateSiteResponse:
@@ -73,6 +153,14 @@ def _candidate_to_response(c: CandidateSite) -> CandidateSiteResponse:
         flood_risk_score=c.flood_risk_score,
         water_stress_score=c.water_stress_score,
         regulatory_stability_score=c.regulatory_stability_score,
+        grid_evidence_quality=c.grid_evidence_quality,
+        fiber_evidence_quality=c.fiber_evidence_quality,
+        land_evidence_quality=c.land_evidence_quality,
+        climate_evidence_quality=c.climate_evidence_quality,
+        water_evidence_quality=c.water_evidence_quality,
+        regulatory_evidence_quality=c.regulatory_evidence_quality,
+        market_evidence_quality=c.market_evidence_quality,
+        due_diligence_gaps=_build_gap_register(c.missing_data_flags),
     )
 
 

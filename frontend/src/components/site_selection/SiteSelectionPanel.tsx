@@ -3,6 +3,7 @@ import type { ComputeProfile, ScoringProfile, CandidateSite, QueryArea } from ".
 import { fetchProfiles, queryCandidates } from "../../api/siteSelectionApi";
 import CandidateLocationCard from "./CandidateLocationCard";
 import EvidenceDrawer from "./EvidenceDrawer";
+import CandidateComparison from "./CandidateComparison";
 
 interface Props {
   baseUrl?: string;
@@ -12,7 +13,9 @@ interface Props {
   onAutoTriggerConsumed?: () => void;
 }
 
-export default function SiteSelectionPanel({ baseUrl = "/api", mapBounds, onCandidatesGenerated, autoTrigger, onAutoTriggerConsumed }: Props) {
+const DEFAULT_API_URL = import.meta.env.VITE_API_URL || "/api";
+
+export default function SiteSelectionPanel({ baseUrl = DEFAULT_API_URL, mapBounds, onCandidatesGenerated, autoTrigger, onAutoTriggerConsumed }: Props) {
   const [profiles, setProfiles] = useState<ComputeProfile[]>([]);
   const [scoringProfiles, setScoringProfiles] = useState<ScoringProfile[]>([]);
   const [selectedProfile, setSelectedProfile] = useState("regional_compute_5mw");
@@ -23,6 +26,7 @@ export default function SiteSelectionPanel({ baseUrl = "/api", mapBounds, onCand
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedCandidate, setSelectedCandidate] = useState<CandidateSite | null>(null);
+  const [showComparison, setShowComparison] = useState(false);
   const [queryHistory, setQueryHistory] = useState<{ area: string; time: string }[]>([]);
 
   useEffect(() => {
@@ -164,7 +168,7 @@ export default function SiteSelectionPanel({ baseUrl = "/api", mapBounds, onCand
         onClick={handleGenerate}
         disabled={loading || !mapBounds}
       >
-        {loading ? "Generating..." : "Generate Candidate Locations"}
+        {loading ? "Analyzing..." : "Run Compute Site Selection"}
       </button>
 
       {!mapBounds && (
@@ -177,6 +181,11 @@ export default function SiteSelectionPanel({ baseUrl = "/api", mapBounds, onCand
         <div className="ss-results-toolbar">
           <button className="ss-export-btn" onClick={handleExportJson}>Export JSON</button>
           <button className="ss-export-btn" onClick={handleExportCsv}>Export CSV</button>
+          {candidates.length > 1 && (
+            <button className="ss-export-btn ss-compare-btn" onClick={() => setShowComparison(true)}>
+              Compare
+            </button>
+          )}
           <span className="ss-result-count">{candidates.length} candidates</span>
         </div>
       )}
@@ -209,6 +218,13 @@ export default function SiteSelectionPanel({ baseUrl = "/api", mapBounds, onCand
             <EvidenceDrawer candidate={selectedCandidate} onClose={() => setSelectedCandidate(null)} />
           </div>
         </div>
+      )}
+
+      {showComparison && (
+        <CandidateComparison
+          candidates={candidates}
+          onClose={() => setShowComparison(false)}
+        />
       )}
     </div>
   );

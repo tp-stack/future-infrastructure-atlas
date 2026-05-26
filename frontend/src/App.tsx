@@ -54,7 +54,9 @@ export default function App() {
   const [canvasDiag, setCanvasDiag] = useState<CanvasDiagnostics | null>(null);
   const [showTestPoints, setShowTestPoints] = useState(false);
   const [graticuleVisible, setGraticuleVisible] = useState(true);
-  const [showDiagnostics, setShowDiagnostics] = useState(false);
+  const [showDiagnostics, setShowDiagnostics] = useState(
+    () => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("debug") === "1",
+  );
   const [showCommercialWorkbench, setShowCommercialWorkbench] = useState(
     () => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("commercialPanel") === "1",
   );
@@ -121,6 +123,16 @@ export default function App() {
     };
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key === "D") {
+        setShowDiagnostics((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
   const handleToggleTheme = useCallback(() => {
@@ -436,8 +448,8 @@ export default function App() {
       <div className="app">
         <div className="loading-screen">
           <div className="loading-spinner" />
-          <div className="loading-text">Loading infrastructure atlas...</div>
-          <div className="loading-sub">Global Infrastructure Atlas - energy, internet &amp; compute intelligence</div>
+          <div className="loading-text">Loading infrastructure intelligence...</div>
+          <div className="loading-sub">The decision layer for AI compute, energy, and data-center infrastructure.</div>
         </div>
       </div>
     );
@@ -537,15 +549,24 @@ export default function App() {
         <div className={`side-panel sidebar ${sidebarOpen ? "open" : "closed"}`}>
           <div className="panel-header">
             <div className="panel-header-top">
-              <h1>Global Infrastructure Atlas</h1>
+              <h1>FUTURE Infrastructure Intelligence</h1>
               <button className="sidebar-toggle" onClick={() => setSidebarOpen(false)} title="Close sidebar">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
               </button>
             </div>
-            <div className="panel-subtitle">Energy, internet &amp; compute intelligence</div>
+            <div className="panel-subtitle">AI compute, energy &amp; data-center site intelligence</div>
+            <div className="decision-mode-buttons">
+              <button className="decision-btn decision-btn--primary" type="button" onClick={() => { setShowSiteSelection(true); setSidebarOpen(true); }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                <span>Run Site Selection</span>
+              </button>
+              <button className="decision-btn decision-btn--secondary" type="button" onClick={() => { setShowSiteSelection(false); }}>
+                Explore Infrastructure
+              </button>
+            </div>
             <button className="api-dashboard-link" type="button" onClick={openApiDashboard}>
-              <span>API Dashboard</span>
-              <strong>Pricing, keys, exports</strong>
+              <span>Enterprise Data &amp; API</span>
+              <strong>Pricing, keys, exports &amp; institutional access</strong>
             </button>
           </div>
           <LayerPanel
@@ -612,9 +633,9 @@ export default function App() {
         <div className="map-area map-stage">
           <div className="top-bar">
             <div className="top-bar-left">
-              <span className="top-bar-title">Global Infrastructure Atlas</span>
+              <span className="top-bar-title">FUTURE Infrastructure Intelligence</span>
               <button className="top-bar-api-link" type="button" onClick={openApiDashboard}>
-                API Dashboard
+                Enterprise API
               </button>
               <div className="view-mode-switch" role="group" aria-label="Map view mode">
                 <button
@@ -663,20 +684,24 @@ export default function App() {
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2v20"/></svg>
               </button>
-              <button
-                className={`toolbar-btn toolbar-btn--canvas ${canvasEnabled || canvasFallback ? "active" : ""}`}
-                onClick={() => setCanvasEnabled((v) => !v)}
-                title="Toggle canvas overlay — renders all infrastructure directly on an HTML canvas over the map"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg>
-              </button>
-              <button
-                className={`toolbar-btn ${showDiagnostics ? "active" : ""}`}
-                onClick={() => setShowDiagnostics((v) => !v)}
-                title="Toggle diagnostics"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg>
-              </button>
+              {(showDiagnostics || new URLSearchParams(window.location.search).get("debug") === "1") && (
+                <button
+                  className={`toolbar-btn toolbar-btn--canvas ${canvasEnabled || canvasFallback ? "active" : ""}`}
+                  onClick={() => setCanvasEnabled((v) => !v)}
+                  title="Toggle canvas overlay"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg>
+                </button>
+              )}
+              {(showDiagnostics || new URLSearchParams(window.location.search).get("debug") === "1") && (
+                <button
+                  className={`toolbar-btn ${showDiagnostics ? "active" : ""}`}
+                  onClick={() => setShowDiagnostics((v) => !v)}
+                  title="Toggle diagnostics"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg>
+                </button>
+              )}
               <button
                 className={`toolbar-btn toolbar-btn--commercial ${showCommercialWorkbench ? "active" : ""}`}
                 onClick={() => setShowCommercialWorkbench((v) => !v)}
@@ -827,7 +852,7 @@ export default function App() {
                   <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
                   <circle cx="12" cy="10" r="3"/>
                 </svg>
-                Analyze visible area for data center locations
+                Run Compute Site Selection
               </button>
             </div>
           )}

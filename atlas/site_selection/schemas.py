@@ -73,6 +73,15 @@ class ScoringProfileResponse(BaseModel):
     weights: dict[str, float]
 
 
+class GapRegisterItemResponse(BaseModel):
+    category: str
+    status: str
+    impact: str
+    risk: str
+    action_required: str
+    flag_key: str
+
+
 class CandidateSiteResponse(BaseModel):
     rank: int
     candidate_site_id: str
@@ -108,6 +117,14 @@ class CandidateSiteResponse(BaseModel):
     water_stress_score: float | None = None
     regulatory_stability_score: float | None = None
     incentive_score_raw: float | None = None
+    grid_evidence_quality: str | None = None
+    fiber_evidence_quality: str | None = None
+    land_evidence_quality: str | None = None
+    climate_evidence_quality: str | None = None
+    water_evidence_quality: str | None = None
+    regulatory_evidence_quality: str | None = None
+    market_evidence_quality: str | None = None
+    due_diligence_gaps: list[GapRegisterItemResponse] | None = None
 
 
 class CandidateDetailResponse(BaseModel):

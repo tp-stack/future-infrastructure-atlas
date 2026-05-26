@@ -24,6 +24,14 @@ class MissingDataFlag(str, Enum):
     CABLE_LANDING_UNKNOWN = "CABLE_LANDING_UNKNOWN"
 
 
+class EvidenceQuality(str, Enum):
+    OBSERVED = "observed"
+    DERIVED = "derived"
+    PROXY = "proxy"
+    MISSING = "missing"
+    UNVERIFIED = "unverified"
+
+
 @dataclass
 class ComputeProfile:
     key: str
@@ -76,6 +84,16 @@ class ConfidenceBreakdown:
     source_quality_score: float = 0.0
     freshness_score: float = 0.0
     spatial_precision_score: float = 0.0
+
+
+@dataclass
+class GapRegisterItem:
+    category: str
+    status: str
+    impact: str
+    risk: str
+    action_required: str
+    flag_key: str
 
 
 @dataclass
@@ -140,3 +158,11 @@ class CandidateSite:
     rank: int = 0
     score_breakdown: ScoreBreakdown | None = None
     confidence_breakdown: ConfidenceBreakdown | None = None
+    grid_evidence_quality: str | None = None
+    fiber_evidence_quality: str | None = None
+    land_evidence_quality: str | None = None
+    climate_evidence_quality: str | None = None
+    water_evidence_quality: str | None = None
+    regulatory_evidence_quality: str | None = None
+    market_evidence_quality: str | None = None
+    due_diligence_gaps: list[GapRegisterItem] | None = None

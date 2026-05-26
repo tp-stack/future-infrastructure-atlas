@@ -24,6 +24,15 @@ export interface ProfilesResponse {
   scoring_profiles: ScoringProfile[];
 }
 
+export interface GapRegisterItem {
+  category: string;
+  status: string;
+  impact: string;
+  risk: string;
+  action_required: string;
+  flag_key: string;
+}
+
 export interface CandidateSite {
   rank: number;
   candidate_site_id: string;
@@ -57,6 +66,14 @@ export interface CandidateSite {
   flood_risk_score: number | null;
   water_stress_score: number | null;
   regulatory_stability_score: number | null;
+  grid_evidence_quality: string | null;
+  fiber_evidence_quality: string | null;
+  land_evidence_quality: string | null;
+  climate_evidence_quality: string | null;
+  water_evidence_quality: string | null;
+  regulatory_evidence_quality: string | null;
+  market_evidence_quality: string | null;
+  due_diligence_gaps: GapRegisterItem[] | null;
 }
 
 export interface QueryResponse {

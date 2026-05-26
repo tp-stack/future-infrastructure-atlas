@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: future-site-selection-api
+    env: docker
+    dockerfilePath: ./backend/Dockerfile
+    repo: https://github.com/tp-stack/future-infrastructure-atlas
+    branch: master
+    healthCheckPath: /v1/site-selection/health
+    envVars:
+      - key: PYTHONPATH
+        value: /app
+      - key: SITE_SELECTION_STORAGE_DIR
+        value: /app/data/reports/site_selection

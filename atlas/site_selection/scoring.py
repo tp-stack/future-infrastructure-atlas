@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from atlas.site_selection.models import CandidateSite, MissingDataFlag, ScoreBreakdown
+from atlas.site_selection.models import CandidateSite, EvidenceQuality, MissingDataFlag, ScoreBreakdown
 from atlas.site_selection.profiles import SCORING_PROFILES, validate_weights
 
 SCORE_MIN = 0.0
@@ -30,7 +30,7 @@ def _inverse_distance_score(distance_km: float, max_acceptable_km: float) -> flo
     return _clamp(100.0 * (1.0 - distance_km / max_acceptable_km))
 
 
-def compute_grid_score(candidate: CandidateSite, profile) -> tuple[float, list[str]]:
+def compute_grid_score(candidate: CandidateSite, profile) -> tuple[float, list[str], str]:
     flags: list[str] = []
     has_substation = candidate.nearest_substation_km is not None
     has_power_line = candidate.nearest_power_line_km is not None
@@ -60,10 +60,20 @@ def compute_grid_score(candidate: CandidateSite, profile) -> tuple[float, list[s
     reliability = candidate.power_reliability_score if candidate.power_reliability_score is not None else 50.0
 
     score = 0.4 * sub_score + 0.3 * capacity_score + 0.15 * _clamp(congestion) + 0.15 * _clamp(reliability)
-    return _clamp(score), flags
+
+    if has_substation and candidate.estimated_grid_capacity_mw is not None:
+        evidence_quality = EvidenceQuality.DERIVED.value
+    elif has_substation:
+        evidence_quality = EvidenceQuality.PROXY.value
+    elif has_power_line:
+        evidence_quality = EvidenceQuality.PROXY.value
+    else:
+        evidence_quality = EvidenceQuality.MISSING.value
+
+    return _clamp(score), flags, evidence_quality
 
 
-def compute_fiber_score(candidate: CandidateSite, profile) -> tuple[float, list[str]]:
+def compute_fiber_score(candidate: CandidateSite, profile) -> tuple[float, list[str], str]:
     flags: list[str] = []
     has_fiber = candidate.nearest_fiber_km is not None
     has_ixp = candidate.nearest_ixp_km is not None
@@ -83,10 +93,18 @@ def compute_fiber_score(candidate: CandidateSite, profile) -> tuple[float, list[
     latency = candidate.latency_proxy_score if candidate.latency_proxy_score is not None else 50.0
 
     score = 0.4 * fiber_dist_score + 0.2 * ixp_score + 0.2 * _clamp(diversity) + 0.2 * _clamp(latency)
-    return _clamp(score), flags
+
+    if has_fiber and candidate.fiber_proxy_level == "facility":
+        evidence_quality = EvidenceQuality.DERIVED.value
+    elif has_fiber:
+        evidence_quality = EvidenceQuality.PROXY.value
+    else:
+        evidence_quality = EvidenceQuality.MISSING.value
+
+    return _clamp(score), flags, evidence_quality
 
 
-def compute_land_score(candidate: CandidateSite) -> tuple[float, list[str]]:
+def compute_land_score(candidate: CandidateSite) -> tuple[float, list[str], str]:
     flags: list[str] = []
 
     industrial = candidate.industrial_land_score if candidate.industrial_land_score is not None else 50.0
@@ -102,10 +120,18 @@ def compute_land_score(candidate: CandidateSite) -> tuple[float, list[str]]:
         flags.append(MissingDataFlag.PERMITTING_TIMELINE_UNKNOWN.value)
 
     score = 0.3 * _clamp(industrial) + 0.3 * _clamp(zoning) + 0.2 * _clamp(brownfield) + 0.2 * _clamp(permitting)
-    return _clamp(score), flags
+
+    if candidate.industrial_land_score is not None and candidate.zoning_compatibility_score is not None:
+        evidence_quality = EvidenceQuality.DERIVED.value
+    elif candidate.industrial_land_score is not None:
+        evidence_quality = EvidenceQuality.PROXY.value
+    else:
+        evidence_quality = EvidenceQuality.MISSING.value
+
+    return _clamp(score), flags, evidence_quality
 
 
-def compute_climate_score(candidate: CandidateSite) -> tuple[float, list[str]]:
+def compute_climate_score(candidate: CandidateSite) -> tuple[float, list[str], str]:
     flags: list[str] = []
     heat = candidate.heat_risk_score if candidate.heat_risk_score is not None else 50.0
     flood = candidate.flood_risk_score if candidate.flood_risk_score is not None else 50.0
@@ -116,20 +142,25 @@ def compute_climate_score(candidate: CandidateSite) -> tuple[float, list[str]]:
         flags.append(MissingDataFlag.CLIMATE_RISK_PROXY_ONLY.value)
 
     score = 0.35 * (100.0 - _clamp(heat)) + 0.35 * (100.0 - _clamp(flood)) + 0.15 * (100.0 - _clamp(seismic)) + 0.15 * (100.0 - _clamp(wildfire))
-    return _clamp(score), flags
+
+    has_any_observed = any(x is not None for x in [candidate.heat_risk_score, candidate.flood_risk_score, candidate.seismic_risk_score, candidate.wildfire_risk_score])
+    evidence_quality = EvidenceQuality.PROXY.value if has_any_observed else EvidenceQuality.MISSING.value
+
+    return _clamp(score), flags, evidence_quality
 
 
-def compute_water_score(candidate: CandidateSite) -> tuple[float, list[str]]:
+def compute_water_score(candidate: CandidateSite) -> tuple[float, list[str], str]:
     flags: list[str] = []
     water_stress = candidate.water_stress_score if candidate.water_stress_score is not None else 50.0
 
     if candidate.water_stress_score is None:
         flags.append(MissingDataFlag.WATER_ACCESS_UNKNOWN.value)
 
-    return _clamp(100.0 - water_stress), flags
+    evidence_quality = EvidenceQuality.PROXY.value if candidate.water_stress_score is not None else EvidenceQuality.MISSING.value
+    return _clamp(100.0 - water_stress), flags, evidence_quality
 
 
-def compute_regulatory_score(candidate: CandidateSite) -> tuple[float, list[str]]:
+def compute_regulatory_score(candidate: CandidateSite) -> tuple[float, list[str], str]:
     flags: list[str] = []
     sovereignty = candidate.data_sovereignty_score if candidate.data_sovereignty_score is not None else 50.0
     stability = candidate.regulatory_stability_score if candidate.regulatory_stability_score is not None else 50.0
@@ -140,10 +171,14 @@ def compute_regulatory_score(candidate: CandidateSite) -> tuple[float, list[str]
         flags.append(MissingDataFlag.REGULATORY_SCORE_COUNTRY_LEVEL_ONLY.value)
 
     score = 0.3 * _clamp(sovereignty) + 0.3 * _clamp(stability) + 0.2 * (100.0 - _clamp(political)) + 0.2 * (100.0 - _clamp(security))
-    return _clamp(score), flags
+
+    has_any_observed = any(x is not None for x in [candidate.data_sovereignty_score, candidate.regulatory_stability_score, candidate.political_risk_score, candidate.security_risk_score])
+    evidence_quality = EvidenceQuality.DERIVED.value if has_any_observed else EvidenceQuality.MISSING.value
+
+    return _clamp(score), flags, evidence_quality
 
 
-def compute_market_score(candidate: CandidateSite) -> tuple[float, list[str]]:
+def compute_market_score(candidate: CandidateSite) -> tuple[float, list[str], str]:
     flags: list[str] = []
     demand = candidate.market_demand_score if candidate.market_demand_score is not None else 50.0
     ai_cluster = candidate.ai_cluster_score if candidate.ai_cluster_score is not None else 50.0
@@ -153,17 +188,23 @@ def compute_market_score(candidate: CandidateSite) -> tuple[float, list[str]]:
         flags.append(MissingDataFlag.MARKET_DEMAND_PROXY_ONLY.value)
 
     score = 0.4 * _clamp(demand) + 0.3 * _clamp(ai_cluster) + 0.3 * _clamp(enterprise)
-    return _clamp(score), flags
+
+    has_any_observed = any(x is not None for x in [candidate.market_demand_score, candidate.ai_cluster_score, candidate.enterprise_proximity_score])
+    evidence_quality = EvidenceQuality.PROXY.value if has_any_observed else EvidenceQuality.MISSING.value
+
+    return _clamp(score), flags, evidence_quality
 
 
-def compute_cable_score(candidate: CandidateSite) -> tuple[float, list[str]]:
+def compute_cable_score(candidate: CandidateSite) -> tuple[float, list[str], str]:
     flags: list[str] = []
     if candidate.nearest_cable_landing_km is not None:
         score = _distance_score(candidate.nearest_cable_landing_km, 5.0, 100.0)
+        evidence_quality = EvidenceQuality.PROXY.value
     else:
         score = 30.0
         flags.append(MissingDataFlag.CABLE_LANDING_UNKNOWN.value)
-    return _clamp(score), flags
+        evidence_quality = EvidenceQuality.MISSING.value
+    return _clamp(score), flags, evidence_quality
 
 
 def compute_incentive_score(candidate: CandidateSite) -> float:
@@ -195,29 +236,36 @@ def compute_final_score(scores: ScoreBreakdown, scoring_profile_key: str = "defa
 def score_candidate(candidate: CandidateSite, profile, scoring_profile_key: str = "default") -> tuple[ScoreBreakdown, list[str]]:
     all_flags: list[str] = []
 
-    grid_score, grid_flags = compute_grid_score(candidate, profile)
+    grid_score, grid_flags, grid_quality = compute_grid_score(candidate, profile)
     all_flags.extend(grid_flags)
+    candidate.grid_evidence_quality = grid_quality
 
-    fiber_score, fiber_flags = compute_fiber_score(candidate, profile)
+    fiber_score, fiber_flags, fiber_quality = compute_fiber_score(candidate, profile)
     all_flags.extend(fiber_flags)
+    candidate.fiber_evidence_quality = fiber_quality
 
-    land_score, land_flags = compute_land_score(candidate)
+    land_score, land_flags, land_quality = compute_land_score(candidate)
     all_flags.extend(land_flags)
+    candidate.land_evidence_quality = land_quality
 
-    cable_score, cable_flags = compute_cable_score(candidate)
+    cable_score, cable_flags, cable_quality = compute_cable_score(candidate)
     all_flags.extend(cable_flags)
 
-    climate_score, climate_flags = compute_climate_score(candidate)
+    climate_score, climate_flags, climate_quality = compute_climate_score(candidate)
     all_flags.extend(climate_flags)
+    candidate.climate_evidence_quality = climate_quality
 
-    water_score, water_flags = compute_water_score(candidate)
+    water_score, water_flags, water_quality = compute_water_score(candidate)
     all_flags.extend(water_flags)
+    candidate.water_evidence_quality = water_quality
 
-    regulatory_score, reg_flags = compute_regulatory_score(candidate)
+    regulatory_score, reg_flags, reg_quality = compute_regulatory_score(candidate)
     all_flags.extend(reg_flags)
+    candidate.regulatory_evidence_quality = reg_quality
 
-    market_score, market_flags = compute_market_score(candidate)
+    market_score, market_flags, market_quality = compute_market_score(candidate)
     all_flags.extend(market_flags)
+    candidate.market_evidence_quality = market_quality
 
     incentive_score = compute_incentive_score(candidate)
 

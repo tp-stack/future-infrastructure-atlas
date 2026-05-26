@@ -1,10 +1,20 @@
 import type { CandidateSite } from "../../api/siteSelectionApi";
-import SuitabilityScore from "./SuitabilityScore";
 import MissingDataFlags from "./MissingDataFlags";
 
 interface Props {
   candidate: CandidateSite;
   onSelect: (candidate: CandidateSite) => void;
+}
+
+const EVIDENCE_DOT_COLORS: Record<string, string> = {
+  observed: "#22c55e",
+  derived: "#d69a13",
+  proxy: "#f59e0b",
+  missing: "#ef4444",
+};
+
+function evidenceDot(quality: string | null): string {
+  return EVIDENCE_DOT_COLORS[quality || ""] || "#6a6a72";
 }
 
 export default function CandidateLocationCard({ candidate, onSelect }: Props) {
@@ -37,11 +47,21 @@ export default function CandidateLocationCard({ candidate, onSelect }: Props) {
       </div>
 
       <div className="ss-candidate-scores-compact">
-        <span title="Grid">G:{candidate.grid_score.toFixed(0)}</span>
-        <span title="Fiber">F:{candidate.fiber_score.toFixed(0)}</span>
-        <span title="Land">L:{candidate.land_score.toFixed(0)}</span>
-        <span title="Climate">C:{candidate.climate_score.toFixed(0)}</span>
-        <span title="Regulatory">R:{candidate.regulatory_score.toFixed(0)}</span>
+        <span title="Grid" style={{ color: evidenceDot(candidate.grid_evidence_quality) }}>
+          G:{candidate.grid_score.toFixed(0)}
+        </span>
+        <span title="Fiber" style={{ color: evidenceDot(candidate.fiber_evidence_quality) }}>
+          F:{candidate.fiber_score.toFixed(0)}
+        </span>
+        <span title="Land" style={{ color: evidenceDot(candidate.land_evidence_quality) }}>
+          L:{candidate.land_score.toFixed(0)}
+        </span>
+        <span title="Climate" style={{ color: evidenceDot(candidate.climate_evidence_quality) }}>
+          C:{candidate.climate_score.toFixed(0)}
+        </span>
+        <span title="Regulatory" style={{ color: evidenceDot(candidate.regulatory_evidence_quality) }}>
+          R:{candidate.regulatory_score.toFixed(0)}
+        </span>
       </div>
 
       {candidate.nearest_substation_km !== null && (

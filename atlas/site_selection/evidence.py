@@ -2,15 +2,25 @@
 
 from __future__ import annotations
 
-from atlas.site_selection.models import CandidateSite, MissingDataFlag
+from atlas.site_selection.models import CandidateSite, EvidenceQuality, MissingDataFlag
+
+
+def _evidence_tag(quality: str | None) -> str:
+    tag_map = {
+        EvidenceQuality.OBSERVED.value: "[Observed]",
+        EvidenceQuality.DERIVED.value: "[Derived]",
+        EvidenceQuality.PROXY.value: "[Proxy]",
+        EvidenceQuality.MISSING.value: "[Missing]",
+        EvidenceQuality.UNVERIFIED.value: "[Unverified]",
+    }
+    return tag_map.get(quality or "", "[Unknown]")
 
 
 def _grid_proxy_evidence(candidate: CandidateSite) -> str:
-    """Build grid proxy evidence sentence distinguishing proxy level."""
+    tag = _evidence_tag(candidate.grid_evidence_quality)
     if candidate.nearest_substation_km is None:
-        return "No substation or power plant proximity data available — grid capacity is unknown."
+        return f"{tag} No substation or power plant proximity data available — grid capacity is unknown."
 
-    # Try to determine proxy level from flags and voltage data
     is_substation = candidate.substation_voltage_kv is not None
     is_hv_line = candidate.nearest_high_voltage_line_kv is not None and not is_substation
     is_power_plant = candidate.substation_voltage_kv is None and candidate.nearest_high_voltage_line_kv is None
@@ -18,7 +28,7 @@ def _grid_proxy_evidence(candidate: CandidateSite) -> str:
     dist = candidate.nearest_substation_km
     if is_substation:
         parts = [
-            f"Nearest OSM substation is approximately {dist:.1f} km away "
+            f"{tag} Nearest OSM substation is approximately {dist:.1f} km away "
             f"(voltage: {candidate.substation_voltage_kv:.0f} kV)."
         ]
         if MissingDataFlag.SUBSTATION_CAPACITY_ESTIMATED.value in candidate.missing_data_flags:
@@ -26,14 +36,14 @@ def _grid_proxy_evidence(candidate: CandidateSite) -> str:
         return " ".join(parts)
     elif is_hv_line:
         parts = [
-            f"Nearest high-voltage line proxy is approximately {dist:.1f} km away "
+            f"{tag} Nearest high-voltage line proxy is approximately {dist:.1f} km away "
             f"(voltage: {candidate.nearest_high_voltage_line_kv:.0f} kV). "
             f"This is a derived proxy point — actual substation distance may differ."
         ]
         return " ".join(parts)
     else:
         return (
-            f"Nearest power plant proxy is approximately {dist:.1f} km away. "
+            f"{tag} Nearest power plant proxy is approximately {dist:.1f} km away. "
             f"This is a weak proxy for grid proximity — actual substation distance is unknown."
         )
 
@@ -47,9 +57,9 @@ _PROXY_LABELS: dict[str, str] = {
 
 
 def _fiber_proxy_evidence(candidate: CandidateSite) -> str:
-    """Build fiber proxy evidence sentence distinguishing the proxy tier."""
+    tag = _evidence_tag(candidate.fiber_evidence_quality)
     if candidate.nearest_fiber_km is None:
-        return "Fiber availability is unknown."
+        return f"{tag} Fiber availability is unknown."
 
     level = candidate.fiber_proxy_level or "data_center"
     label = _PROXY_LABELS.get(level, "proxy point")
@@ -57,20 +67,20 @@ def _fiber_proxy_evidence(candidate: CandidateSite) -> str:
 
     if MissingDataFlag.FIBER_AVAILABILITY_UNKNOWN.value in candidate.missing_data_flags:
         return (
-            f"Nearest {label} is approximately {dist:.1f} km away. "
+            f"{tag} Nearest {label} is approximately {dist:.1f} km away. "
             f"This is a proxy for fiber connectivity — actual fiber availability is unconfirmed."
         )
-    return f"Nearest fiber connectivity is approximately {dist:.1f} km away."
+    return f"{tag} Nearest fiber connectivity is approximately {dist:.1f} km away."
 
 
 def _land_proxy_evidence(candidate: CandidateSite) -> str:
-    """Build land suitability proxy evidence sentence."""
+    tag = _evidence_tag(candidate.land_evidence_quality)
     has_industrial = candidate.industrial_land_score is not None
     has_zoning = candidate.zoning_compatibility_score is not None
     has_brownfield = candidate.brownfield_score is not None
     has_permitting = candidate.permitting_complexity_score is not None
 
-    sentences: list[str] = []
+    sentences: list[str] = [tag]
 
     if has_industrial:
         score = candidate.industrial_land_score
@@ -106,16 +116,17 @@ def _land_proxy_evidence(candidate: CandidateSite) -> str:
 
 
 def _environmental_proxy_evidence(candidate: CandidateSite) -> str:
-    """Build environmental constraint evidence with source-quality labels."""
-    sentences: list[str] = []
+    tag = _evidence_tag(candidate.climate_evidence_quality)
+    sentences: list[str] = [tag]
 
-    # Flood risk
     if candidate.flood_risk_score is not None:
-        sentences.append(f"Flood risk score: {candidate.flood_risk_score:.0f}/100 (source: {'verified' if candidate.flood_risk_score >= 0 else 'unknown'}).")
+        sentences.append(f"Flood risk score: {candidate.flood_risk_score:.0f}/100.")
     else:
-        sentences.append("Flood risk assessment is based on proxy data only — no flood hazard dataset available.")
+        sentences.append(
+            "Material due-diligence gap. Flood risk data missing for this region. "
+            "Independent flood-risk assessment required before investment, permitting, or site commitment."
+        )
 
-    # Protected area proximity
     if candidate.nearest_protected_area_km is not None:
         sentences.append(
             f"Nearest protected area centroid is {candidate.nearest_protected_area_km:.1f} km away "
@@ -125,29 +136,37 @@ def _environmental_proxy_evidence(candidate: CandidateSite) -> str:
     else:
         sentences.append("Protected area proximity is unknown — no OSM protected-area data available for this region.")
 
-    # Water stress
     if candidate.water_stress_score is not None:
-        sentences.append(f"Water stress score: {candidate.water_stress_score:.0f}/100 (source: {'verified' if candidate.water_stress_score >= 0 else 'unknown'}).")
+        sentences.append(f"Water stress score: {candidate.water_stress_score:.0f}/100.")
     else:
-        sentences.append("Water stress assessment is based on proxy data only — no water availability data available.")
+        sentences.append(
+            "Material due-diligence gap. Water availability data missing for this region. "
+            "Independent water availability assessment required before site commitment."
+        )
 
-    # Heat risk
     if candidate.heat_risk_score is not None:
         sentences.append(f"Heat risk score: {candidate.heat_risk_score:.0f}/100.")
     else:
-        sentences.append("Heat risk assessment is based on proxy data only — no temperature hazard dataset available.")
+        sentences.append(
+            "Material due-diligence gap. Heat risk data missing. "
+            "Independent climate risk assessment required."
+        )
 
-    # Seismic risk
     if candidate.seismic_risk_score is not None:
         sentences.append(f"Seismic risk score: {candidate.seismic_risk_score:.0f}/100.")
     else:
-        sentences.append("Seismic risk assessment is based on proxy data only — no seismic hazard dataset available.")
+        sentences.append(
+            "Material due-diligence gap. Seismic hazard data missing. "
+            "Independent seismic assessment required."
+        )
 
-    # Wildfire risk
     if candidate.wildfire_risk_score is not None:
         sentences.append(f"Wildfire risk score: {candidate.wildfire_risk_score:.0f}/100.")
     else:
-        sentences.append("Wildfire risk assessment is based on proxy data only — no wildfire hazard dataset available.")
+        sentences.append(
+            "Material due-diligence gap. Wildfire hazard data missing. "
+            "Independent wildfire risk assessment required."
+        )
 
     sentences.append("Environmental constraint data is incomplete — independent environmental due diligence is required.")
 
