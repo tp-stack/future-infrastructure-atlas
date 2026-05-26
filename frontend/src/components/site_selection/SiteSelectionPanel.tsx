@@ -8,14 +8,16 @@ interface Props {
   baseUrl?: string;
   mapBounds?: [number, number, number, number] | null;
   onCandidatesGenerated?: (candidates: CandidateSite[]) => void;
+  autoTrigger?: boolean;
+  onAutoTriggerConsumed?: () => void;
 }
 
-export default function SiteSelectionPanel({ baseUrl = "/api", mapBounds, onCandidatesGenerated }: Props) {
+export default function SiteSelectionPanel({ baseUrl = "/api", mapBounds, onCandidatesGenerated, autoTrigger, onAutoTriggerConsumed }: Props) {
   const [profiles, setProfiles] = useState<ComputeProfile[]>([]);
   const [scoringProfiles, setScoringProfiles] = useState<ScoringProfile[]>([]);
   const [selectedProfile, setSelectedProfile] = useState("regional_compute_5mw");
   const [selectedScoringProfile, setSelectedScoringProfile] = useState("default");
-  const [limit, setLimit] = useState(25);
+  const [limit, setLimit] = useState(10);
   const [includeExcluded, setIncludeExcluded] = useState(false);
   const [candidates, setCandidates] = useState<CandidateSite[]>([]);
   const [loading, setLoading] = useState(false);
@@ -67,7 +69,14 @@ export default function SiteSelectionPanel({ baseUrl = "/api", mapBounds, onCand
     } finally {
       setLoading(false);
     }
-  }, [baseUrl, mapBounds, selectedProfile, selectedScoringProfile, limit, includeExcluded]);
+  }, [baseUrl, mapBounds, selectedProfile, selectedScoringProfile, limit, includeExcluded, onCandidatesGenerated]);
+
+  useEffect(() => {
+    if (autoTrigger && mapBounds) {
+      onAutoTriggerConsumed?.();
+      handleGenerate();
+    }
+  }, [autoTrigger, mapBounds, handleGenerate, onAutoTriggerConsumed]);
 
   const handleExportJson = useCallback(() => {
     if (candidates.length === 0) return;

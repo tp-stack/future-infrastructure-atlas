@@ -71,7 +71,9 @@ export default function App() {
   const [theme, setTheme] = useState<AtlasTheme>(() => getTheme());
   const [gridContinentFilters, setGridContinentFilters] = useState<GridContinentFilters>(DEFAULT_GRID_CONTINENT_FILTERS);
   const [mapBounds, setMapBounds] = useState<[number, number, number, number] | null>(null);
+  const [currentZoom, setCurrentZoom] = useState(0);
   const [showSiteSelection, setShowSiteSelection] = useState(false);
+  const [siteSelectionAutoTrigger, setSiteSelectionAutoTrigger] = useState(false);
   const [candidateSites, setCandidateSites] = useState<CandidateSite[]>([]);
   const [selectedCandidate, setSelectedCandidate] = useState<CandidateSite | null>(null);
 
@@ -408,6 +410,9 @@ export default function App() {
   const handleBoundsChanged = useCallback((bounds: [number, number, number, number]) => {
     setMapBounds(bounds);
   }, []);
+  const handleZoomChanged = useCallback((zoom: number) => {
+    setCurrentZoom(zoom);
+  }, []);
 
   const handleCandidateClick = useCallback((candidate: CandidateSite) => {
     setSelectedCandidate(candidate);
@@ -588,6 +593,8 @@ export default function App() {
               <SiteSelectionPanel
                 mapBounds={mapBounds}
                 onCandidatesGenerated={setCandidateSites}
+                autoTrigger={siteSelectionAutoTrigger}
+                onAutoTriggerConsumed={() => setSiteSelectionAutoTrigger(false)}
               />
             </Suspense>
           )}
@@ -773,7 +780,9 @@ export default function App() {
               cableFilters={cableFilters}
               theme={theme}
               onBoundsChanged={handleBoundsChanged}
+              onZoomChanged={handleZoomChanged}
               candidateSites={candidateSites}
+              analysisBounds={candidateSites.length > 0 ? mapBounds : null}
               onCandidateClick={handleCandidateClick}
             />
           )}
@@ -802,6 +811,24 @@ export default function App() {
               <Suspense fallback={<div className="commercial-map-loading">Loading API workbench...</div>}>
                 <CommercialApiConsole embedded onClose={() => setShowCommercialWorkbench(false)} />
               </Suspense>
+            </div>
+          )}
+
+          {currentZoom >= 8 && !showSiteSelection && viewMode !== "globe" && candidateSites.length === 0 && (
+            <div className="analyze-area-btn-container">
+              <button
+                className="analyze-area-btn"
+                onClick={() => {
+                  setShowSiteSelection(true);
+                  setSiteSelectionAutoTrigger(true);
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
+                  <circle cx="12" cy="10" r="3"/>
+                </svg>
+                Analyze visible area for data center locations
+              </button>
             </div>
           )}
         </div>

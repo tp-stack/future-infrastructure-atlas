@@ -1292,6 +1292,45 @@ html, body, #root {
   background: rgba(214, 154, 19, 0.12);
 }
 
+/* ─── Analyze Area Button ─── */
+
+.analyze-area-btn-container {
+  position: absolute;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  pointer-events: none;
+}
+
+.analyze-area-btn {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: #d69a13;
+  color: #0a0c12;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(214, 154, 19, 0.35);
+  transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
+  white-space: nowrap;
+}
+
+.analyze-area-btn:hover {
+  background: #e8b02a;
+  transform: scale(1.03);
+  box-shadow: 0 6px 24px rgba(214, 154, 19, 0.45);
+}
+
+.analyze-area-btn:active {
+  transform: scale(0.97);
+}
+
 /* ─── Stats Dashboard ─── */
 
 .stats-summary {

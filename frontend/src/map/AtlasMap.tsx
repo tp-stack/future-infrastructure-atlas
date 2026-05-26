@@ -47,7 +47,9 @@ interface Props {
   cableFilters?: CableFilterState;
   theme?: AtlasTheme;
   onBoundsChanged?: (bounds: [number, number, number, number]) => void;
+  onZoomChanged?: (zoom: number) => void;
   candidateSites?: CandidateSite[];
+  analysisBounds?: [number, number, number, number] | null;
   onCandidateClick?: (candidate: CandidateSite) => void;
 }
 
@@ -369,7 +371,9 @@ export default function AtlasMap({
   cableFilters = DEFAULT_CABLE_FILTERS,
   theme = "dark",
   onBoundsChanged,
+  onZoomChanged,
   candidateSites,
+  analysisBounds,
   onCandidateClick,
 }: Props) {
   const mapContainer = useRef<HTMLDivElement>(null);
@@ -639,10 +643,11 @@ export default function AtlasMap({
     const handler = () => {
       const b = m.getBounds();
       onBoundsChanged([b.getWest(), b.getSouth(), b.getEast(), b.getNorth()]);
+      onZoomChanged?.(m.getZoom());
     };
     m.on("moveend", handler);
     return () => { m.off("moveend", handler); };
-  }, [onBoundsChanged]);
+  }, [onBoundsChanged, onZoomChanged]);
 
   useEffect(() => {
     const m = map.current;
@@ -794,6 +799,58 @@ export default function AtlasMap({
       if (m.getSource(sourceId)) m.removeSource(sourceId);
     }
   }, [candidateSites]);
+
+  useEffect(() => {
+    const m = map.current;
+    if (!m) return;
+    const layerId = "analysis-bbox-layer";
+    const sourceId = "analysis-bbox-source";
+    if (analysisBounds) {
+      const [w, s, e, n] = analysisBounds;
+      const geojson: GeoJSON.FeatureCollection = {
+        type: "FeatureCollection",
+        features: [{
+          type: "Feature",
+          properties: {},
+          geometry: {
+            type: "Polygon",
+            coordinates: [[
+              [w, s], [e, s], [e, n], [w, n], [w, s],
+            ]],
+          },
+        }],
+      };
+      if (m.getSource(sourceId)) {
+        (m.getSource(sourceId) as maplibregl.GeoJSONSource).setData(geojson);
+      } else {
+        m.addSource(sourceId, { type: "geojson", data: geojson });
+        m.addLayer({
+          id: layerId,
+          type: "line",
+          source: sourceId,
+          paint: {
+            "line-color": "#d69a13",
+            "line-width": 2,
+            "line-opacity": 0.7,
+            "line-dasharray": [4, 3],
+          },
+        });
+        m.addLayer({
+          id: `${layerId}-fill`,
+          type: "fill",
+          source: sourceId,
+          paint: {
+            "fill-color": "#d69a13",
+            "fill-opacity": 0.06,
+          },
+        });
+      }
+    } else {
+      if (m.getLayer(`${layerId}-fill`)) m.removeLayer(`${layerId}-fill`);
+      if (m.getLayer(layerId)) m.removeLayer(layerId);
+      if (m.getSource(sourceId)) m.removeSource(sourceId);
+    }
+  }, [analysisBounds]);
 
   useEffect(() => {
     const m = map.current;
