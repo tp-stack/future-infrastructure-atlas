@@ -453,33 +453,37 @@ export default function AtlasMap({
           const cableGeoJSON = buildCableGeoJSON(data, cableFilters, cableCompanyStats);
           console.log(`[AtlasMap:PMTiles] adding cable GeoJSON source with ${cableGeoJSON.features.length} features`);
           m.addSource("submarine-cables-source", { type: "geojson", data: cableGeoJSON });
-          m.addLayer({
-            id: "submarine-cable-lines",
-            type: "line",
-            source: "submarine-cables-source",
-            paint: {
-              "line-color": cableMapLibreColorExpression(),
-              "line-width": cableLineWidthExpression(),
-              "line-opacity": cableLineOpacityExpression(layerOpacity?.cables ?? 0.85),
-            },
-          });
-          console.log(`[AtlasMap:PMTiles] submarine-cable-lines layer added, source exists=${!!m.getSource("submarine-cables-source")}, layer exists=${!!m.getLayer("submarine-cable-lines")}`);
+          try {
+            m.addLayer({
+              id: "submarine-cable-lines",
+              type: "line",
+              source: "submarine-cables-source",
+              paint: {
+                "line-color": "#087ea4",
+                "line-width": 2,
+                "line-opacity": 0.85,
+              },
+            });
+            console.log(`[AtlasMap:PMTiles] submarine-cable-lines addLayer succeeded, layer exists=${!!m.getLayer("submarine-cable-lines")}`);
+          } catch(e) { console.log(`[AtlasMap:PMTiles] submarine-cable-lines addLayer THREW:`, e); }
         }
         // DIAGNOSTIC: add a test line and check state after 5s
-        m.addSource("test-line-source", { type: "geojson", data: { type: "FeatureCollection", features: [{ type: "Feature", geometry: { type: "LineString", coordinates: [[-30, 40], [30, 40], [30, 0]] }, properties: {}}] } });
-        m.addLayer({ id: "test-line-layer", type: "line", source: "test-line-source", paint: { "line-color": "#ff0000", "line-width": 4 } });
+        if (!m.getSource("test-line-source")) {
+          m.addSource("test-line-source", { type: "geojson", data: { type: "FeatureCollection", features: [{ type: "Feature", geometry: { type: "LineString", coordinates: [[-30, 40], [30, 40], [30, 0]] }, properties: {}}] } });
+          m.addLayer({ id: "test-line-layer", type: "line", source: "test-line-source", paint: { "line-color": "#ff0000", "line-width": 4 } });
+        }
         setTimeout(() => {
           const diagM = map.current;
           if (!diagM) return;
           console.log(`[DIAG:5s] cableSource=${!!diagM.getSource("submarine-cables-source")} cableLayer=${!!diagM.getLayer("submarine-cable-lines")} testLayer=${!!diagM.getLayer("test-line-layer")}`);
           try {
             const src = diagM.getSource("submarine-cables-source") as maplibregl.GeoJSONSource | undefined;
-            if (src) { const d = (src as any)._data || src; console.log(`[DIAG:5s] cable source features=${d?.features?.length}`); }
+            if (src) { const d = (src as any)._data || (src as any).__data || src; console.log(`[DIAG:5s] cable source features=${d?.features?.length}`); }
           } catch(e) { console.log(`[DIAG:5s] cable source error:`, e); }
           try {
             const layers = diagM.getStyle().layers;
             const cableLayers = layers.filter((l: any) => l.id.includes("cable"));
-            console.log(`[DIAG:5s] all cable layers:`, cableLayers.map((l: any) => ({ id: l.id, source: l.source, type: l.type, visible: l.layout?.visibility })));
+            console.log(`[DIAG:5s] all cable layers:`, JSON.stringify(cableLayers.map((l: any) => ({ id: l.id, source: l.source, type: l.type }))));
           } catch(e) { console.log(`[DIAG:5s] layer query error:`, e); }
           try {
             const features = diagM.queryRenderedFeatures({ layers: ["submarine-cable-lines"] });
