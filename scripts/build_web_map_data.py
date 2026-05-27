@@ -108,8 +108,15 @@ def _normalize_fuel(fuel: str) -> str:
     return FUEL_NORMALIZE.get(key, val)
 
 
+import re
+import unicodedata
+
 def _normalize_key(name: str) -> str:
-    return name.strip().lower().replace(" ", "_").replace("-", "_")
+    n = name.strip().lower()
+    n = unicodedata.normalize('NFKD', n).encode('ascii', 'ignore').decode('ascii')
+    n = re.sub(r'[^a-z0-9]', '_', n)
+    n = re.sub(r'_+', '_', n)
+    return n.strip('_')
 
 
 def _merge_text_values(existing: str, incoming: str, separator: str = " | ") -> str:
@@ -275,6 +282,38 @@ def _append_geometry_only_cables(cables: list[dict], lookup: dict) -> list[dict]
         combined.append(_source_cable_from_geometry_entry(entry))
         existing_keys.add(key)
     return combined
+
+
+def _apply_cable_geometry_supplement(cables: list[dict]) -> None:
+    """Apply supplemental geometries (fuzzy match bridge + schematic) to
+    cables that remain unmapped after the primary KMCD lookup."""
+    supp_path = PROJECT_ROOT / "config" / "cable_geometry_supplement.json"
+    if not supp_path.exists():
+        return
+    with open(supp_path, encoding="utf-8") as f:
+        supplement = json.load(f)
+
+    applied = 0
+    for cable in cables:
+        if cable.get("mapped_status") != "unmapped":
+            continue
+        key = _normalize_key(cable.get("n", ""))
+        entry = supplement.get(key)
+        if not entry or not entry.get("geometry"):
+            continue
+        cable["geometry"] = entry["geometry"]
+        cable["mapped_status"] = "mapped"
+        srctype = entry.get("source", "supplemental")
+        if srctype == "fuzzy_match_kmcd":
+            cable["coordinate_source"] = "KMCD Internet Infrastructure Map (fuzzy name match)"
+            cable["geometry_precision"] = entry.get("precision", "generalized_public_geometry")
+        else:
+            cable["coordinate_source"] = "schematic from SCN landing points"
+            cable["geometry_precision"] = "schematic_landing_points"
+        applied += 1
+
+    if applied:
+        print(f"[build] Applied supplemental geometries to {applied} unmapped cables")
 
 
 def _merge_geometry_lookup_entry(lookup: dict, key: str, entry: dict) -> None:
@@ -677,6 +716,9 @@ def build_web_data(
             cables = _append_geometry_only_cables(cables, geom_lookup)
             cable_geometry_csv_used = csv_path
             print(f"[build] Enriched cables from geometry CSV: {csv_path.name} ({len(geom_lookup)} entries)")
+
+            # ── Apply supplemental geometries (fuzzy bridge + schematic) ──
+            _apply_cable_geometry_supplement(cables)
         else:
             print(f"[build] Cable geometry CSV not found: {csv_path}", file=sys.stderr)
 
@@ -724,6 +766,28 @@ def build_web_data(
                 })
         else:
             dcs = _enrich_dc_coordinates(dcs_raw, dc_coord_lookup)
+
+    # Add supplement source if it contributed geometry
+    supp_path_local = PROJECT_ROOT / "config" / "cable_geometry_supplement.json"
+    if supp_path_local.exists():
+        with open(supp_path_local) as _f:
+            _supp = json.load(_f)
+        _fuzzy_count = sum(1 for v in _supp.values() if v.get("source") == "fuzzy_match_kmcd")
+        _schematic_count = sum(1 for v in _supp.values() if v.get("source") == "schematic_landing_points")
+        if _fuzzy_count:
+            sources.append({
+                "key": "cable_geometry_supplement_fuzzy",
+                "name": f"KMCD cable geometries ({_fuzzy_count} fuzzy name-match entries)",
+                "url": "https://map.kmcd.dev/data/all_cables.json",
+                "license": "to_verify — requires license review before production/commercial use",
+            })
+        if _schematic_count:
+            sources.append({
+                "key": "cable_geometry_supplement_schematic",
+                "name": f"Schematic cable geometries ({_schematic_count} landing-point-based entries)",
+                "url": "",
+                "license": "Derived from SCN landing point data — schematic/generalized routes",
+            })
 
     cables_mapped = sum(1 for c in cables if c.get("mapped_status") == "mapped")
     cables_unmapped = sum(1 for c in cables if c.get("mapped_status") == "unmapped")
