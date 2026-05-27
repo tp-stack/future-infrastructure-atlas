@@ -465,6 +465,31 @@ export default function AtlasMap({
           });
           console.log(`[AtlasMap:PMTiles] submarine-cable-lines layer added, source exists=${!!m.getSource("submarine-cables-source")}, layer exists=${!!m.getLayer("submarine-cable-lines")}`);
         }
+        // DIAGNOSTIC: add a test line and check state after 5s
+        m.addSource("test-line-source", { type: "geojson", data: { type: "FeatureCollection", features: [{ type: "Feature", geometry: { type: "LineString", coordinates: [[-30, 40], [30, 40], [30, 0]] }, properties: {}}] } });
+        m.addLayer({ id: "test-line-layer", type: "line", source: "test-line-source", paint: { "line-color": "#ff0000", "line-width": 4 } });
+        setTimeout(() => {
+          const diagM = map.current;
+          if (!diagM) return;
+          console.log(`[DIAG:5s] cableSource=${!!diagM.getSource("submarine-cables-source")} cableLayer=${!!diagM.getLayer("submarine-cable-lines")} testLayer=${!!diagM.getLayer("test-line-layer")}`);
+          try {
+            const src = diagM.getSource("submarine-cables-source") as maplibregl.GeoJSONSource | undefined;
+            if (src) { const d = (src as any)._data || src; console.log(`[DIAG:5s] cable source features=${d?.features?.length}`); }
+          } catch(e) { console.log(`[DIAG:5s] cable source error:`, e); }
+          try {
+            const layers = diagM.getStyle().layers;
+            const cableLayers = layers.filter((l: any) => l.id.includes("cable"));
+            console.log(`[DIAG:5s] all cable layers:`, cableLayers.map((l: any) => ({ id: l.id, source: l.source, type: l.type, visible: l.layout?.visibility })));
+          } catch(e) { console.log(`[DIAG:5s] layer query error:`, e); }
+          try {
+            const features = diagM.queryRenderedFeatures({ layers: ["submarine-cable-lines"] });
+            console.log(`[DIAG:5s] queryRenderedFeatures cable-lines=${features.length}`);
+          } catch(e) { console.log(`[DIAG:5s] query error:`, e); }
+          try {
+            const testFeatures = diagM.queryRenderedFeatures({ layers: ["test-line-layer"] });
+            console.log(`[DIAG:5s] queryRenderedFeatures test-line=${testFeatures.length}`);
+          } catch(e) { console.log(`[DIAG:5s] test query error:`, e); }
+        }, 5000);
         // Also add GeoJSON sources for power_plants and data_centers when their tiles are missing
         if (tileStatus.power_plants !== "present") {
           m.addSource("power-plants-source", { type: "geojson", data: buildPowerPlantGeoJSON(data, filters) });
