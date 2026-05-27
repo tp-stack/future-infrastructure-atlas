@@ -229,24 +229,32 @@ function cableLineOpacityExpression(baseOpacity: number): maplibregl.ExpressionS
   ] as maplibregl.ExpressionSpecification;
 }
 
-function cableLineWidthExpression(): maplibregl.ExpressionSpecification {
+function cableLineWidthExpression(includeHover = false): maplibregl.ExpressionSpecification {
+  if (includeHover) {
+    return [
+      "case",
+      ["boolean", ["get", "is_selected"], false], 5,
+      ["boolean", ["feature-state", "hover"], false], 4,
+      ["interpolate", ["linear"], ["zoom"], 0, 1.2, 4, 2.2, 8, 3.8],
+    ] as maplibregl.ExpressionSpecification;
+  }
   return [
     "case",
-    ["boolean", ["get", "is_selected"], false],
-    5,
-    ["boolean", ["feature-state", "hover"], false],
-    4,
+    ["boolean", ["get", "is_selected"], false], 5,
     ["interpolate", ["linear"], ["zoom"], 0, 1.2, 4, 2.2, 8, 3.8],
   ] as maplibregl.ExpressionSpecification;
 }
 
-function cableMapLibreColorExpression(): maplibregl.ExpressionSpecification {
-  return [
-    "case",
-    ["boolean", ["feature-state", "hover"], false],
-    CABLE_HOVER_COLOR,
-    ["coalesce", ["get", "operator_color"], CABLE_COLOR],
-  ] as maplibregl.ExpressionSpecification;
+function cableMapLibreColorExpression(includeHover = false): maplibregl.ExpressionSpecification {
+  if (includeHover) {
+    return [
+      "case",
+      ["boolean", ["feature-state", "hover"], false],
+      CABLE_HOVER_COLOR,
+      ["coalesce", ["get", "operator_color"], CABLE_COLOR],
+    ] as maplibregl.ExpressionSpecification;
+  }
+  return ["coalesce", ["get", "operator_color"], CABLE_COLOR] as maplibregl.ExpressionSpecification;
 }
 
 function pmtilesCableOpacityExpression(filters: CableFilterState, baseOpacity: number): maplibregl.ExpressionSpecification {
@@ -451,54 +459,22 @@ export default function AtlasMap({
         }
         if (tileStatus.submarine_cables !== "present") {
           const cableGeoJSON = buildCableGeoJSON(data, cableFilters, cableCompanyStats);
-          console.log(`[AtlasMap:PMTiles] adding cable GeoJSON source with ${cableGeoJSON.features.length} features`);
           m.addSource("submarine-cables-source", { type: "geojson", data: cableGeoJSON });
-          try {
-            m.addLayer({
-              id: "submarine-cable-lines",
-              type: "line",
-              source: "submarine-cables-source",
-              paint: {
-                "line-color": "#087ea4",
-                "line-width": 2,
-                "line-opacity": 0.85,
-              },
-            });
-            console.log(`[AtlasMap:PMTiles] submarine-cable-lines addLayer succeeded, layer exists=${!!m.getLayer("submarine-cable-lines")}`);
-          } catch(e) { console.log(`[AtlasMap:PMTiles] submarine-cable-lines addLayer THREW:`, e); }
+          m.addLayer({
+            id: "submarine-cable-lines",
+            type: "line",
+            source: "submarine-cables-source",
+            paint: {
+              "line-color": cableMapLibreColorExpression(false),
+              "line-width": cableLineWidthExpression(false),
+              "line-opacity": cableLineOpacityExpression(layerOpacity?.cables ?? 0.85),
+            },
+          });
         }
-        // DIAGNOSTIC: add a test line and check state after 5s
-        if (!m.getSource("test-line-source")) {
-          m.addSource("test-line-source", { type: "geojson", data: { type: "FeatureCollection", features: [{ type: "Feature", geometry: { type: "LineString", coordinates: [[-30, 40], [30, 40], [30, 0]] }, properties: {}}] } });
-          m.addLayer({ id: "test-line-layer", type: "line", source: "test-line-source", paint: { "line-color": "#ff0000", "line-width": 4 } });
-        }
-        setTimeout(() => {
-          const diagM = map.current;
-          if (!diagM) return;
-          console.log(`[DIAG:5s] cableSource=${!!diagM.getSource("submarine-cables-source")} cableLayer=${!!diagM.getLayer("submarine-cable-lines")} testLayer=${!!diagM.getLayer("test-line-layer")}`);
-          try {
-            const src = diagM.getSource("submarine-cables-source") as maplibregl.GeoJSONSource | undefined;
-            if (src) { const d = (src as any)._data || (src as any).__data || src; console.log(`[DIAG:5s] cable source features=${d?.features?.length}`); }
-          } catch(e) { console.log(`[DIAG:5s] cable source error:`, e); }
-          try {
-            const layers = diagM.getStyle().layers;
-            const cableLayers = layers.filter((l: any) => l.id.includes("cable"));
-            console.log(`[DIAG:5s] all cable layers:`, JSON.stringify(cableLayers.map((l: any) => ({ id: l.id, source: l.source, type: l.type }))));
-          } catch(e) { console.log(`[DIAG:5s] layer query error:`, e); }
-          try {
-            const features = diagM.queryRenderedFeatures({ layers: ["submarine-cable-lines"] });
-            console.log(`[DIAG:5s] queryRenderedFeatures cable-lines=${features.length}`);
-          } catch(e) { console.log(`[DIAG:5s] query error:`, e); }
-          try {
-            const testFeatures = diagM.queryRenderedFeatures({ layers: ["test-line-layer"] });
-            console.log(`[DIAG:5s] queryRenderedFeatures test-line=${testFeatures.length}`);
-          } catch(e) { console.log(`[DIAG:5s] test query error:`, e); }
-        }, 5000);
         // Also add GeoJSON sources for power_plants and data_centers when their tiles are missing
         if (tileStatus.power_plants !== "present") {
           m.addSource("power-plants-source", { type: "geojson", data: buildPowerPlantGeoJSON(data, filters) });
           addPowerPlantLayers(m);
-          console.log(`[AtlasMap:PMTiles] added power plants GeoJSON fallback`);
         }
         if (tileStatus.data_centers !== "present") {
           m.addSource("data-centers-source", { type: "geojson", data: buildDataCenterGeoJSON(data, filters) });
@@ -510,7 +486,6 @@ export default function AtlasMap({
               "circle-stroke-color": DATA_CENTER_STROKE_COLOR, "circle-stroke-width": 1.5,
             },
           });
-          console.log(`[AtlasMap:PMTiles] added data centers GeoJSON fallback`);
         }
         if (tileStatus.power_lines !== "present" && powerLinesData) {
           m.addSource("power-lines-source", { type: "geojson", data: powerLinesData });
@@ -524,8 +499,6 @@ export default function AtlasMap({
         const ppGeoJSON = buildPowerPlantGeoJSON(data, filters);
         const dcGeoJSON = buildDataCenterGeoJSON(data, filters);
         const cableGeoJSON = buildCableGeoJSON(data, cableFilters, cableCompanyStats);
-
-        console.log(`[AtlasMap] cableGeoJSON features=${cableGeoJSON.features.length} layersAdded=${layersAddedRef.current} cableFilters.mode=${cableFilters.mode}`);
 
         m.addSource("power-plants-source", {
           type: "geojson",
@@ -746,8 +719,6 @@ export default function AtlasMap({
     }
     setVis("power-points", "power_plants");
     setVis("data-center-points", "data_centers");
-    const cableVis = visibleLayers["cables"];
-    console.log(`[AtlasMap] setting submarine-cable-lines visibility=${cableVis ? "visible" : "none"}`);
     setVis("submarine-cable-lines", "cables");
     setVis("power-line-lines", "power_lines");
     setVis("power-line-cables", "power_lines");
@@ -801,8 +772,12 @@ export default function AtlasMap({
     const cableOpacity = layerOpacity?.cables ?? 0.85;
 
     if (m.getLayer("submarine-cable-lines")) {
-      m.setPaintProperty("submarine-cable-lines", "line-color", cableMapLibreColorExpression());
-      m.setPaintProperty("submarine-cable-lines", "line-width", cableLineWidthExpression());
+      try {
+        m.setPaintProperty("submarine-cable-lines", "line-color", cableMapLibreColorExpression(true));
+      } catch {}
+      try {
+        m.setPaintProperty("submarine-cable-lines", "line-width", cableLineWidthExpression(true));
+      } catch {}
       m.setPaintProperty("submarine-cable-lines", "line-opacity", cableLineOpacityExpression(cableOpacity));
     }
 
