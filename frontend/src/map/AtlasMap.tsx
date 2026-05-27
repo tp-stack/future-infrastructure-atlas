@@ -152,7 +152,7 @@ function getCableFromProps(p: Record<string, unknown>): Asset {
     source_license: str(p.source_license),
     confidence: num(p.confidence),
     operators: str(p.operators),
-    landing_points: str(p.landing_points),
+    landing_points: Array.isArray(p.landing_points) ? p.landing_points : str(p.landing_points),
     length_km: str(p.length_km),
   } as Asset;
 }

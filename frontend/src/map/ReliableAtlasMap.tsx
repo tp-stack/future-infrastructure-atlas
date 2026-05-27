@@ -186,7 +186,7 @@ function cableAsset(props: GeoJSON.GeoJsonProperties): Asset {
     geometry_precision: String(props?.geometry_precision || ""),
     confidence: Number(props?.confidence ?? 0),
     operators: String(props?.operators || ""),
-    landing_points: String(props?.landing_points || ""),
+    landing_points: Array.isArray(props?.landing_points) ? props.landing_points : String(props?.landing_points || ""),
     length_km: String(props?.length_km || ""),
   };
 }

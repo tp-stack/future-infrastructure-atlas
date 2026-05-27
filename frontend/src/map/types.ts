@@ -23,7 +23,7 @@ export interface Cable {
   source_url?: string;
   confidence?: number;
   operators?: string;
-  landing_points?: string;
+  landing_points?: string | string[];
   length_km?: string;
   unmapped_reason?: string;
 }
@@ -87,7 +87,7 @@ export interface UnmappedRecord {
 
 export interface UnmappedCable extends UnmappedRecord {
   operators: string;
-  landing_points: string;
+  landing_points: string | string[];
   length_km: string;
   unmapped_reason: string;
 }

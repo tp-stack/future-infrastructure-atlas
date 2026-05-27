@@ -265,7 +265,7 @@ export default function App() {
     if (results.length < 50) {
       for (const c of data.cables) {
         const operators = c.operators?.toLowerCase() || "";
-        const landingPoints = c.landing_points?.toLowerCase() || "";
+        const landingPoints = Array.isArray(c.landing_points) ? c.landing_points.join(" ").toLowerCase() : (c.landing_points?.toLowerCase() || "");
         if (c.n.toLowerCase().includes(q) || operators.includes(q) || landingPoints.includes(q)) {
           const owner = c.operators?.split(",")[0]?.trim();
           results.push({ label: `${c.n}${owner ? ` (${owner})` : " (submarine cable)"}`, type: "cable", asset: c });

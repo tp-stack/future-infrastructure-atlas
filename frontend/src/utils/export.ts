@@ -31,7 +31,8 @@ export function exportCSV(data: AtlasData, filters: FilterState, type: string): 
     const cables = data.cables.filter((c) => c.mapped_status === "mapped");
     rows.push("name,source,length_km,operators,landing_points,confidence");
     for (const c of cables) {
-      rows.push(toCSVRow({ name: c.n, source: c.source, length_km: c.length_km, operators: c.operators, landing_points: c.landing_points, confidence: c.confidence }));
+      const lp = Array.isArray(c.landing_points) ? c.landing_points.join("; ") : (c.landing_points || "");
+      rows.push(toCSVRow({ name: c.n, source: c.source, length_km: c.length_km, operators: c.operators, landing_points: lp, confidence: c.confidence }));
     }
   }
 

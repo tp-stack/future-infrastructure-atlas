@@ -162,7 +162,7 @@ function cableFromFeature(props: Record<string, unknown>, sourceCable?: Cable): 
     source_license: str(props.source_license),
     confidence: num(props.confidence),
     operators: str(props.operators),
-    landing_points: str(props.landing_points),
+    landing_points: Array.isArray(props.landing_points) ? props.landing_points : str(props.landing_points),
     length_km: str(props.length_km),
   };
 }

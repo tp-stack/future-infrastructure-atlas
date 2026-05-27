@@ -119,8 +119,8 @@ function renderFields(asset: Asset, type: string) {
           <div className="asset-details-field asset-details-field--block">
             <span className="asset-details-label">Landing points</span>
             <div className="asset-details-landing-list">
-              {cable.landing_points.split(",").map((lp, i) => (
-                <span key={i} className="badge badge--landing">{lp.trim()}</span>
+              {(Array.isArray(cable.landing_points) ? cable.landing_points : cable.landing_points.split(",").map(s => s.trim())).map((lp, i) => (
+                <span key={i} className="badge badge--landing">{lp}</span>
               ))}
             </div>
           </div>
