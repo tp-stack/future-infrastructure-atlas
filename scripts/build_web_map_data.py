@@ -119,6 +119,21 @@ def _normalize_key(name: str) -> str:
     return n.strip('_')
 
 
+def _parse_lp_list(value: str) -> list[str]:
+    if not value:
+        return []
+    return [p.strip() for p in value.split("|") if p.strip()]
+
+def _merge_lp_lists(existing: list[str], incoming: str) -> list[str]:
+    if not incoming:
+        return existing
+    parts = [p.strip() for p in incoming.split("|") if p.strip()]
+    seen = {p.lower() for p in existing}
+    for p in parts:
+        if p.lower() not in seen:
+            existing.append(p)
+    return existing
+
 def _merge_text_values(existing: str, incoming: str, separator: str = " | ") -> str:
     existing = (existing or "").strip()
     incoming = (incoming or "").strip()
@@ -195,7 +210,7 @@ def _read_cables(path: Path) -> list[dict]:
                 records_by_key[key] = {
                     "n": name,
                     "operators": (row.get("operators") or "").strip(),
-                    "landing_points": (row.get("landing_points") or "").strip(),
+                    "landing_points": _parse_lp_list(row.get("landing_points") or ""),
                     "segment_endpoints": (row.get("segment_endpoints") or row.get("segment_endpoints_raw") or "").strip(),
                     "length_km": (row.get("system_length_km_raw") or row.get("segment_length_km_raw") or "").strip(),
                     "source": (row.get("source_dataset") or "").strip(),
@@ -204,7 +219,7 @@ def _read_cables(path: Path) -> list[dict]:
                 continue
 
             record["operators"] = _merge_csv_values(record.get("operators", ""), row.get("operators") or "")
-            record["landing_points"] = _merge_text_values(record.get("landing_points", ""), row.get("landing_points") or "")
+            record["landing_points"] = _merge_lp_lists(record.get("landing_points", []), row.get("landing_points") or "")
             record["segment_endpoints"] = _merge_text_values(
                 record.get("segment_endpoints", ""),
                 row.get("segment_endpoints") or row.get("segment_endpoints_raw") or "",
@@ -235,15 +250,16 @@ def _parse_float(value: str, default: float) -> float:
         return default
 
 
-def _format_landing_points(value: str) -> str:
+def _format_landing_points(value: str) -> list[str]:
+    """Parse landing_points_json from CSV and return a list of landing point names."""
     if not value:
-        return ""
+        return []
     try:
         parsed = json.loads(value)
     except json.JSONDecodeError:
-        return value
+        return []
     if not isinstance(parsed, list):
-        return value
+        return []
     names = []
     for item in parsed:
         if isinstance(item, dict):
@@ -252,7 +268,7 @@ def _format_landing_points(value: str) -> str:
                 names.append(str(name))
         elif item:
             names.append(str(item))
-    return " | ".join(names)
+    return names
 
 
 def _source_cable_from_geometry_entry(entry: dict) -> dict:

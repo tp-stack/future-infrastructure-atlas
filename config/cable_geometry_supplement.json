@@ -2794,5 +2794,6757 @@
     ],
     "source": "fuzzy_match_kmcd",
     "precision": "generalized_public_geometry"
+  },
+  "gignet_1": {
+    "geometry": [
+      [
+        -68.9142,
+        14.6854
+      ],
+      [
+        -76.717,
+        17.5456
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "tata_tgn_atlantic": {
+    "geometry": [
+      [
+        -6.0412,
+        44.9326
+      ],
+      [
+        -54.7491,
+        41.4971
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "trapani_kelibia": {
+    "geometry": [
+      [
+        12.5655,
+        37.7731
+      ],
+      [
+        13.0282,
+        37.637
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "galapagos_cable_system": {
+    "geometry": [
+      [
+        -90.31,
+        -0.74
+      ],
+      [
+        -89.61,
+        -0.9
+      ],
+      [
+        -90.96,
+        -0.96
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "kattittuq_nunavut_fibre_link": {
+    "geometry": [
+      [
+        -68.52,
+        63.75
+      ],
+      [
+        -53.96,
+        47.28
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "sweden_finland_4_sfs_4": {
+    "geometry": [
+      [
+        18.7,
+        59.76
+      ],
+      [
+        22.27,
+        60.45
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "2africa": {
+    "geometry": [
+      [
+        59.2363,
+        18.7192
+      ],
+      [
+        6.1937,
+        16.9418
+      ],
+      [
+        22.3258,
+        28.1612
+      ],
+      [
+        -1.5068,
+        38.5024
+      ],
+      [
+        31.0218,
+        -29.8587
+      ],
+      [
+        43.4132,
+        -0.2073
+      ],
+      [
+        43.3925,
+        18.279
+      ],
+      [
+        8.8302,
+        17.9035
+      ],
+      [
+        20.0251,
+        3.0535
+      ],
+      [
+        34.1499,
+        19.1496
+      ],
+      [
+        42.0998,
+        0.1961
+      ],
+      [
+        28.1409,
+        31.5014
+      ],
+      [
+        43.3741,
+        4.8847
+      ],
+      [
+        62.2385,
+        15.1298
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "aec_1": {
+    "geometry": [
+      [
+        -4.6304,
+        53.3063
+      ],
+      [
+        -9.2321,
+        54.2071
+      ],
+      [
+        -38.7083,
+        45.8144
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "amitie": {
+    "geometry": [
+      [
+        -1.5068,
+        38.5024
+      ],
+      [
+        -70.9503,
+        42.4636
+      ],
+      [
+        -148.6847,
+        60.773
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "apollo": {
+    "geometry": [
+      [
+        -73.5811,
+        37.1695
+      ],
+      [
+        -1.5068,
+        38.5024
+      ],
+      [
+        -38.3027,
+        44.7752
+      ],
+      [
+        -71.4337,
+        38.3397
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "apricot": {
+    "geometry": [
+      [
+        89.6063,
+        19.1573
+      ],
+      [
+        124.7916,
+        17.0916
+      ],
+      [
+        109.427,
+        1.6061
+      ],
+      [
+        73.2429,
+        17.0554
+      ],
+      [
+        87.7919,
+        5.5783
+      ],
+      [
+        116.8176,
+        15.6748
+      ],
+      [
+        84.0864,
+        10.2992
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "asia_pacific_gateway_apg": {
+    "geometry": [
+      [
+        85.7804,
+        21.8936
+      ],
+      [
+        109.4546,
+        8.4826
+      ],
+      [
+        -30.7148,
+        30.0312
+      ],
+      [
+        112.05,
+        12.6154
+      ],
+      [
+        61.8697,
+        28.7782
+      ],
+      [
+        111.1656,
+        24.2524
+      ],
+      [
+        113.9296,
+        30.7859
+      ],
+      [
+        96.6501,
+        12.014
+      ],
+      [
+        116.8176,
+        15.6748
+      ],
+      [
+        111.5968,
+        15.187
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "atlantic_crossing_1_ac_1": {
+    "geometry": [
+      [
+        -5.6985,
+        50.0787
+      ],
+      [
+        -73.5811,
+        37.1695
+      ],
+      [
+        8.3834,
+        54.8984
+      ],
+      [
+        -5.6985,
+        50.0787
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "australia_japan_cable_ajc": {
+    "geometry": [
+      [
+        61.8697,
+        28.7782
+      ],
+      [
+        157.4236,
+        -1.398
+      ],
+      [
+        -14.3857,
+        -21.1416
+      ],
+      [
+        113.9296,
+        30.7859
+      ],
+      [
+        131.5187,
+        18.8734
+      ],
+      [
+        135.3375,
+        28.4293
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "cayman_jamaica_fiber_system_cjfs": {
+    "geometry": [
+      [
+        -76.8122,
+        18.0995
+      ],
+      [
+        -77.0624,
+        18.6076
+      ],
+      [
+        -82.0506,
+        21.466
+      ],
+      [
+        -75.843,
+        18.8367
+      ],
+      [
+        -75.3762,
+        19.518
+      ],
+      [
+        -77.0624,
+        18.6076
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "ceiba_1": {
+    "geometry": [
+      [
+        7.0085,
+        3.2586
+      ],
+      [
+        9.0166,
+        3.3768
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "ceiba_2": {
+    "geometry": [
+      [
+        7.0085,
+        3.2586
+      ],
+      [
+        7.7007,
+        3.7441
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "celtic_norse": {
+    "geometry": [
+      [
+        -9.8,
+        53.9
+      ],
+      [
+        13.976,
+        65.9258
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "celtixconnect_1_cc_1": {
+    "geometry": [
+      [
+        -5.3251,
+        54.191
+      ],
+      [
+        -4.6304,
+        53.3063
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "challenger_bermuda_1_cb_1": {
+    "geometry": [
+      [
+        -71.66,
+        41.38
+      ],
+      [
+        -64.6336,
+        32.1587
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "channel_islands_9_liberty_submarine_cable": {
+    "geometry": [
+      [
+        -4.6565,
+        53.8362
+      ],
+      [
+        -3.0659,
+        49.9138
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "chuuk_pohnpei_cable": {
+    "geometry": [
+      [
+        162.0599,
+        6.7257
+      ],
+      [
+        159.0703,
+        7.7864
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "circe_north": {
+    "geometry": [
+      [
+        4.001,
+        52.4226
+      ],
+      [
+        2.6609,
+        52.4338
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "circe_south": {
+    "geometry": [
+      [
+        0.2065,
+        50.8061
+      ],
+      [
+        1.4934,
+        50.1792
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "cobracable": {
+    "geometry": [
+      [
+        6.816,
+        53.4428
+      ],
+      [
+        8.7184,
+        55.5231
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "colombia_florida_subsea_fiber_cfx_1": {
+    "geometry": [
+      [
+        -68.9142,
+        14.6854
+      ],
+      [
+        -69.5584,
+        11.1868
+      ],
+      [
+        -75.5528,
+        13.8909
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "colombian_festoon": {
+    "geometry": [
+      [
+        -69.5584,
+        11.1868
+      ],
+      [
+        -75.5587,
+        9.4964
+      ],
+      [
+        -74.2053,
+        11.2419
+      ],
+      [
+        -74.6119,
+        11.0122
+      ],
+      [
+        -75.2431,
+        10.0016
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "columbus_iii_azores_portugal": {
+    "geometry": [
+      [
+        4.961,
+        30.5653
+      ],
+      [
+        -26.4336,
+        38.1635
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "comoros_domestic_cable_system": {
+    "geometry": [
+      [
+        43.4892,
+        -11.9231
+      ],
+      [
+        43.4892,
+        -11.9231
+      ],
+      [
+        43.9446,
+        -12.0447
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "concerto": {
+    "geometry": [
+      [
+        1.6203,
+        52.2072
+      ],
+      [
+        2.6609,
+        52.4338
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "confluence_1": {
+    "geometry": [
+      [
+        -68.9142,
+        14.6854
+      ],
+      [
+        -72.6926,
+        19.3134
+      ],
+      [
+        -35.2323,
+        19.5051
+      ],
+      [
+        -49.1085,
+        27.501
+      ],
+      [
+        -54.7491,
+        41.4971
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "converge_domestic_submarine_cable_network_cdscn": {
+    "geometry": [
+      [
+        121.2635,
+        13.7228
+      ],
+      [
+        119.5004,
+        10.82
+      ],
+      [
+        121.5277,
+        12.5864
+      ],
+      [
+        121.8395,
+        11.5021
+      ],
+      [
+        123.6167,
+        12.3666
+      ],
+      [
+        122.6787,
+        12.5265
+      ],
+      [
+        122.7644,
+        11.8789
+      ],
+      [
+        124.6128,
+        11.0069
+      ],
+      [
+        122.9354,
+        10.0411
+      ],
+      [
+        122.9678,
+        10.7394
+      ],
+      [
+        123.4129,
+        10.4837
+      ],
+      [
+        123.5852,
+        9.9746
+      ],
+      [
+        123.8399,
+        10.3223
+      ],
+      [
+        123.687,
+        10.359
+      ],
+      [
+        122.4898,
+        11.6925
+      ],
+      [
+        124.6584,
+        10.8263
+      ],
+      [
+        123.2949,
+        9.2463
+      ],
+      [
+        124.6319,
+        8.4541
+      ],
+      [
+        124.6804,
+        8.8133
+      ],
+      [
+        124.6319,
+        8.4541
+      ],
+      [
+        122.396,
+        11.2288
+      ],
+      [
+        124.2467,
+        10.1975
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "cook_strait": {
+    "geometry": [
+      [
+        174.236,
+        -41.339
+      ],
+      [
+        174.6134,
+        -41.3016
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "corse_continent_5_cc5": {
+    "geometry": [
+      [
+        7.339,
+        43.4741
+      ],
+      [
+        8.7387,
+        41.9195
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "crosschannel_fibre": {
+    "geometry": [
+      [
+        0.7978,
+        49.8773
+      ],
+      [
+        -0.1344,
+        50.8285
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "crosslake_fibre": {
+    "geometry": [
+      [
+        -78.8785,
+        42.8854
+      ],
+      [
+        -79.3853,
+        43.6446
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "curie": {
+    "geometry": [
+      [
+        -94.2329,
+        23.2684
+      ],
+      [
+        20.0251,
+        10.7875
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "damai_cable_system": {
+    "geometry": [
+      [
+        103.401,
+        -0.5502
+      ],
+      [
+        53.689,
+        22.3954
+      ],
+      [
+        101.4477,
+        1.6655
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "danice": {
+    "geometry": [
+      [
+        -22.0674,
+        55.3452
+      ],
+      [
+        -5.9063,
+        59.697
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "deep_blue_one": {
+    "geometry": [
+      [
+        -43.7837,
+        6.8004
+      ],
+      [
+        -63.4157,
+        12.2616
+      ],
+      [
+        -56.6707,
+        8.2695
+      ],
+      [
+        -60.7353,
+        11.1825
+      ],
+      [
+        -61.6508,
+        10.6863
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "denmark_sweden_17": {
+    "geometry": [
+      [
+        12.5369,
+        56.0751
+      ],
+      [
+        12.5886,
+        56.1349
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "denpasar_waingapu_cable_systems": {
+    "geometry": [
+      [
+        118.0822,
+        -8.8411
+      ],
+      [
+        120.253,
+        -9.6458
+      ],
+      [
+        117.1974,
+        -8.8033
+      ],
+      [
+        122.5456,
+        -6.535
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "dhiraagu_cable_network": {
+    "geometry": [
+      [
+        73.1733,
+        6.1425
+      ],
+      [
+        73.2395,
+        1.0003
+      ],
+      [
+        73.0892,
+        -0.6055
+      ],
+      [
+        73.0892,
+        -0.6055
+      ],
+      [
+        73.0892,
+        -0.6055
+      ],
+      [
+        73.0803,
+        3.0087
+      ],
+      [
+        82.3678,
+        3.5855
+      ],
+      [
+        67.1702,
+        6.7216
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "dhiraagu_slt_submarine_cable_network": {
+    "geometry": [
+      [
+        43.9664,
+        23.789
+      ],
+      [
+        66.0273,
+        11.57
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "didon": {
+    "geometry": [
+      [
+        12.5655,
+        37.7731
+      ],
+      [
+        10.7566,
+        38.1985
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "dos_continentes_l_ll": {
+    "geometry": [
+      [
+        -5.3252,
+        36.2103
+      ],
+      [
+        -5.3252,
+        36.2103
+      ],
+      [
+        -5.3252,
+        36.2103
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "dunant": {
+    "geometry": [
+      [
+        -3.5742,
+        48.367
+      ],
+      [
+        -49.1085,
+        27.501
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "e_llan": {
+    "geometry": [
+      [
+        -4.6565,
+        53.8362
+      ],
+      [
+        -4.4809,
+        54.1505
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "eac_c2c": {
+    "geometry": [
+      [
+        147.1293,
+        33.8247
+      ],
+      [
+        123.483,
+        21.7361
+      ],
+      [
+        85.7804,
+        21.8936
+      ],
+      [
+        121.3833,
+        25.15
+      ],
+      [
+        88.566,
+        6.8786
+      ],
+      [
+        109.4546,
+        8.4826
+      ],
+      [
+        97.0686,
+        30.5328
+      ],
+      [
+        117.8984,
+        17.5736
+      ],
+      [
+        37.5443,
+        27.9952
+      ],
+      [
+        111.1656,
+        24.2524
+      ],
+      [
+        121.4626,
+        25.169
+      ],
+      [
+        -27.4499,
+        35.3461
+      ],
+      [
+        113.9296,
+        30.7859
+      ],
+      [
+        124.65,
+        35.4198
+      ],
+      [
+        118.7807,
+        22.197
+      ],
+      [
+        111.5968,
+        15.187
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "east_west": {
+    "geometry": [
+      [
+        -73.4393,
+        18.3247
+      ],
+      [
+        -67.2298,
+        18.1192
+      ],
+      [
+        -73.4393,
+        18.3247
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "east_west_submarine_cable_system": {
+    "geometry": [
+      [
+        105.908,
+        2.8278
+      ],
+      [
+        111.1445,
+        5.1886
+      ],
+      [
+        103.8507,
+        2.2957
+      ],
+      [
+        106.2169,
+        1.5047
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "eastern_africa_submarine_system_eassy": {
+    "geometry": [
+      [
+        43.4132,
+        -0.2073
+      ],
+      [
+        53.5779,
+        20.3374
+      ],
+      [
+        42.0998,
+        0.1961
+      ],
+      [
+        43.1264,
+        -4.8854
+      ],
+      [
+        43.3741,
+        4.8847
+      ],
+      [
+        33.4897,
+        8.2288
+      ],
+      [
+        50.5348,
+        -1.4278
+      ],
+      [
+        44.8381,
+        15.7406
+      ],
+      [
+        38.0553,
+        -12.4124
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "eastern_caribbean_fiber_system_ecfs": {
+    "geometry": [
+      [
+        -62.1415,
+        16.9928
+      ],
+      [
+        -61.6508,
+        10.6863
+      ],
+      [
+        -64.5972,
+        18.4144
+      ],
+      [
+        -63.4157,
+        12.2616
+      ],
+      [
+        -62.4627,
+        15.0119
+      ],
+      [
+        -61.4543,
+        15.8325
+      ],
+      [
+        -62.7919,
+        16.2234
+      ],
+      [
+        -64.5972,
+        18.4144
+      ],
+      [
+        -64.5972,
+        18.4144
+      ],
+      [
+        -64.5972,
+        18.4144
+      ],
+      [
+        -61.5374,
+        15.2358
+      ],
+      [
+        -68.4147,
+        15.894
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "echo": {
+    "geometry": [
+      [
+        89.6063,
+        19.1573
+      ],
+      [
+        88.566,
+        6.8786
+      ],
+      [
+        -20.1802,
+        18.2175
+      ],
+      [
+        52.4693,
+        10.8054
+      ],
+      [
+        95.1828,
+        15.3231
+      ],
+      [
+        87.7919,
+        5.5783
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "eclink": {
+    "geometry": [
+      [
+        -63.4157,
+        12.2616
+      ],
+      [
+        -66.4389,
+        12.9981
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "elektra_globalconnect_1_gc1": {
+    "geometry": [
+      [
+        12.4121,
+        54.7908
+      ],
+      [
+        16.3991,
+        56.1098
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "ellalink": {
+    "geometry": [
+      [
+        -29.4746,
+        2.5265
+      ],
+      [
+        -43.7837,
+        6.8004
+      ],
+      [
+        -48.2673,
+        5.1658
+      ],
+      [
+        -24.3395,
+        29.4518
+      ],
+      [
+        -26.4629,
+        16.5234
+      ],
+      [
+        -33.0093,
+        29.3261
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "emerald_bridge_fibres": {
+    "geometry": [
+      [
+        -6.198,
+        53.4101
+      ],
+      [
+        -4.6304,
+        53.3063
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "energinet_laeso_varberg": {
+    "geometry": [
+      [
+        10.7009,
+        57.251
+      ],
+      [
+        12.2513,
+        57.1053
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "energinet_lyngsa_laeso": {
+    "geometry": [
+      [
+        10.7009,
+        57.251
+      ],
+      [
+        11.0432,
+        57.2854
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "epic_malta_sicily_cable_system_emscs": {
+    "geometry": [
+      [
+        14.38,
+        35.9341
+      ],
+      [
+        33.3882,
+        29.7833
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "equiano": {
+    "geometry": [
+      [
+        6.3949,
+        -3.3734
+      ],
+      [
+        28.3482,
+        -4.0247
+      ],
+      [
+        2.2501,
+        1.5809
+      ],
+      [
+        2.2737,
+        15.3588
+      ],
+      [
+        0.9001,
+        0.4626
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "esat_1": {
+    "geometry": [
+      [
+        -4.1695,
+        51.5581
+      ],
+      [
+        -5.7,
+        50.07
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "esat_2": {
+    "geometry": [
+      [
+        -6.2154,
+        53.3317
+      ],
+      [
+        -23.1951,
+        50.6497
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "europe_india_gateway_eig": {
+    "geometry": [
+      [
+        36.4194,
+        24.1215
+      ],
+      [
+        51.2453,
+        21.4884
+      ],
+      [
+        -1.5068,
+        38.5024
+      ],
+      [
+        52.9016,
+        24.1604
+      ],
+      [
+        84.9914,
+        4.5408
+      ],
+      [
+        53.5779,
+        20.3374
+      ],
+      [
+        43.3925,
+        18.279
+      ],
+      [
+        7.4267,
+        43.7383
+      ],
+      [
+        62.2385,
+        15.1298
+      ],
+      [
+        2.2737,
+        15.3588
+      ],
+      [
+        26.7698,
+        25.5104
+      ],
+      [
+        37.4239,
+        20.0008
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "eviny_digital": {
+    "geometry": [
+      [
+        5.3328,
+        60.3907
+      ],
+      [
+        4.4085,
+        57.4388
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "exa_express": {
+    "geometry": [
+      [
+        -5.8054,
+        51.4468
+      ],
+      [
+        -7.1999,
+        51.3064
+      ],
+      [
+        -7.5745,
+        53.5148
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "exa_north_and_south": {
+    "geometry": [
+      [
+        -70.9503,
+        42.4636
+      ],
+      [
+        -5.3251,
+        54.191
+      ],
+      [
+        -7.5745,
+        53.5148
+      ],
+      [
+        -37.1862,
+        47.0472
+      ],
+      [
+        -23.1951,
+        50.6497
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "falcon": {
+    "geometry": [
+      [
+        47.0113,
+        14.2564
+      ],
+      [
+        42.1313,
+        14.8012
+      ],
+      [
+        66.8737,
+        13.9424
+      ],
+      [
+        49.4802,
+        20.6792
+      ],
+      [
+        79.8721,
+        6.927
+      ],
+      [
+        47.3837,
+        24.6986
+      ],
+      [
+        76.9702,
+        8.7982
+      ],
+      [
+        64.0063,
+        17.7138
+      ],
+      [
+        43.9664,
+        23.789
+      ],
+      [
+        55.5456,
+        13.9072
+      ],
+      [
+        49.9274,
+        21.7873
+      ],
+      [
+        43.3925,
+        18.279
+      ],
+      [
+        58.4371,
+        25.72
+      ],
+      [
+        66.0273,
+        11.57
+      ],
+      [
+        34.1499,
+        19.1496
+      ],
+      [
+        62.2385,
+        15.1298
+      ],
+      [
+        44.8381,
+        15.7406
+      ],
+      [
+        62.8658,
+        18.0513
+      ],
+      [
+        32.5407,
+        29.9742
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "far_east_submarine_cable_system": {
+    "geometry": [
+      [
+        151.2834,
+        59.5833
+      ],
+      [
+        156.2871,
+        52.8124
+      ],
+      [
+        156.2871,
+        52.8124
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "farice_1": {
+    "geometry": [
+      [
+        -6.928,
+        62.2441
+      ],
+      [
+        -3.3462,
+        58.6154
+      ],
+      [
+        -14.0181,
+        65.2508
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "farland_north": {
+    "geometry": [
+      [
+        3.4962,
+        51.564
+      ],
+      [
+        1.5906,
+        52.1578
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "faster": {
+    "geometry": [
+      [
+        0.005,
+        46.4301
+      ],
+      [
+        97.0686,
+        30.5328
+      ],
+      [
+        113.9296,
+        30.7859
+      ],
+      [
+        118.7807,
+        22.197
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "fiber_optic_gulf_fog": {
+    "geometry": [
+      [
+        55.5456,
+        13.9072
+      ],
+      [
+        49.9274,
+        21.7873
+      ],
+      [
+        46.3902,
+        14.1651
+      ],
+      [
+        34.1499,
+        19.1496
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "fibra_optica_austral": {
+    "geometry": [
+      [
+        -71.6301,
+        -29.967
+      ],
+      [
+        -67.6059,
+        -54.9352
+      ],
+      [
+        -76.0499,
+        -47.9482
+      ],
+      [
+        -73.5369,
+        -47.8012
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "fibralink": {
+    "geometry": [
+      [
+        -76.8122,
+        18.0995
+      ],
+      [
+        -70.6912,
+        19.7994
+      ],
+      [
+        -75.843,
+        18.8367
+      ],
+      [
+        -75.3762,
+        19.518
+      ],
+      [
+        -75.8026,
+        20.3611
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "finland_estonia_2_eesf_2": {
+    "geometry": [
+      [
+        24.0586,
+        60.0378
+      ],
+      [
+        23.1628,
+        59.5577
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "firmina": {
+    "geometry": [
+      [
+        -59.5223,
+        -17.9576
+      ],
+      [
+        -35.2323,
+        19.5051
+      ],
+      [
+        -50.1871,
+        -28.6307
+      ],
+      [
+        -54.95,
+        -34.9667
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "flag_atlantic_1_fa_1": {
+    "geometry": [
+      [
+        -5.6749,
+        50.0639
+      ],
+      [
+        -73.3441,
+        40.9095
+      ],
+      [
+        -73.656,
+        40.6007
+      ],
+      [
+        -2.7678,
+        48.5349
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "flag_europe_asia_fea": {
+    "geometry": [
+      [
+        39.9059,
+        26.7939
+      ],
+      [
+        37.098,
+        29.8708
+      ],
+      [
+        47.4601,
+        21.5205
+      ],
+      [
+        52.9016,
+        24.1604
+      ],
+      [
+        109.4102,
+        19.2639
+      ],
+      [
+        43.3925,
+        18.279
+      ],
+      [
+        88.0626,
+        14.8354
+      ],
+      [
+        133.1234,
+        31.3264
+      ],
+      [
+        62.2385,
+        15.1298
+      ],
+      [
+        111.1656,
+        24.2524
+      ],
+      [
+        78.3856,
+        22.5723
+      ],
+      [
+        91.5782,
+        -0.537
+      ],
+      [
+        21.4531,
+        24.3142
+      ],
+      [
+        -5.551,
+        47.3187
+      ],
+      [
+        85.5545,
+        18.2548
+      ],
+      [
+        96.6501,
+        12.014
+      ],
+      [
+        62.8658,
+        18.0513
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "flores_corvo_cable_system": {
+    "geometry": [
+      [
+        -28.6475,
+        38.5254
+      ],
+      [
+        -27.9634,
+        39.0114
+      ],
+      [
+        -27.9634,
+        39.0114
+      ],
+      [
+        -27.9634,
+        39.0114
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "fly_lion3": {
+    "geometry": [
+      [
+        48.6829,
+        -15.8486
+      ],
+      [
+        33.4897,
+        8.2288
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "fos_quellon_chacabuco": {
+    "geometry": [
+      [
+        -73.4795,
+        -43.1175
+      ],
+      [
+        -72.8051,
+        -45.4583
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "geo_eirgrid": {
+    "geometry": [
+      [
+        -3.0276,
+        53.2017
+      ],
+      [
+        -6.1658,
+        53.5265
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "georgia_russia": {
+    "geometry": [
+      [
+        33.4141,
+        43.8699
+      ],
+      [
+        41.6675,
+        42.1468
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "germany_denmark_3": {
+    "geometry": [
+      [
+        12.4121,
+        54.7908
+      ],
+      [
+        12.1496,
+        54.1916
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "glo_1": {
+    "geometry": [
+      [
+        6.1937,
+        16.9418
+      ],
+      [
+        -1.5068,
+        38.5024
+      ],
+      [
+        8.8302,
+        17.9035
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "global_caribbean_network_gcn": {
+    "geometry": [
+      [
+        -63.8155,
+        17.6626
+      ],
+      [
+        -62.3424,
+        16.8603
+      ],
+      [
+        -66.1067,
+        18.4661
+      ],
+      [
+        -61.5717,
+        16.2445
+      ],
+      [
+        -63.1924,
+        10.816
+      ],
+      [
+        -61.0942,
+        14.6155
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "globalconnect_2_gc2": {
+    "geometry": [
+      [
+        12.0762,
+        57.4877
+      ],
+      [
+        10.5167,
+        57.331
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "globalconnect_3_gc3": {
+    "geometry": [
+      [
+        11.1494,
+        55.3261
+      ],
+      [
+        10.7996,
+        55.3244
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "globalconnect_kpn": {
+    "geometry": [
+      [
+        12.4121,
+        54.7908
+      ],
+      [
+        16.3991,
+        56.1098
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "globenet": {
+    "geometry": [
+      [
+        -64.7965,
+        14.1965
+      ],
+      [
+        -68.9142,
+        14.6854
+      ],
+      [
+        -48.2673,
+        5.1658
+      ],
+      [
+        -38.543,
+        -3.7187
+      ],
+      [
+        -62.3062,
+        -2.5504
+      ],
+      [
+        -62.3091,
+        25.3374
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "go_1_mediterranean_cable_system": {
+    "geometry": [
+      [
+        10.7566,
+        38.1985
+      ],
+      [
+        14.4119,
+        35.9506
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "gondwana_1": {
+    "geometry": [
+      [
+        165.3416,
+        -20.9456
+      ],
+      [
+        166.5259,
+        -22.3807
+      ],
+      [
+        167.1515,
+        -20.7806
+      ],
+      [
+        68.2973,
+        -30.5171
+      ],
+      [
+        166.489,
+        -20.7056
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "grace_hopper": {
+    "geometry": [
+      [
+        -10.3722,
+        48.5502
+      ],
+      [
+        -52.7015,
+        38.7178
+      ],
+      [
+        -1.5068,
+        38.5024
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "greenland_connect": {
+    "geometry": [
+      [
+        -5.9063,
+        59.697
+      ],
+      [
+        -46.0354,
+        60.719
+      ],
+      [
+        -49.8295,
+        64.1933
+      ],
+      [
+        -53.9603,
+        48.2076
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "greenland_connect_north": {
+    "geometry": [
+      [
+        -51.73,
+        64.1812
+      ],
+      [
+        -52.8591,
+        68.707
+      ],
+      [
+        -49.8295,
+        64.1933
+      ],
+      [
+        -52.8591,
+        68.707
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "gtmo_1": {
+    "geometry": [
+      [
+        -75.1582,
+        19.9396
+      ],
+      [
+        -73.1648,
+        22.2627
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "gtmo_pr": {
+    "geometry": [
+      [
+        -73.1648,
+        22.2627
+      ],
+      [
+        -75.1582,
+        19.9396
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "guadeloupe_cable_des_iles_du_sud_gcis": {
+    "geometry": [
+      [
+        -61.5788,
+        15.873
+      ],
+      [
+        -61.0739,
+        16.3036
+      ],
+      [
+        -61.3686,
+        16.1023
+      ],
+      [
+        -61.3191,
+        15.9535
+      ],
+      [
+        -61.1999,
+        16.2104
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "guam_okinawa_kyushu_incheon_goki": {
+    "geometry": [
+      [
+        129.0412,
+        29.9013
+      ],
+      [
+        135.0697,
+        26.4138
+      ],
+      [
+        135.3375,
+        28.4293
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "guernsey_jersey_4": {
+    "geometry": [
+      [
+        -2.104,
+        49.3533
+      ],
+      [
+        -2.3695,
+        49.3788
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "gulf2africa_g2a": {
+    "geometry": [
+      [
+        41.5462,
+        16.2994
+      ],
+      [
+        46.9046,
+        -0.5892
+      ],
+      [
+        55.483,
+        15.1755
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "gulf_of_california_cable": {
+    "geometry": [
+      [
+        -110.3054,
+        24.1025
+      ],
+      [
+        -109.0503,
+        25.6007
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "gulf_of_mexico_fiber_optic_network": {
+    "geometry": [
+      [
+        -95.3444,
+        28.9495
+      ],
+      [
+        -88.5562,
+        30.3658
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "hainan_to_hong_kong_express_h2he": {
+    "geometry": [
+      [
+        117.8984,
+        17.5736
+      ],
+      [
+        114.2029,
+        22.2221
+      ],
+      [
+        110.7618,
+        20.0453
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "hannibal_system": {
+    "geometry": [
+      [
+        12.5655,
+        37.7731
+      ],
+      [
+        10.7566,
+        38.1985
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "hantru1_cable_system": {
+    "geometry": [
+      [
+        167.4058,
+        9.1865
+      ],
+      [
+        167.4,
+        8.6357
+      ],
+      [
+        95.1828,
+        15.3231
+      ],
+      [
+        162.0599,
+        6.7257
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "havsil": {
+    "geometry": [
+      [
+        8.6162,
+        57.1117
+      ],
+      [
+        -12.681,
+        53.4464
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "hawaiki": {
+    "geometry": [
+      [
+        -35.0906,
+        12.508
+      ],
+      [
+        -153.2135,
+        17.1798
+      ],
+      [
+        -166.0203,
+        1.3439
+      ],
+      [
+        -86.0719,
+        -20.6725
+      ],
+      [
+        68.2973,
+        -30.5171
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "hawk": {
+    "geometry": [
+      [
+        39.9059,
+        26.7939
+      ],
+      [
+        28.1409,
+        31.5014
+      ],
+      [
+        17.1686,
+        37.0378
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "india_asia_xpress_iax": {
+    "geometry": [
+      [
+        76.9239,
+        14.3604
+      ],
+      [
+        82.3678,
+        3.5855
+      ],
+      [
+        95.4124,
+        7.4675
+      ],
+      [
+        73.1761,
+        13.8187
+      ],
+      [
+        62.2385,
+        15.1298
+      ],
+      [
+        85.5545,
+        18.2548
+      ],
+      [
+        84.0864,
+        10.2992
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "india_europe_xpress_iex": {
+    "geometry": [
+      [
+        36.3496,
+        18.6145
+      ],
+      [
+        43.3925,
+        18.279
+      ],
+      [
+        28.1409,
+        31.5014
+      ],
+      [
+        62.2385,
+        15.1298
+      ],
+      [
+        54.1481,
+        17.0958
+      ],
+      [
+        55.483,
+        15.1755
+      ],
+      [
+        20.04,
+        36.4259
+      ],
+      [
+        37.3416,
+        20.7414
+      ],
+      [
+        54.089,
+        13.1625
+      ],
+      [
+        37.4239,
+        20.0008
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "indigo_central": {
+    "geometry": [
+      [
+        39.9059,
+        26.7939
+      ],
+      [
+        -59.6167,
+        13.0975
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "indigo_west": {
+    "geometry": [
+      [
+        74.9587,
+        2.0464
+      ],
+      [
+        -59.6167,
+        13.0975
+      ],
+      [
+        84.0864,
+        10.2992
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "indonesia_global_gateway_igg_system": {
+    "geometry": [
+      [
+        101.4477,
+        1.6655
+      ],
+      [
+        114.4281,
+        1.2788
+      ],
+      [
+        109.427,
+        1.6061
+      ],
+      [
+        103.401,
+        -0.5502
+      ],
+      [
+        74.9587,
+        2.0464
+      ],
+      [
+        103.8988,
+        1.1915
+      ],
+      [
+        109.2954,
+        -1.5963
+      ],
+      [
+        84.3388,
+        9.8087
+      ],
+      [
+        116.1446,
+        -1.6868
+      ],
+      [
+        84.0864,
+        10.2992
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "ingrid": {
+    "geometry": [
+      [
+        -2.0213,
+        49.2253
+      ],
+      [
+        -2.104,
+        49.3533
+      ],
+      [
+        -2.2014,
+        49.248
+      ],
+      [
+        -2.5294,
+        49.451
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "interchange_cable_network_1_icn1": {
+    "geometry": [
+      [
+        178.4374,
+        -18.1238
+      ],
+      [
+        137.0279,
+        -19.1093
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "ionian": {
+    "geometry": [
+      [
+        20.7517,
+        38.9593
+      ],
+      [
+        17.1272,
+        39.0807
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "iris": {
+    "geometry": [
+      [
+        -21.3781,
+        63.8563
+      ],
+      [
+        -9.0483,
+        53.2739
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "isles_of_scilly_cable": {
+    "geometry": [
+      [
+        -6.3082,
+        49.9199
+      ],
+      [
+        -5.551,
+        47.3187
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "italy_albania": {
+    "geometry": [
+      [
+        31.5159,
+        35.6611
+      ],
+      [
+        18.3942,
+        40.3726
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "italy_croatia": {
+    "geometry": [
+      [
+        13.5335,
+        45.4333
+      ],
+      [
+        12.2574,
+        45.4961
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "italy_libya": {
+    "geometry": [
+      [
+        10.7566,
+        38.1985
+      ],
+      [
+        26.7698,
+        25.5104
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "italy_monaco": {
+    "geometry": [
+      [
+        8.4838,
+        44.3057
+      ],
+      [
+        20.04,
+        36.4259
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "ixchel": {
+    "geometry": [
+      [
+        -87.0703,
+        20.6297
+      ],
+      [
+        -86.8792,
+        20.4287
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "jaka2ladema": {
+    "geometry": [
+      [
+        115.3428,
+        -5.9568
+      ],
+      [
+        115.3314,
+        -8.5367
+      ],
+      [
+        114.0972,
+        -8.6152
+      ],
+      [
+        115.2215,
+        -8.6567
+      ],
+      [
+        109.6522,
+        -0.9543
+      ],
+      [
+        111.7529,
+        -2.8493
+      ],
+      [
+        109.972,
+        -1.8587
+      ],
+      [
+        105.3988,
+        -0.2327
+      ],
+      [
+        111.15,
+        -3.4793
+      ],
+      [
+        114.604,
+        -3.3276
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "jakabare": {
+    "geometry": [
+      [
+        88.566,
+        6.8786
+      ],
+      [
+        108.6758,
+        -0.9634
+      ],
+      [
+        105.8807,
+        -1.658
+      ],
+      [
+        87.7919,
+        5.5783
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "jakarta_bangka_bintan_batam_singapore_b3js": {
+    "geometry": [
+      [
+        109.427,
+        1.6061
+      ],
+      [
+        104.1861,
+        1.232
+      ],
+      [
+        104.4258,
+        1.1367
+      ],
+      [
+        74.9587,
+        2.0464
+      ],
+      [
+        104.1861,
+        1.232
+      ],
+      [
+        104.5507,
+        -0.5706
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "jakarta_surabaya_cable_system_jayabaya": {
+    "geometry": [
+      [
+        113.2528,
+        -5.6622
+      ],
+      [
+        112.7197,
+        -7.2719
+      ],
+      [
+        112.7197,
+        -7.2719
+      ],
+      [
+        87.7919,
+        5.5783
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "jambi_batam_cable_system_jiba": {
+    "geometry": [
+      [
+        103.8838,
+        0.5939
+      ],
+      [
+        103.3072,
+        0.4304
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "janna": {
+    "geometry": [
+      [
+        9.4964,
+        40.9236
+      ],
+      [
+        10.1756,
+        41.4091
+      ],
+      [
+        10.7566,
+        38.1985
+      ],
+      [
+        12.4091,
+        39.7102
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "japan_guam_australia_north_jga_n": {
+    "geometry": [
+      [
+        140.8306,
+        29.5849
+      ],
+      [
+        95.1828,
+        15.3231
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "japan_guam_australia_south_jga_s": {
+    "geometry": [
+      [
+        162.3473,
+        -11.0641
+      ],
+      [
+        16.5143,
+        0.1462
+      ],
+      [
+        95.1828,
+        15.3231
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "japan_information_highway_jih": {
+    "geometry": [
+      [
+        140.0333,
+        40.4777
+      ],
+      [
+        97.0686,
+        30.5328
+      ],
+      [
+        139.8375,
+        41.154
+      ],
+      [
+        141.3154,
+        43.1712
+      ],
+      [
+        134.5885,
+        23.93
+      ],
+      [
+        135.0697,
+        26.4138
+      ],
+      [
+        134.4746,
+        32.7684
+      ],
+      [
+        131.2946,
+        32.0976
+      ],
+      [
+        113.9296,
+        30.7859
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "jasuka": {
+    "geometry": [
+      [
+        105.2541,
+        -5.4093
+      ],
+      [
+        109.427,
+        1.6061
+      ],
+      [
+        103.401,
+        -0.5502
+      ],
+      [
+        74.9587,
+        2.0464
+      ],
+      [
+        105.3988,
+        -0.2327
+      ],
+      [
+        87.7919,
+        5.5783
+      ],
+      [
+        106.0976,
+        -0.3878
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "java_kalimantan_sulawesi_jakasusi": {
+    "geometry": [
+      [
+        112.7197,
+        -7.2719
+      ],
+      [
+        113.2528,
+        -5.6622
+      ],
+      [
+        115.9851,
+        -5.5684
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "jerry_newton": {
+    "geometry": [
+      [
+        -68.2841,
+        12.1638
+      ],
+      [
+        -66.4389,
+        12.9981
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "jonah": {
+    "geometry": [
+      [
+        31.5159,
+        35.6611
+      ],
+      [
+        34.7668,
+        32.1303
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "jscfs": {
+    "geometry": [
+      [
+        -77.9214,
+        18.4694
+      ],
+      [
+        -76.8122,
+        18.0995
+      ],
+      [
+        -75.843,
+        18.8367
+      ],
+      [
+        -76.6667,
+        17.9499
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "junior": {
+    "geometry": [
+      [
+        -62.3062,
+        -2.5504
+      ],
+      [
+        -66.0565,
+        1.7125
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "juno": {
+    "geometry": [
+      [
+        -33.5699,
+        32.0547
+      ],
+      [
+        140.8306,
+        29.5849
+      ],
+      [
+        113.9296,
+        30.7859
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "jupiter": {
+    "geometry": [
+      [
+        139.9755,
+        35.0054
+      ],
+      [
+        153.4286,
+        31.759
+      ],
+      [
+        39.3277,
+        14.603
+      ],
+      [
+        61.8697,
+        28.7782
+      ],
+      [
+        113.9296,
+        30.7859
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "kafos": {
+    "geometry": [
+      [
+        28.9882,
+        41.0406
+      ],
+      [
+        31.2751,
+        38.1392
+      ],
+      [
+        28.5828,
+        43.8172
+      ],
+      [
+        27.9129,
+        43.2084
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "kanawa": {
+    "geometry": [
+      [
+        -61.1121,
+        14.629
+      ],
+      [
+        -56.8788,
+        9.8986
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "kattegat_2": {
+    "geometry": [
+      [
+        11.0432,
+        57.2854
+      ],
+      [
+        12.6834,
+        56.6834
+      ],
+      [
+        10.967,
+        57.2726
+      ],
+      [
+        10.5146,
+        57.2449
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "kerch_strait_cable": {
+    "geometry": [
+      [
+        36.5343,
+        45.394
+      ],
+      [
+        36.7708,
+        45.4236
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "ketchcan1_submarine_fiber_cable_system": {
+    "geometry": [
+      [
+        -136.4413,
+        56.577
+      ],
+      [
+        -126.8173,
+        51.1008
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "kodiak_kenai_fiber_link_kkfl": {
+    "geometry": [
+      [
+        -150.3697,
+        60.4
+      ],
+      [
+        -151.5941,
+        60.53
+      ],
+      [
+        -149.8584,
+        61.2176
+      ],
+      [
+        -157.1025,
+        57.3947
+      ],
+      [
+        -149.8584,
+        61.2176
+      ],
+      [
+        -136.8911,
+        53.6914
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "korea_japan_cable_network_kjcn": {
+    "geometry": [
+      [
+        85.7804,
+        21.8936
+      ],
+      [
+        131.0319,
+        33.8395
+      ],
+      [
+        129.0412,
+        29.9013
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "kumul_domestic_submarine_cable_system": {
+    "geometry": [
+      [
+        147.1885,
+        -9.4796
+      ],
+      [
+        145.7717,
+        -7.9637
+      ],
+      [
+        145.575,
+        -8.4011
+      ],
+      [
+        141.9395,
+        -5.8349
+      ],
+      [
+        147.1885,
+        -9.4796
+      ],
+      [
+        145.7847,
+        -5.2337
+      ],
+      [
+        150.4588,
+        -10.3157
+      ],
+      [
+        151.2,
+        -10.3988
+      ],
+      [
+        148.2935,
+        -8.6044
+      ],
+      [
+        149.4,
+        -8.4011
+      ],
+      [
+        146.3888,
+        -5.9865
+      ],
+      [
+        148.05,
+        -7.0629
+      ],
+      [
+        150.9743,
+        -8.0474
+      ],
+      [
+        140.6691,
+        -2.5916
+      ],
+      [
+        141.3,
+        -2.1309
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "kupang_alor_cable_systems": {
+    "geometry": [
+      [
+        123.5833,
+        -10.1833
+      ],
+      [
+        125.9355,
+        -7.8804
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "kuwait_iran": {
+    "geometry": [
+      [
+        47.9748,
+        29.3741
+      ],
+      [
+        50.5211,
+        29.5708
+      ],
+      [
+        46.3902,
+        14.1651
+      ],
+      [
+        49.5,
+        29.3446
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "la_gomera_el_hierro": {
+    "geometry": [
+      [
+        -16.518,
+        28.0591
+      ],
+      [
+        -17.88,
+        27.81
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "labuan_brunei_submarine_cable": {
+    "geometry": [
+      [
+        115.1689,
+        5.2553
+      ],
+      [
+        110.9824,
+        7.6345
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "lanis_1": {
+    "geometry": [
+      [
+        -4.6565,
+        53.8362
+      ],
+      [
+        -4.0003,
+        53.8056
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "lanis_2": {
+    "geometry": [
+      [
+        -5.4843,
+        54.5429
+      ],
+      [
+        -5.1254,
+        54.2623
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "lanis_3": {
+    "geometry": [
+      [
+        -4.6599,
+        55.5413
+      ],
+      [
+        -5.7187,
+        54.7537
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "minoas_east_and_west": {
+    "geometry": [
+      [
+        23.0357,
+        36.5232
+      ],
+      [
+        23.0357,
+        36.5232
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "mist": {
+    "geometry": [
+      [
+        76.9239,
+        14.3604
+      ],
+      [
+        73.1761,
+        13.8187
+      ],
+      [
+        62.2385,
+        15.1298
+      ],
+      [
+        85.5545,
+        18.2548
+      ],
+      [
+        84.0864,
+        10.2992
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "miyazaki_okinawa_cable_moc": {
+    "geometry": [
+      [
+        134.5885,
+        23.93
+      ],
+      [
+        135.0697,
+        26.4138
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "monet": {
+    "geometry": [
+      [
+        -68.9142,
+        14.6854
+      ],
+      [
+        -48.2673,
+        5.1658
+      ],
+      [
+        -66.0565,
+        1.7125
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "moratelindo_international_cable_system_1_mic_1": {
+    "geometry": [
+      [
+        109.427,
+        1.6061
+      ],
+      [
+        88.566,
+        6.8786
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "n0r5ke_viking": {
+    "geometry": [
+      [
+        9.6632,
+        63.6884
+      ],
+      [
+        5.3328,
+        60.3907
+      ],
+      [
+        7.1607,
+        62.7372
+      ],
+      [
+        10.3921,
+        63.431
+      ],
+      [
+        10.3921,
+        63.431
+      ],
+      [
+        10.3921,
+        63.431
+      ],
+      [
+        10.3921,
+        63.431
+      ],
+      [
+        10.3921,
+        63.431
+      ],
+      [
+        10.3921,
+        63.431
+      ],
+      [
+        13.976,
+        65.9258
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "national_digital_transmission_network_ndtn": {
+    "geometry": [
+      [
+        123.1688,
+        11.4126
+      ],
+      [
+        122.3427,
+        11.3696
+      ],
+      [
+        122.1926,
+        10.4636
+      ],
+      [
+        121.6491,
+        11.5979
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "nationwide_submarine_cable_ooredoo_maldives_nascom": {
+    "geometry": [
+      [
+        73.2395,
+        1.0003
+      ],
+      [
+        73.0803,
+        3.0087
+      ],
+      [
+        82.3678,
+        3.5855
+      ],
+      [
+        73.0715,
+        6.6228
+      ],
+      [
+        67.1702,
+        6.7216
+      ],
+      [
+        73.0715,
+        6.6228
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "natitua": {
+    "geometry": [
+      [
+        -140.1421,
+        -8.8605
+      ],
+      [
+        -149.3081,
+        -17.7233
+      ],
+      [
+        -145.9123,
+        -14.7894
+      ],
+      [
+        -147.722,
+        -18.8749
+      ],
+      [
+        -145.3498,
+        -14.1358
+      ],
+      [
+        -144.9722,
+        -14.4498
+      ],
+      [
+        -139.3873,
+        -9.8451
+      ],
+      [
+        -139.0211,
+        -9.7546
+      ],
+      [
+        -147.1498,
+        -15.224
+      ],
+      [
+        -147.6513,
+        -15.1162
+      ],
+      [
+        -147.1498,
+        -15.5494
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "natitua_sud": {
+    "geometry": [
+      [
+        -147.722,
+        -18.8749
+      ],
+      [
+        -149.3081,
+        -17.7233
+      ],
+      [
+        -149.1748,
+        -22.4235
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "nelson_levin": {
+    "geometry": [
+      [
+        173.284,
+        -41.2723
+      ],
+      [
+        175.2853,
+        -40.6253
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "new_cross_pacific_ncp_cable_system": {
+    "geometry": [
+      [
+        85.7804,
+        21.8936
+      ],
+      [
+        -30.7148,
+        30.0312
+      ],
+      [
+        -20.0226,
+        41.0871
+      ],
+      [
+        61.8697,
+        28.7782
+      ],
+      [
+        111.1656,
+        24.2524
+      ],
+      [
+        128.25,
+        30.5145
+      ],
+      [
+        116.8176,
+        15.6748
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "nigeria_cameroon_submarine_cable_system_ncscs": {
+    "geometry": [
+      [
+        -48.2673,
+        5.1658
+      ],
+      [
+        7.7007,
+        3.7441
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "no_uk": {
+    "geometry": [
+      [
+        2.0565,
+        56.9745
+      ],
+      [
+        4.4085,
+        57.4388
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "nordbalt": {
+    "geometry": [
+      [
+        15.9087,
+        56.7438
+      ],
+      [
+        21.15,
+        55.6957
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "north_west_cable_system": {
+    "geometry": [
+      [
+        124.7102,
+        -16.3905
+      ],
+      [
+        130.5,
+        -12.1091
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "northern_lights": {
+    "geometry": [
+      [
+        -3.355,
+        59.0515
+      ],
+      [
+        -3.3766,
+        58.6703
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "northstar": {
+    "geometry": [
+      [
+        -136.1815,
+        57.9809
+      ],
+      [
+        -142.6693,
+        59.1721
+      ],
+      [
+        -141.5458,
+        59.5363
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "nzadi_cable_system": {
+    "geometry": [
+      [
+        12.2465,
+        -5.686
+      ],
+      [
+        20.0251,
+        3.0535
+      ],
+      [
+        12.7935,
+        -7.4768
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "okinawa_cellular_cable": {
+    "geometry": [
+      [
+        127.9773,
+        26.5916
+      ],
+      [
+        130.5571,
+        31.5965
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "oman_australia_cable_oac": {
+    "geometry": [
+      [
+        51.2453,
+        21.4884
+      ],
+      [
+        56.0171,
+        20.3873
+      ],
+      [
+        -59.6167,
+        13.0975
+      ],
+      [
+        55.483,
+        15.1755
+      ],
+      [
+        71.624,
+        -1.3168
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "oran_valencia_orval": {
+    "geometry": [
+      [
+        -1.1362,
+        38.9339
+      ],
+      [
+        3.5567,
+        36.3022
+      ],
+      [
+        2.064,
+        38.9185
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "oteglobe_kokkini_bari": {
+    "geometry": [
+      [
+        31.5159,
+        35.6611
+      ],
+      [
+        16.8688,
+        41.1257
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "pacific_caribbean_cable_system_pccs": {
+    "geometry": [
+      [
+        -94.2329,
+        23.2684
+      ],
+      [
+        -69.5584,
+        11.1868
+      ],
+      [
+        -79.5666,
+        8.9503
+      ],
+      [
+        -72.6926,
+        19.3134
+      ],
+      [
+        -81.6556,
+        30.3321
+      ],
+      [
+        -79.7535,
+        9.4377
+      ],
+      [
+        -73.786,
+        17.4987
+      ],
+      [
+        -63.1924,
+        10.816
+      ],
+      [
+        -68.4147,
+        15.894
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "pacific_crossing_1_pc_1": {
+    "geometry": [
+      [
+        147.1293,
+        33.8247
+      ],
+      [
+        -33.5699,
+        32.0547
+      ],
+      [
+        -179.9998,
+        45.3283
+      ],
+      [
+        113.9296,
+        30.7859
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "pacific_light_cable_network_plcn": {
+    "geometry": [
+      [
+        124.7916,
+        17.0916
+      ],
+      [
+        20.0251,
+        10.7875
+      ],
+      [
+        116.8176,
+        15.6748
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "palapa_ring_east": {
+    "geometry": [
+      [
+        120.253,
+        -9.6458
+      ],
+      [
+        123.5834,
+        -10.1829
+      ],
+      [
+        124.4535,
+        -8.1608
+      ],
+      [
+        136.8896,
+        -4.5502
+      ],
+      [
+        139.3965,
+        -7.1024
+      ],
+      [
+        125.9355,
+        -7.8804
+      ],
+      [
+        135.2864,
+        -1.8123
+      ],
+      [
+        135.5016,
+        -3.3722
+      ],
+      [
+        134.325,
+        -1.6812
+      ],
+      [
+        133.4821,
+        -2.2024
+      ],
+      [
+        133.4821,
+        -2.2024
+      ],
+      [
+        134.5603,
+        -1.466
+      ],
+      [
+        133.4821,
+        -2.2024
+      ],
+      [
+        133.4821,
+        -2.2024
+      ],
+      [
+        133.772,
+        -1.5319
+      ],
+      [
+        134.016,
+        -1.3794
+      ],
+      [
+        122.5456,
+        -6.535
+      ],
+      [
+        133.4821,
+        -2.2024
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "palapa_ring_middle": {
+    "geometry": [
+      [
+        124.8396,
+        1.4908
+      ],
+      [
+        127.9679,
+        1.7146
+      ],
+      [
+        127.3613,
+        0.7958
+      ],
+      [
+        128.6932,
+        -1.7089
+      ],
+      [
+        122.7928,
+        -0.9388
+      ],
+      [
+        125.256,
+        -0.72
+      ],
+      [
+        84.3388,
+        9.8087
+      ],
+      [
+        122.8561,
+        -4.7922
+      ],
+      [
+        122.5599,
+        -5.3891
+      ],
+      [
+        122.5969,
+        -5.5071
+      ],
+      [
+        122.5969,
+        -5.5071
+      ],
+      [
+        122.5969,
+        -5.5071
+      ],
+      [
+        124.6419,
+        -3.8543
+      ],
+      [
+        124.2669,
+        -3.8543
+      ],
+      [
+        122.5969,
+        -5.5071
+      ],
+      [
+        122.5969,
+        -5.5071
+      ],
+      [
+        122.5969,
+        -5.5071
+      ],
+      [
+        122.5969,
+        -5.5071
+      ],
+      [
+        122.5969,
+        -5.5071
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "palapa_ring_west": {
+    "geometry": [
+      [
+        109.427,
+        1.6061
+      ],
+      [
+        104.6354,
+        -0.1628
+      ],
+      [
+        103.401,
+        -0.5502
+      ],
+      [
+        103.4667,
+        -0.8165
+      ],
+      [
+        103.8838,
+        0.5939
+      ],
+      [
+        103.4049,
+        0.7698
+      ],
+      [
+        103.4049,
+        0.7698
+      ],
+      [
+        102.667,
+        0.9326
+      ],
+      [
+        102.667,
+        0.9326
+      ],
+      [
+        102.0801,
+        1.4892
+      ],
+      [
+        106.2169,
+        1.5047
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "palawan_iloilo_cable_system": {
+    "geometry": [
+      [
+        119.5004,
+        10.82
+      ],
+      [
+        122.396,
+        11.2288
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "pan_american_crossing_pac": {
+    "geometry": [
+      [
+        -93.8249,
+        12.7185
+      ],
+      [
+        -33.5699,
+        32.0547
+      ],
+      [
+        -115.1632,
+        29.099
+      ],
+      [
+        -106.4219,
+        23.1997
+      ],
+      [
+        -79.5465,
+        8.9341
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "pan_european_crossing_uk_belgium": {
+    "geometry": [
+      [
+        1.441,
+        51.3586
+      ],
+      [
+        2.9619,
+        51.2467
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "pan_european_crossing_uk_ireland": {
+    "geometry": [
+      [
+        -4.5444,
+        50.8282
+      ],
+      [
+        -6.3649,
+        52.4018
+      ],
+      [
+        -1.5068,
+        38.5024
+      ],
+      [
+        -5.6985,
+        50.0787
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "paniolo_cable_network": {
+    "geometry": [
+      [
+        -159.7242,
+        21.9703
+      ],
+      [
+        -158.138,
+        21.4641
+      ],
+      [
+        -156.5645,
+        11.9952
+      ],
+      [
+        -156.6845,
+        20.9009
+      ],
+      [
+        -156.44,
+        20.6636
+      ],
+      [
+        -60.5934,
+        20.9726
+      ],
+      [
+        -155.8314,
+        20.04
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "pasuli": {
+    "geometry": [
+      [
+        105.3076,
+        -3.4781
+      ],
+      [
+        105.3746,
+        -3.9172
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "peace_cable": {
+    "geometry": [
+      [
+        36.4194,
+        24.1215
+      ],
+      [
+        41.5462,
+        16.2994
+      ],
+      [
+        24.542,
+        25.6205
+      ],
+      [
+        43.3925,
+        18.279
+      ],
+      [
+        47.8305,
+        15.899
+      ],
+      [
+        67.1702,
+        6.7216
+      ],
+      [
+        28.1409,
+        31.5014
+      ],
+      [
+        30.0844,
+        26.8296
+      ],
+      [
+        43.3741,
+        4.8847
+      ],
+      [
+        84.0864,
+        10.2992
+      ],
+      [
+        22.3211,
+        18.2352
+      ],
+      [
+        17.1686,
+        37.0378
+      ],
+      [
+        37.4239,
+        20.0008
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "penbal_4": {
+    "geometry": [
+      [
+        -0.377,
+        39.4596
+      ],
+      [
+        2.9116,
+        39.6135
+      ],
+      [
+        2.064,
+        38.9185
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "penbal_5": {
+    "geometry": [
+      [
+        2.0013,
+        41.3044
+      ],
+      [
+        2.971,
+        39.3548
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "pencan_8": {
+    "geometry": [
+      [
+        -10.8935,
+        32.1382
+      ],
+      [
+        -12.6899,
+        35.4849
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "pencan_9": {
+    "geometry": [
+      [
+        -0.0644,
+        19.662
+      ],
+      [
+        -15.4507,
+        28.0964
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "persona": {
+    "geometry": [
+      [
+        -58.6865,
+        47.6177
+      ],
+      [
+        -60.1354,
+        46.2515
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "pgascom": {
+    "geometry": [
+      [
+        109.427,
+        1.6061
+      ],
+      [
+        103.8838,
+        0.5939
+      ],
+      [
+        103.706,
+        1.2593
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "picot_1": {
+    "geometry": [
+      [
+        165.3416,
+        -20.9456
+      ],
+      [
+        167.1515,
+        -20.7806
+      ],
+      [
+        166.489,
+        -20.7056
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "pipe_pacific_cable_1_ppc_1": {
+    "geometry": [
+      [
+        146.3888,
+        -5.9865
+      ],
+      [
+        95.1828,
+        15.3231
+      ],
+      [
+        165.6046,
+        -4.9781
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "pishgaman_oman_iran_poi_network": {
+    "geometry": [
+      [
+        51.2453,
+        21.4884
+      ],
+      [
+        64.0063,
+        17.7138
+      ],
+      [
+        58.2842,
+        24.6991
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "pldt_domestic_fiber_optic_network_dfon": {
+    "geometry": [
+      [
+        120.5552,
+        12.9119
+      ],
+      [
+        124.6003,
+        12.0699
+      ],
+      [
+        122.6787,
+        12.5265
+      ],
+      [
+        122.6224,
+        11.4497
+      ],
+      [
+        124.6128,
+        11.0069
+      ],
+      [
+        123.1688,
+        11.4126
+      ],
+      [
+        123.2814,
+        9.2955
+      ],
+      [
+        122.9354,
+        10.0411
+      ],
+      [
+        119.6907,
+        13.7737
+      ],
+      [
+        123.5852,
+        9.9746
+      ],
+      [
+        123.2814,
+        9.2955
+      ],
+      [
+        123.9567,
+        10.5906
+      ],
+      [
+        123.687,
+        10.359
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "png_lng": {
+    "geometry": [
+      [
+        144.2402,
+        -7.4135
+      ],
+      [
+        150.9743,
+        -8.0474
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "polar_circle_cable": {
+    "geometry": [
+      [
+        17.56,
+        68.4205
+      ],
+      [
+        15.851,
+        67.3671
+      ],
+      [
+        13.976,
+        65.9258
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "polar_express": {
+    "geometry": [
+      [
+        125.325,
+        72.3548
+      ],
+      [
+        -59.168,
+        66.9691
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "poseidon": {
+    "geometry": [
+      [
+        33.3764,
+        33.8578
+      ],
+      [
+        17.1686,
+        37.0378
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "prat": {
+    "geometry": [
+      [
+        -72.9534,
+        -41.4604
+      ],
+      [
+        -83.242,
+        3.7295
+      ],
+      [
+        -70.3068,
+        -18.4735
+      ],
+      [
+        -70.3068,
+        -18.4735
+      ],
+      [
+        -70.3068,
+        -18.4735
+      ],
+      [
+        -70.3068,
+        -18.4735
+      ],
+      [
+        -71.6301,
+        -29.967
+      ],
+      [
+        -70.3068,
+        -18.4735
+      ],
+      [
+        -70.3068,
+        -18.4735
+      ],
+      [
+        -70.3068,
+        -18.4735
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "qatar_u_a_e_submarine_cable_system": {
+    "geometry": [
+      [
+        59.2363,
+        18.7192
+      ],
+      [
+        54.4191,
+        24.444
+      ],
+      [
+        55.5456,
+        13.9072
+      ],
+      [
+        54.4191,
+        24.444
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "quintillion_subsea_cable_network": {
+    "geometry": [
+      [
+        -148.4568,
+        70.294
+      ],
+      [
+        -165.4064,
+        64.5011
+      ],
+      [
+        -156.7886,
+        71.2906
+      ],
+      [
+        -156.5998,
+        71.6689
+      ],
+      [
+        -166.8081,
+        68.3478
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "rockabill": {
+    "geometry": [
+      [
+        -6.1146,
+        53.4932
+      ],
+      [
+        -23.1951,
+        50.6497
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "romulo": {
+    "geometry": [
+      [
+        -0.2104,
+        39.6626
+      ],
+      [
+        2.4628,
+        39.5
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "russia_japan_cable_network_rjcn": {
+    "geometry": [
+      [
+        132.8913,
+        42.8345
+      ],
+      [
+        127.6907,
+        62.1975
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "s_u_b_cable_system": {
+    "geometry": [
+      [
+        115.3428,
+        -5.9568
+      ],
+      [
+        109.2954,
+        -1.5963
+      ],
+      [
+        111.9348,
+        -2.9279
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "saba_statia_cable_system_sscs": {
+    "geometry": [
+      [
+        -62.1415,
+        16.9928
+      ],
+      [
+        -62.7298,
+        17.2986
+      ],
+      [
+        -64.9165,
+        18.3246
+      ],
+      [
+        -62.8505,
+        17.8979
+      ],
+      [
+        -62.3424,
+        16.8603
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "safe": {
+    "geometry": [
+      [
+        47.6053,
+        -23.702
+      ],
+      [
+        50.5348,
+        -1.4278
+      ],
+      [
+        91.5782,
+        -0.537
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "samoa_american_samoa_sas": {
+    "geometry": [
+      [
+        -167.4551,
+        -16.3271
+      ],
+      [
+        -86.0719,
+        -20.6725
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "san_andres_isla_tolu_submarine_cable_sait": {
+    "geometry": [
+      [
+        -81.7006,
+        12.5847
+      ],
+      [
+        -75.2431,
+        10.0016
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "saudi_arabia_sudan_1_sas_1": {
+    "geometry": [
+      [
+        43.3925,
+        18.279
+      ],
+      [
+        44.8381,
+        15.7406
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "saudi_arabia_sudan_2_sas_2": {
+    "geometry": [
+      [
+        43.3925,
+        18.279
+      ],
+      [
+        44.8381,
+        15.7406
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "saudi_vision": {
+    "geometry": [
+      [
+        40.3495,
+        12.4033
+      ],
+      [
+        33.0011,
+        31.3778
+      ],
+      [
+        43.3925,
+        18.279
+      ],
+      [
+        54.089,
+        13.1625
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "scandinavian_ring_north": {
+    "geometry": [
+      [
+        12.6681,
+        56.0573
+      ],
+      [
+        12.6163,
+        56.0507
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "scandinavian_ring_south": {
+    "geometry": [
+      [
+        12.6703,
+        55.5937
+      ],
+      [
+        12.6703,
+        55.5937
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "scotland_northern_ireland_3": {
+    "geometry": [
+      [
+        -5.5387,
+        54.643
+      ],
+      [
+        -5.1155,
+        54.844
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "scotland_northern_ireland_4": {
+    "geometry": [
+      [
+        -5.8098,
+        54.8578
+      ],
+      [
+        -4.8542,
+        55.2404
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "scylla": {
+    "geometry": [
+      [
+        1.7293,
+        52.4688
+      ],
+      [
+        4.001,
+        52.4226
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "sea2shore": {
+    "geometry": [
+      [
+        -71.5937,
+        41.192
+      ],
+      [
+        -71.4428,
+        41.4414
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "sea_h2x": {
+    "geometry": [
+      [
+        117.8984,
+        17.5736
+      ],
+      [
+        105.908,
+        2.8278
+      ],
+      [
+        140.2975,
+        13.1516
+      ],
+      [
+        103.6461,
+        1.3386
+      ],
+      [
+        96.6501,
+        12.014
+      ],
+      [
+        84.0864,
+        10.2992
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "sea_us": {
+    "geometry": [
+      [
+        73.2429,
+        17.0554
+      ],
+      [
+        39.3277,
+        14.603
+      ],
+      [
+        -179.9998,
+        18.2518
+      ],
+      [
+        137.25,
+        10.8531
+      ],
+      [
+        -60.5934,
+        20.9726
+      ],
+      [
+        52.4693,
+        10.8054
+      ],
+      [
+        95.1828,
+        15.3231
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "seabras_1": {
+    "geometry": [
+      [
+        -50.1871,
+        -28.6307
+      ],
+      [
+        -54.7491,
+        41.4971
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "sealink": {
+    "geometry": [
+      [
+        -132.8295,
+        56.0152
+      ],
+      [
+        -136.1815,
+        57.9809
+      ],
+      [
+        -133.1976,
+        56.9465
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "seamewe_4": {
+    "geometry": [
+      [
+        39.9059,
+        26.7939
+      ],
+      [
+        35.3268,
+        27.1585
+      ],
+      [
+        24.542,
+        25.6205
+      ],
+      [
+        76.9239,
+        14.3604
+      ],
+      [
+        43.9664,
+        23.789
+      ],
+      [
+        52.9016,
+        24.1604
+      ],
+      [
+        43.3925,
+        18.279
+      ],
+      [
+        47.8305,
+        15.899
+      ],
+      [
+        28.1409,
+        31.5014
+      ],
+      [
+        84.2539,
+        9.0874
+      ],
+      [
+        62.2385,
+        15.1298
+      ],
+      [
+        78.3856,
+        22.5723
+      ],
+      [
+        85.5545,
+        18.2548
+      ],
+      [
+        62.8658,
+        18.0513
+      ],
+      [
+        84.0864,
+        10.2992
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "seamewe_5": {
+    "geometry": [
+      [
+        36.4194,
+        24.1215
+      ],
+      [
+        66.8737,
+        13.9424
+      ],
+      [
+        33.3882,
+        29.7833
+      ],
+      [
+        103.401,
+        -0.5502
+      ],
+      [
+        52.9016,
+        24.1604
+      ],
+      [
+        53.5779,
+        20.3374
+      ],
+      [
+        47.8305,
+        15.899
+      ],
+      [
+        59.3667,
+        22.7
+      ],
+      [
+        90.0,
+        7.2988
+      ],
+      [
+        95.4124,
+        7.4675
+      ],
+      [
+        53.689,
+        22.3954
+      ],
+      [
+        84.2539,
+        9.0874
+      ],
+      [
+        46.9266,
+        23.2543
+      ],
+      [
+        59.09,
+        21.7244
+      ],
+      [
+        80.5399,
+        5.9408
+      ],
+      [
+        84.0864,
+        10.2992
+      ],
+      [
+        54.089,
+        13.1625
+      ],
+      [
+        37.4239,
+        20.0008
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "seax_1": {
+    "geometry": [
+      [
+        109.427,
+        1.6061
+      ],
+      [
+        111.1445,
+        5.1886
+      ],
+      [
+        104.5507,
+        -0.5706
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "segunda_fos_canal_de_chacao": {
+    "geometry": [
+      [
+        -73.1553,
+        -41.8069
+      ],
+      [
+        -73.5045,
+        -41.9911
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "senegal_horn_of_africa_regional_express_share_cable": {
+    "geometry": [
+      [
+        6.3895,
+        9.0135
+      ],
+      [
+        -26.4629,
+        16.5234
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "seychelles_to_east_africa_system_seas": {
+    "geometry": [
+      [
+        43.4132,
+        -0.2073
+      ],
+      [
+        22.3211,
+        18.2352
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "shefa_2": {
+    "geometry": [
+      [
+        -6.7718,
+        62.0176
+      ],
+      [
+        -2.2949,
+        60.441
+      ],
+      [
+        -4.3333,
+        60.3334
+      ],
+      [
+        -2.2949,
+        60.441
+      ],
+      [
+        -2.2949,
+        60.441
+      ],
+      [
+        -2.2949,
+        60.441
+      ],
+      [
+        -2.5237,
+        57.6669
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "silphium": {
+    "geometry": [
+      [
+        14.4823,
+        38.063
+      ],
+      [
+        23.9863,
+        33.7959
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "sint_maarten_puerto_rico_network_one_smpr_1": {
+    "geometry": [
+      [
+        -66.0169,
+        18.4418
+      ],
+      [
+        -68.5475,
+        20.1948
+      ],
+      [
+        -63.0737,
+        18.031
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "sirius_north": {
+    "geometry": [
+      [
+        -5.8081,
+        54.714
+      ],
+      [
+        -4.7835,
+        55.6379
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "sirius_south": {
+    "geometry": [
+      [
+        -4.6565,
+        53.8362
+      ],
+      [
+        -5.3251,
+        54.191
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "sistem_kabel_rakyat_1malaysia_skr1m": {
+    "geometry": [
+      [
+        103.8507,
+        2.2957
+      ],
+      [
+        119.1352,
+        20.0512
+      ],
+      [
+        103.3952,
+        4.1163
+      ],
+      [
+        105.908,
+        2.8278
+      ],
+      [
+        111.1445,
+        5.1886
+      ],
+      [
+        103.3952,
+        4.1163
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "sjjk": {
+    "geometry": [
+      [
+        105.4997,
+        -4.5934
+      ],
+      [
+        105.8839,
+        -6.0737
+      ],
+      [
+        109.7706,
+        -3.0891
+      ],
+      [
+        115.9851,
+        -5.5684
+      ],
+      [
+        112.5982,
+        -6.9533
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "skagenfiber_west": {
+    "geometry": [
+      [
+        10.0164,
+        59.0811
+      ],
+      [
+        8.2422,
+        57.7585
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "skagerrak_4": {
+    "geometry": [
+      [
+        -12.681,
+        53.4464
+      ],
+      [
+        7.9963,
+        58.1511
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "smpcs_packet_1": {
+    "geometry": [
+      [
+        124.8396,
+        1.4908
+      ],
+      [
+        133.0086,
+        -3.1114
+      ],
+      [
+        130.5837,
+        -2.7011
+      ],
+      [
+        128.6932,
+        -1.7089
+      ],
+      [
+        129.15,
+        -3.9283
+      ],
+      [
+        84.3388,
+        9.8087
+      ],
+      [
+        127.35,
+        -3.2547
+      ],
+      [
+        127.0858,
+        -3.2334
+      ],
+      [
+        124.6419,
+        -3.8543
+      ],
+      [
+        124.2669,
+        -3.8543
+      ],
+      [
+        131.2875,
+        -1.3157
+      ],
+      [
+        126.9461,
+        -3.1946
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "smpcs_packet_2": {
+    "geometry": [
+      [
+        130.8576,
+        -0.3834
+      ],
+      [
+        130.5837,
+        -2.7011
+      ],
+      [
+        141.9395,
+        -5.8349
+      ],
+      [
+        140.4051,
+        -8.4991
+      ],
+      [
+        135.2864,
+        -1.8123
+      ],
+      [
+        139.3533,
+        -2.1752
+      ],
+      [
+        136.0533,
+        -1.1872
+      ],
+      [
+        131.2875,
+        -1.3157
+      ],
+      [
+        133.772,
+        -1.5319
+      ],
+      [
+        134.016,
+        -1.3794
+      ],
+      [
+        133.651,
+        -2.8709
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "solas": {
+    "geometry": [
+      [
+        -4.1695,
+        51.5581
+      ],
+      [
+        -5.3525,
+        51.8608
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "sorsogon_samar_submarine_fiber_optical_interconnection_project_sssfoip": {
+    "geometry": [
+      [
+        122.5786,
+        12.5041
+      ],
+      [
+        124.2824,
+        12.5014
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "south_america_1_sam_1": {
+    "geometry": [
+      [
+        -83.242,
+        3.7295
+      ],
+      [
+        -64.7965,
+        14.1965
+      ],
+      [
+        -68.9142,
+        14.6854
+      ],
+      [
+        -48.2673,
+        5.1658
+      ],
+      [
+        -59.5223,
+        -17.9576
+      ],
+      [
+        -77.097,
+        -8.3265
+      ],
+      [
+        -84.1499,
+        -3.03
+      ],
+      [
+        -76.2218,
+        18.5776
+      ],
+      [
+        -79.1621,
+        -7.4295
+      ],
+      [
+        -70.7619,
+        20.9471
+      ],
+      [
+        -77.1582,
+        9.9526
+      ],
+      [
+        -62.3062,
+        -2.5504
+      ],
+      [
+        -61.7759,
+        -3.6193
+      ],
+      [
+        -63.1924,
+        10.816
+      ],
+      [
+        -66.0565,
+        1.7125
+      ],
+      [
+        -61.7495,
+        -26.8011
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "south_american_crossing_sac": {
+    "geometry": [
+      [
+        -79.9003,
+        9.3538
+      ],
+      [
+        -77.0403,
+        3.8837
+      ],
+      [
+        -93.8249,
+        12.7185
+      ],
+      [
+        -48.2673,
+        5.1658
+      ],
+      [
+        -59.5223,
+        -17.9576
+      ],
+      [
+        -77.097,
+        -8.3265
+      ],
+      [
+        -79.6499,
+        5.062
+      ],
+      [
+        -62.3062,
+        -2.5504
+      ],
+      [
+        -66.0565,
+        1.7125
+      ],
+      [
+        -61.0942,
+        14.6155
+      ],
+      [
+        -61.7495,
+        -26.8011
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "south_atlantic_cable_system_sacs": {
+    "geometry": [
+      [
+        -48.2673,
+        5.1658
+      ],
+      [
+        -27.3714,
+        12.0224
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "south_atlantic_inter_link_sail": {
+    "geometry": [
+      [
+        -48.2673,
+        5.1658
+      ],
+      [
+        7.7007,
+        3.7441
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "southeast_asia_japan_cable_2_sjc2": {
+    "geometry": [
+      [
+        85.7804,
+        21.8936
+      ],
+      [
+        109.4546,
+        8.4826
+      ],
+      [
+        97.0686,
+        30.5328
+      ],
+      [
+        117.8984,
+        17.5736
+      ],
+      [
+        37.5443,
+        27.9952
+      ],
+      [
+        -20.0226,
+        41.0871
+      ],
+      [
+        111.15,
+        11.5448
+      ],
+      [
+        113.9296,
+        30.7859
+      ],
+      [
+        96.6501,
+        12.014
+      ],
+      [
+        118.7807,
+        22.197
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "southeast_asia_japan_cable_sjc": {
+    "geometry": [
+      [
+        97.0686,
+        30.5328
+      ],
+      [
+        117.8984,
+        17.5736
+      ],
+      [
+        119.6907,
+        13.7737
+      ],
+      [
+        128.9662,
+        20.1802
+      ],
+      [
+        114.5707,
+        4.7036
+      ],
+      [
+        84.0864,
+        10.2992
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "southern_caribbean_fiber": {
+    "geometry": [
+      [
+        -62.7298,
+        17.2986
+      ],
+      [
+        -63.8155,
+        17.6626
+      ],
+      [
+        -62.1415,
+        16.9928
+      ],
+      [
+        -61.8469,
+        17.1595
+      ],
+      [
+        -61.0942,
+        14.6155
+      ],
+      [
+        -63.4157,
+        12.2616
+      ],
+      [
+        -61.7906,
+        12.0088
+      ],
+      [
+        -62.3424,
+        16.8603
+      ],
+      [
+        -62.4627,
+        15.0119
+      ],
+      [
+        -61.4543,
+        15.8325
+      ],
+      [
+        -62.7919,
+        16.2234
+      ],
+      [
+        -61.3124,
+        14.1476
+      ],
+      [
+        -63.1924,
+        10.816
+      ],
+      [
+        -61.0942,
+        14.6155
+      ],
+      [
+        -59.6074,
+        13.0845
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "southern_cross_cable_network_sccn": {
+    "geometry": [
+      [
+        39.9059,
+        26.7939
+      ],
+      [
+        162.3473,
+        -11.0641
+      ],
+      [
+        -35.0906,
+        12.508
+      ],
+      [
+        -179.9998,
+        -35.593
+      ],
+      [
+        -140.5647,
+        29.9462
+      ],
+      [
+        -122.9898,
+        45.5229
+      ],
+      [
+        137.0279,
+        -19.1093
+      ],
+      [
+        -2.6882,
+        -27.8339
+      ],
+      [
+        180.0,
+        -17.3834
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "southern_cross_next": {
+    "geometry": [
+      [
+        39.9059,
+        26.7939
+      ],
+      [
+        39.3277,
+        14.603
+      ],
+      [
+        -144.8305,
+        12.2392
+      ],
+      [
+        179.2187,
+        -18.502
+      ],
+      [
+        137.0279,
+        -19.1093
+      ],
+      [
+        174.7732,
+        -36.7841
+      ],
+      [
+        -2.6882,
+        -27.8339
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "st_pierre_and_miquelon_cable": {
+    "geometry": [
+      [
+        -55.8359,
+        47.072
+      ],
+      [
+        -55.8033,
+        46.869
+      ],
+      [
+        -55.8033,
+        46.869
+      ],
+      [
+        -55.8033,
+        46.869
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "st_thomas_st_croix_system": {
+    "geometry": [
+      [
+        -64.9939,
+        18.3246
+      ],
+      [
+        -64.8431,
+        18.3225
+      ],
+      [
+        -64.8431,
+        18.3225
+      ],
+      [
+        -64.9939,
+        18.3246
+      ],
+      [
+        -64.9939,
+        18.3246
+      ],
+      [
+        -64.9165,
+        18.3246
+      ],
+      [
+        -64.9939,
+        18.3246
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "strategic_evolution_underwater_link_seul": {
+    "geometry": [
+      [
+        -88.2945,
+        17.9256
+      ],
+      [
+        -87.9783,
+        17.911
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "subcan_link_1": {
+    "geometry": [
+      [
+        -16.3623,
+        28.3776
+      ],
+      [
+        -15.4088,
+        28.041
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "subcan_link_2": {
+    "geometry": [
+      [
+        -16.3623,
+        28.3776
+      ],
+      [
+        -15.4088,
+        28.041
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "sumatera_bangka_cable_system_sbcs": {
+    "geometry": [
+      [
+        105.3076,
+        -3.4781
+      ],
+      [
+        104.7573,
+        -2.991
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "suriname_guyana_submarine_cable_system_sg_scs": {
+    "geometry": [
+      [
+        -63.4157,
+        12.2616
+      ],
+      [
+        -56.6707,
+        8.2695
+      ],
+      [
+        -57.3749,
+        8.1905
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "sweden_estonia_ee_s_1": {
+    "geometry": [
+      [
+        24.7525,
+        59.4364
+      ],
+      [
+        18.6884,
+        59.2928
+      ],
+      [
+        23.1628,
+        59.5577
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "sweden_finland_link_sfl": {
+    "geometry": [
+      [
+        18.6884,
+        59.2928
+      ],
+      [
+        18.45,
+        59.58
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "sweden_latvia": {
+    "geometry": [
+      [
+        17.5356,
+        58.3285
+      ],
+      [
+        22.1072,
+        59.7903
+      ],
+      [
+        21.5701,
+        57.3897
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "taba_aqaba": {
+    "geometry": [
+      [
+        37.098,
+        29.8708
+      ],
+      [
+        34.8959,
+        29.4925
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "taino_carib": {
+    "geometry": [
+      [
+        -68.5475,
+        20.1948
+      ],
+      [
+        -66.0927,
+        18.4595
+      ],
+      [
+        -68.4147,
+        15.894
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "taiwan_strait_express_1_tse_1": {
+    "geometry": [
+      [
+        119.6078,
+        25.7808
+      ],
+      [
+        118.7807,
+        22.197
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "tangerine": {
+    "geometry": [
+      [
+        2.9128,
+        51.2312
+      ],
+      [
+        1.4437,
+        51.3666
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "tannat": {
+    "geometry": [
+      [
+        -59.5223,
+        -17.9576
+      ],
+      [
+        -53.2397,
+        -32.3013
+      ],
+      [
+        -66.0565,
+        1.7125
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "tarakan_selor_cable_system_tscs": {
+    "geometry": [
+      [
+        117.5785,
+        3.3274
+      ],
+      [
+        116.1446,
+        -1.6868
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "tasman_global_access_tga_cable": {
+    "geometry": [
+      [
+        157.4236,
+        -1.398
+      ],
+      [
+        162.3756,
+        -38.1266
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "tata_tgn_gulf": {
+    "geometry": [
+      [
+        49.4802,
+        20.6792
+      ],
+      [
+        50.576,
+        26.2295
+      ],
+      [
+        51.5193,
+        25.2946
+      ],
+      [
+        49.9274,
+        21.7873
+      ],
+      [
+        52.9016,
+        24.1604
+      ],
+      [
+        59.09,
+        21.7244
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "tata_tgn_intra_asia_tgn_ia": {
+    "geometry": [
+      [
+        114.975,
+        9.0803
+      ],
+      [
+        88.566,
+        6.8786
+      ],
+      [
+        107.0792,
+        10.3421
+      ],
+      [
+        95.1828,
+        15.3231
+      ],
+      [
+        180.0,
+        48.4064
+      ],
+      [
+        13.444,
+        31.1238
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "tata_tgn_pacific": {
+    "geometry": [
+      [
+        144.6947,
+        13.4648
+      ],
+      [
+        -35.0906,
+        12.508
+      ],
+      [
+        -133.8182,
+        33.9007
+      ],
+      [
+        95.1828,
+        15.3231
+      ],
+      [
+        180.0,
+        48.4064
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "tata_tgn_tata_indicom": {
+    "geometry": [
+      [
+        88.566,
+        6.8786
+      ],
+      [
+        76.9239,
+        14.3604
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "tata_tgn_western_europe": {
+    "geometry": [
+      [
+        -52.7015,
+        38.7178
+      ],
+      [
+        -6.0412,
+        44.9326
+      ],
+      [
+        5.0688,
+        3.5776
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "telstra_endeavour": {
+    "geometry": [
+      [
+        -25.121,
+        13.7533
+      ],
+      [
+        -14.3857,
+        -21.1416
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "terra_sw": {
+    "geometry": [
+      [
+        -151.5442,
+        59.6466
+      ],
+      [
+        -151.5941,
+        60.53
+      ],
+      [
+        -153.8805,
+        59.7761
+      ],
+      [
+        -154.9061,
+        59.7547
+      ],
+      [
+        -154.8467,
+        59.708
+      ],
+      [
+        -154.9061,
+        59.7547
+      ],
+      [
+        -153.8805,
+        59.7761
+      ],
+      [
+        -154.7527,
+        59.4422
+      ],
+      [
+        -154.8588,
+        59.9492
+      ],
+      [
+        -154.3369,
+        60.2004
+      ],
+      [
+        -154.8467,
+        59.708
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "trans_pacific_express_tpe_cable_system": {
+    "geometry": [
+      [
+        -30.7148,
+        30.0312
+      ],
+      [
+        109.4102,
+        19.2639
+      ],
+      [
+        61.8697,
+        28.7782
+      ],
+      [
+        130.5,
+        30.7081
+      ],
+      [
+        -27.4499,
+        35.3461
+      ],
+      [
+        118.7807,
+        22.197
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "transcan_2": {
+    "geometry": [
+      [
+        -13.5476,
+        28.9595
+      ],
+      [
+        -13.8622,
+        28.4965
+      ],
+      [
+        -14.3584,
+        28.0487
+      ],
+      [
+        -15.3907,
+        27.8955
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "transcan_3": {
+    "geometry": [
+      [
+        -7.4551,
+        20.1342
+      ],
+      [
+        -13.8273,
+        28.8634
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "transworld_tw1": {
+    "geometry": [
+      [
+        47.3837,
+        24.6986
+      ],
+      [
+        52.9016,
+        24.1604
+      ],
+      [
+        47.8305,
+        15.899
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "tt_1": {
+    "geometry": [
+      [
+        -60.9496,
+        10.8315
+      ],
+      [
+        -60.8403,
+        11.1658
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "tui_samoa": {
+    "geometry": [
+      [
+        -167.4551,
+        -16.3271
+      ],
+      [
+        -171.7667,
+        -13.8335
+      ],
+      [
+        -179.9998,
+        -17.598
+      ],
+      [
+        179.2187,
+        -18.502
+      ],
+      [
+        137.0279,
+        -19.1093
+      ],
+      [
+        -172.1782,
+        -13.6706
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "turcyos_1": {
+    "geometry": [
+      [
+        33.2363,
+        35.2991
+      ],
+      [
+        32.9667,
+        36.1
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "turcyos_2": {
+    "geometry": [
+      [
+        35.9994,
+        36.0823
+      ],
+      [
+        33.9195,
+        35.2844
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "tverrlinken": {
+    "geometry": [
+      [
+        13.0182,
+        66.1981
+      ],
+      [
+        14.142,
+        66.3137
+      ],
+      [
+        15.851,
+        67.3671
+      ],
+      [
+        14.142,
+        66.3137
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "uae_iran": {
+    "geometry": [
+      [
+        52.9016,
+        24.1604
+      ],
+      [
+        58.2842,
+        24.6991
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "ugarit": {
+    "geometry": [
+      [
+        33.3764,
+        33.8578
+      ],
+      [
+        28.4737,
+        35.2787
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "uk_channel_islands_8": {
+    "geometry": [
+      [
+        -34.3865,
+        47.2113
+      ],
+      [
+        -2.226,
+        49.2157
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "ultramar_ge": {
+    "geometry": [
+      [
+        6.7333,
+        0.3333
+      ],
+      [
+        -4.0335,
+        4.0391
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "ulysses_2": {
+    "geometry": [
+      [
+        1.7293,
+        52.4688
+      ],
+      [
+        4.001,
+        52.4226
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "unisur": {
+    "geometry": [
+      [
+        -59.5223,
+        -17.9576
+      ],
+      [
+        -53.2397,
+        -32.3013
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "yellow": {
+    "geometry": [
+      [
+        -10.3722,
+        48.5502
+      ],
+      [
+        -1.5068,
+        38.5024
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "kaliningrad_cable": {
+    "geometry": [
+      [
+        20.51,
+        54.71
+      ],
+      [
+        28.6,
+        59.37
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
+  },
+  "tenerife_la_palma": {
+    "geometry": [
+      [
+        -16.58,
+        28.37
+      ],
+      [
+        -17.77,
+        28.68
+      ]
+    ],
+    "source": "schematic_landing_points",
+    "precision": "schematic_landing_points"
   }
 }
