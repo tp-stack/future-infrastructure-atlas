@@ -403,14 +403,12 @@ export default function AtlasMap({
     const m = map.current;
     if (!m || !layersAddedRef.current) return;
 
-    if (!usePMTiles) {
-      try {
-        (m.getSource("power-plants-source") as maplibregl.GeoJSONSource)?.setData(buildPowerPlantGeoJSON(data, filters));
-      } catch (error) { setMapError(error instanceof Error ? error.message : String(error)); }
-      try {
-        (m.getSource("data-centers-source") as maplibregl.GeoJSONSource)?.setData(buildDataCenterGeoJSON(data, filters));
-      } catch (error) { setMapError(error instanceof Error ? error.message : String(error)); }
-    }
+    try {
+      (m.getSource("power-plants-source") as maplibregl.GeoJSONSource)?.setData(buildPowerPlantGeoJSON(data, filters));
+    } catch (error) { setMapError(error instanceof Error ? error.message : String(error)); }
+    try {
+      (m.getSource("data-centers-source") as maplibregl.GeoJSONSource)?.setData(buildDataCenterGeoJSON(data, filters));
+    } catch (error) { setMapError(error instanceof Error ? error.message : String(error)); }
     try {
       (m.getSource("submarine-cables-source") as maplibregl.GeoJSONSource)?.setData(buildCableGeoJSON(data, cableFilters, cableCompanyStats));
     } catch (error) { setMapError(error instanceof Error ? error.message : String(error)); }
@@ -453,6 +451,7 @@ export default function AtlasMap({
         }
         if (tileStatus.submarine_cables !== "present") {
           const cableGeoJSON = buildCableGeoJSON(data, cableFilters, cableCompanyStats);
+          console.log(`[AtlasMap:PMTiles] adding cable GeoJSON source with ${cableGeoJSON.features.length} features`);
           m.addSource("submarine-cables-source", { type: "geojson", data: cableGeoJSON });
           m.addLayer({
             id: "submarine-cable-lines",
@@ -464,6 +463,25 @@ export default function AtlasMap({
               "line-opacity": cableLineOpacityExpression(layerOpacity?.cables ?? 0.85),
             },
           });
+          console.log(`[AtlasMap:PMTiles] submarine-cable-lines layer added, source exists=${!!m.getSource("submarine-cables-source")}, layer exists=${!!m.getLayer("submarine-cable-lines")}`);
+        }
+        // Also add GeoJSON sources for power_plants and data_centers when their tiles are missing
+        if (tileStatus.power_plants !== "present") {
+          m.addSource("power-plants-source", { type: "geojson", data: buildPowerPlantGeoJSON(data, filters) });
+          addPowerPlantLayers(m);
+          console.log(`[AtlasMap:PMTiles] added power plants GeoJSON fallback`);
+        }
+        if (tileStatus.data_centers !== "present") {
+          m.addSource("data-centers-source", { type: "geojson", data: buildDataCenterGeoJSON(data, filters) });
+          m.addLayer({
+            id: "data-center-points", type: "circle", source: "data-centers-source",
+            paint: {
+              "circle-radius": ["interpolate",["linear"],["zoom"],0,4,5,6,10,8],
+              "circle-color": DATA_CENTER_COLOR, "circle-opacity": 0.9,
+              "circle-stroke-color": DATA_CENTER_STROKE_COLOR, "circle-stroke-width": 1.5,
+            },
+          });
+          console.log(`[AtlasMap:PMTiles] added data centers GeoJSON fallback`);
         }
         if (tileStatus.power_lines !== "present" && powerLinesData) {
           m.addSource("power-lines-source", { type: "geojson", data: powerLinesData });
@@ -477,6 +495,8 @@ export default function AtlasMap({
         const ppGeoJSON = buildPowerPlantGeoJSON(data, filters);
         const dcGeoJSON = buildDataCenterGeoJSON(data, filters);
         const cableGeoJSON = buildCableGeoJSON(data, cableFilters, cableCompanyStats);
+
+        console.log(`[AtlasMap] cableGeoJSON features=${cableGeoJSON.features.length} layersAdded=${layersAddedRef.current} cableFilters.mode=${cableFilters.mode}`);
 
         m.addSource("power-plants-source", {
           type: "geojson",
@@ -697,6 +717,8 @@ export default function AtlasMap({
     }
     setVis("power-points", "power_plants");
     setVis("data-center-points", "data_centers");
+    const cableVis = visibleLayers["cables"];
+    console.log(`[AtlasMap] setting submarine-cable-lines visibility=${cableVis ? "visible" : "none"}`);
     setVis("submarine-cable-lines", "cables");
     setVis("power-line-lines", "power_lines");
     setVis("power-line-cables", "power_lines");

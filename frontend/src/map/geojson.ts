@@ -126,13 +126,15 @@ export function buildCableGeoJSON(
   companyStats: CableCompanyStat[] = [],
 ): GeoJSON.FeatureCollection {
   const features: GeoJSON.Feature[] = [];
+  let mapped = 0, filtered = 0, noLines = 0;
 
   for (const c of data.cables) {
     if (c.mapped_status !== "mapped") continue;
-    if (!shouldIncludeCable(c, companyStats, cableFilters)) continue;
+    mapped++;
+    if (!shouldIncludeCable(c, companyStats, cableFilters)) { filtered++; continue; }
 
     const lines = cableLines(c.geometry);
-    if (lines.length === 0) continue;
+    if (lines.length === 0) { noLines++; continue; }
 
     const geometry: GeoJSON.Geometry = lines.length === 1
       ? { type: "LineString", coordinates: lines[0] }
@@ -164,6 +166,11 @@ export function buildCableGeoJSON(
         length_km: c.length_km || "",
       },
     });
+  }
+
+  console.log(`[buildCableGeoJSON] total=${data.cables.length} mapped=${mapped} filtered=${filtered} noLines=${noLines} features=${features.length} mode=${cableFilters.mode}`);
+  if (features.length > 0) {
+    console.log(`[buildCableGeoJSON] first feature geometry type=${features[0].geometry.type} coords=${JSON.stringify(features[0].geometry).slice(0,200)}`);
   }
 
   return { type: "FeatureCollection", features };
