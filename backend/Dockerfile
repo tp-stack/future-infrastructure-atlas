@@ -7,6 +7,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY atlas/ atlas/
 COPY backend/main.py .
+COPY data/derived/site_selection/ /app/data/derived/site_selection/
 
 ENV PYTHONPATH=/app
 ENV SITE_SELECTION_STORAGE_DIR=/app/data/reports/site_selection
