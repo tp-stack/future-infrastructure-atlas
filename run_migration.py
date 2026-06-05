@@ -3,6 +3,8 @@
 import sys
 from pathlib import Path
 
+from atlas.settings import database_url
+
 try:
     import psycopg
 except ImportError:
@@ -19,9 +21,7 @@ sql_content = migration_file.read_text()
 
 # Connect to database
 try:
-    conn = psycopg.connect(
-        "postgresql://future_atlas:future_atlas_dev_password@localhost:5432/future_atlas"
-    )
+    conn = psycopg.connect(database_url)
 except psycopg.OperationalError as e:
     print(f"ERROR: Could not connect to database: {e}")
     print("Make sure PostgreSQL is running and credentials are correct")

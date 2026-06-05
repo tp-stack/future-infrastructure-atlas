@@ -37,6 +37,7 @@ data/cache/**
 data/reports/**
 data/logs/**
 data/derived/**
+data/exports/**
 
 # Keep data directory documentation and placeholders
 !data/README.md

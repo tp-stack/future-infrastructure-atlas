@@ -131,7 +131,63 @@ schema: app_atlas
 SELECT now(): ok
 ```
 
-Atlas' full schema currently requires PostGIS. If FDE is running plain PostgreSQL, `python scripts/init_db.py` will report that PostGIS is unavailable. In that case, Atlas can still use FDE materialized tables later through a non-PostGIS table-reader path, but the full Atlas geospatial schema needs a PostGIS-capable database.
+Atlas' full schema requires PostGIS. FDE must use a PostGIS-enabled PostgreSQL image before `python scripts/init_db.py` can initialize the full Atlas schema in `app_atlas`.
+
+### Materialized FDE Tables
+
+FDE can store an uploaded dataset as flexible JSON rows, then materialize it into a real SQL table inside `app_atlas`. Atlas reads those tables through:
+
+```text
+GET /data/fde/tables
+GET /data/fde/tables/{table_name}/preview
+```
+
+The first migrated dataset is the public data center location config:
+
+```text
+source: config/datacenter_locations.yaml
+FDE table: app_atlas.data_centers
+```
+
+Export the Atlas source file to an ignored CSV for FDE upload:
+
+```bash
+.venv/bin/python scripts/export_dataset_for_fde.py --dataset data_centers
+```
+
+In FDE, create or reuse the `Future Infrastructure Atlas` project, upload the generated CSV as `Atlas Data Centers`, then materialize it:
+
+```bash
+cd /home/mrgovernment/future-dataset-engine
+./scripts/materialize_dataset.sh DATASET_ID atlas data_centers
+```
+
+Configure Atlas to prefer FDE tables in local `.env`:
+
+```bash
+ATLAS_USE_FDE_TABLES=true
+ATLAS_FDE_PRIMARY_TABLE=data_centers
+ATLAS_FDE_DATA_CENTERS_TABLE=data_centers
+```
+
+Validate the table reader:
+
+```bash
+set -a
+source .env
+set +a
+.venv/bin/python scripts/check_fde_tables.py
+```
+
+Then start the backend and preview the materialized rows:
+
+```bash
+.venv/bin/python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
+curl -s http://localhost:8000/data/fde/tables
+curl -s http://localhost:8000/data/fde/tables/data_centers/preview
+```
+
+Never commit real `DATABASE_URL` secrets, `.env`, or generated files under `data/exports/`.
 
 ## Step 3: Registry And Provenance Foundation
 
