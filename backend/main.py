@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from atlas import settings
 from atlas.db import check_health
+from atlas.loaders.data_centers import DataCenterLoadError, load_data_centers
 from atlas.loaders.fde_tables import list_fde_tables, preview_fde_table
 from atlas.site_selection.api import router
 
@@ -42,6 +43,7 @@ def root():
             "export": "POST /v1/site-selection/export-report",
             "health": "/v1/site-selection/health",
             "database_health": "/health/db",
+            "data_centers": "/data/data-centers",
         },
     }
 
@@ -68,5 +70,17 @@ def fde_table_preview(table_name: str, limit: int = Query(default=25, ge=1, le=1
         return preview_fde_table(table_name, limit=limit)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:  # noqa: BLE001 - endpoint should report concise DB errors
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.get("/data/data-centers")
+def data_centers():
+    try:
+        return load_data_centers()
+    except DataCenterLoadError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:  # noqa: BLE001 - endpoint should report concise DB errors
         raise HTTPException(status_code=500, detail=str(exc)) from exc

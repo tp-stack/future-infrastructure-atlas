@@ -10,6 +10,8 @@ from pathlib import Path
 
 import yaml
 
+from atlas import settings as atlas_settings
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 FRONTEND_DATA = PROJECT_ROOT / "frontend" / "public" / "data"
@@ -764,6 +766,23 @@ def _load_geospatial_datacenters(
     return dcs
 
 
+def _load_fde_datacenters() -> list[dict] | None:
+    from atlas import settings as atlas_settings
+
+    if not atlas_settings.atlas_use_fde_tables:
+        return None
+    from atlas.loaders.data_centers import load_data_centers
+
+    result = load_data_centers()
+    if result.get("source") != "fde":
+        reason = result.get("fallback_reason") or "FDE table was not selected"
+        print(f"[build] FDE data centers unavailable; using local data pipeline ({reason})")
+        return None
+    dcs = result.get("records", [])
+    print(f"[build] Loaded {len(dcs)} data centers from FDE table {result.get('table_name')}")
+    return dcs
+
+
 def build_web_data(
     max_public_mb: float = 5.0,
     cable_geo_path: Path | None = None,
@@ -855,12 +874,23 @@ def build_web_data(
         else:
             cables = _enrich_cable_geometry(cables_raw, cable_geom_lookup)
 
+    # Prefer FDE materialized data centers when explicitly configured.
+    fde_dcs = _load_fde_datacenters()
+
     # Try PeeringDB data centers from coordinates CSV
     peeringdb_dcs = None
     peeringdb_csv = peeringdb_csv_path or PEERINGDB_COORDS_CSV
-    if peeringdb_csv.exists():
+    if fde_dcs is None and peeringdb_csv.exists():
         peeringdb_dcs = _load_peeringdb_datacenters(peeringdb_csv)
-    if peeringdb_dcs is not None:
+    if fde_dcs is not None:
+        dcs = fde_dcs
+        sources.append({
+            "key": "fde_materialized_data_centers",
+            "name": f"FDE materialized data centers ({atlas_settings.database_schema}.data_centers)",
+            "url": "",
+            "license": "Private local FDE app schema",
+        })
+    elif peeringdb_dcs is not None:
         dcs = peeringdb_dcs
         sources.append({
             "key": "peeringdb_facilities",

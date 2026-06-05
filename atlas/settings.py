@@ -24,6 +24,12 @@ database_url = os.environ.get(
 )
 database_schema = os.environ.get("DATABASE_SCHEMA", "public")
 atlas_use_fde_tables = os.environ.get("ATLAS_USE_FDE_TABLES", "false").strip().lower() in {"1", "true", "yes", "on"}
+atlas_fde_fallback_to_local = os.environ.get("ATLAS_FDE_FALLBACK_TO_LOCAL", "true").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
 atlas_fde_primary_table = os.environ.get("ATLAS_FDE_PRIMARY_TABLE", "")
 atlas_fde_data_centers_table = os.environ.get("ATLAS_FDE_DATA_CENTERS_TABLE", "")
 atlas_fde_power_plants_table = os.environ.get("ATLAS_FDE_POWER_PLANTS_TABLE", "")
@@ -62,6 +68,7 @@ def get_database_settings() -> dict[str, str | int]:
         "database_url": database_url,
         "database_schema": database_schema,
         "atlas_use_fde_tables": atlas_use_fde_tables,
+        "atlas_fde_fallback_to_local": atlas_fde_fallback_to_local,
         "atlas_fde_primary_table": atlas_fde_primary_table,
         "atlas_fde_data_centers_table": atlas_fde_data_centers_table,
         "atlas_fde_power_plants_table": atlas_fde_power_plants_table,

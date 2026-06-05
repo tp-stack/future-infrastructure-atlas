@@ -13,6 +13,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from atlas import settings  # noqa: E402
 from atlas.db import check_health  # noqa: E402
+from atlas.loaders.data_centers import data_center_loader_status  # noqa: E402
 from atlas.loaders.fde_tables import (  # noqa: E402
     configured_table_status,
     list_fde_tables,
@@ -45,6 +46,7 @@ def main() -> int:
     print("configured table status:")
     for key, status in configured_table_status().items():
         print(f"  - {key}: {status}")
+    print(f"fallback to local: {settings.atlas_fde_fallback_to_local}")
 
     if args.table:
         preview = preview_fde_table(args.table, limit=args.limit)
@@ -52,6 +54,17 @@ def main() -> int:
         print(f"preview row_count: {preview['row_count']}")
         print(f"preview columns: {[column['column_name'] for column in preview['columns']]}")
         print(f"preview sample_rows: {preview['sample_rows'][: args.limit]}")
+
+    loader = data_center_loader_status()
+    print("data center loader:")
+    print(f"  source: {loader['source']}")
+    print(f"  table_name: {loader.get('table_name')}")
+    print(f"  source_path: {loader.get('source_path')}")
+    print(f"  count: {loader['count']}")
+    print(f"  mapped: {loader['mapped']}")
+    print(f"  unmapped: {loader['unmapped']}")
+    print(f"  fallback_enabled: {loader.get('fallback_enabled')}")
+    print(f"  fallback_reason: {loader.get('fallback_reason')}")
 
     return 0
 
