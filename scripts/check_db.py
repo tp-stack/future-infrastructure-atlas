@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sys
+import argparse
 from pathlib import Path
 
 
@@ -32,20 +33,29 @@ REQUIRED_TABLES = [
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description="Check Atlas database connectivity and optional schema readiness.")
+    parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="Fail when PostGIS, required Atlas tables, or seed rows are missing.",
+    )
+    args = parser.parse_args()
     failures: list[str] = []
     schema = settings.database_schema
     print(f"target schema: {schema}")
 
     # Lightweight health check via SELECT now()
     health = check_health()
-    print(f"SELECT now() health: {health.get('status')} ({health.get('server_time', 'N/A')})")
+    print(f"SELECT now(): {health.get('status')} ({health.get('server_time', 'N/A')})")
     if health.get("status") != "ok":
         print(f"connection: failed ({health.get('message')})")
         return 1
 
     try:
         row = fetch_one("SELECT current_database() AS database_name, current_schema() AS current_schema")
-        print(f"connection: ok (db={row['database_name']}, schema={row['current_schema']})")
+        print(f"database: {row['database_name']}")
+        print(f"schema: {row['current_schema']}")
+        print(f"connection: ok")
     except Exception as exc:  # noqa: BLE001 - CLI should report concise health
         print(f"connection: failed ({exc})")
         return 1
@@ -54,10 +64,12 @@ def main() -> int:
         if postgis_available():
             print("postgis: ok")
         else:
-            failures.append("PostGIS extension is not enabled.")
+            if args.strict:
+                failures.append("PostGIS extension is not enabled.")
             print("postgis: missing")
     except Exception as exc:  # noqa: BLE001
-        failures.append(f"PostGIS check failed: {exc}")
+        if args.strict:
+            failures.append(f"PostGIS check failed: {exc}")
         print(f"postgis: failed ({exc})")
 
     # List tables in the target schema
@@ -82,30 +94,34 @@ def main() -> int:
             if table_exists(table):
                 print(f"table {table}: ok")
             else:
-                failures.append(f"Required table is missing: {table}")
+                if args.strict:
+                    failures.append(f"Required table is missing: {table}")
                 print(f"table {table}: missing")
         except Exception as exc:  # noqa: BLE001
-            failures.append(f"Table check failed for {table}: {exc}")
+            if args.strict:
+                failures.append(f"Table check failed for {table}: {exc}")
             print(f"table {table}: failed ({exc})")
 
     try:
         if table_exists("dim_source"):
             source_count = count_rows("dim_source")
             print(f"sources: {source_count}")
-            if source_count < 10:
+            if args.strict and source_count < 10:
                 failures.append("Initial source seed rows are missing.")
     except Exception as exc:  # noqa: BLE001
-        failures.append(f"Source seed check failed: {exc}")
+        if args.strict:
+            failures.append(f"Source seed check failed: {exc}")
         print(f"sources: failed ({exc})")
 
     try:
         if table_exists("dim_dataset"):
             dataset_count = count_rows("dim_dataset")
             print(f"datasets: {dataset_count}")
-            if dataset_count < 13:
+            if args.strict and dataset_count < 13:
                 failures.append("Initial dataset seed rows are missing.")
     except Exception as exc:  # noqa: BLE001
-        failures.append(f"Dataset seed check failed: {exc}")
+        if args.strict:
+            failures.append(f"Dataset seed check failed: {exc}")
         print(f"datasets: failed ({exc})")
 
     if failures:
@@ -113,7 +129,11 @@ def main() -> int:
             print(f"failure: {failure}")
         return 1
 
-    print("database health: ok")
+    if not args.strict:
+        print("database connection: ok")
+        print("run with --strict after init_db.py to fail on missing Atlas tables or PostGIS")
+    else:
+        print("database health: ok")
     return 0
 
 

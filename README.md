@@ -96,6 +96,43 @@ pytest -q
 
 The PostGIS integration tests skip automatically when the local database is unavailable. Real data ingestion, vector tile generation, API serving, and frontend work are not part of Step 2.
 
+## Future Dataset Engine Connection
+
+Atlas can connect to Future Dataset Engine as a private app database provider. FDE should have an app provisioned with:
+
+```text
+app slug: atlas
+schema: app_atlas
+role: role_atlas
+database: future_datasets
+```
+
+Create a local `.env` from `.env.example`, then replace `PASSWORD` with the one-time password returned by FDE. Do not commit `.env` or any real `DATABASE_URL`.
+
+```bash
+DATABASE_URL=postgresql://role_atlas:PASSWORD@127.0.0.1:5432/future_datasets?options=-c%20search_path%3Dapp_atlas
+DATABASE_SCHEMA=app_atlas
+```
+
+Load the environment and check the connection:
+
+```bash
+set -a
+source .env
+set +a
+python scripts/check_db.py
+```
+
+Expected connection fields:
+
+```text
+database: future_datasets
+schema: app_atlas
+SELECT now(): ok
+```
+
+Atlas' full schema currently requires PostGIS. If FDE is running plain PostgreSQL, `python scripts/init_db.py` will report that PostGIS is unavailable. In that case, Atlas can still use FDE materialized tables later through a non-PostGIS table-reader path, but the full Atlas geospatial schema needs a PostGIS-capable database.
+
 ## Step 3: Registry And Provenance Foundation
 
 Step 3 adds hardened source, dataset, and layer registries plus raw and ingestion manifest utilities. This step does not download, move, transform, or ingest real data.
