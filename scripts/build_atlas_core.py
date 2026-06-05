@@ -378,6 +378,7 @@ def build_atlas_core(data: dict) -> dict:
                 "openinframap_substations.pmtiles",
                 OPENINFRAMAP_SUBSTATIONS_REMOTE_ENV,
             ),
+            "water_risk": _local_tile_entry("water_risk", "water_risk.pmtiles"),
         },
         "license_warnings": [
             {

@@ -34,10 +34,37 @@ def _require_psycopg() -> None:
 
 
 def get_connection():
-    """Open a psycopg connection using dict rows."""
+    """Open a psycopg connection using dict rows with the configured schema on search_path."""
 
     _require_psycopg()
-    return psycopg.connect(get_database_url(), row_factory=dict_row)
+    conn = psycopg.connect(get_database_url(), row_factory=dict_row)
+    schema = settings.database_schema
+    if schema and schema != "public":
+        with conn.cursor() as cur:
+            cur.execute(
+                psycopg.sql.SQL("SET search_path TO {}, public").format(psycopg.sql.Identifier(schema))
+            )
+        conn.commit()
+    return conn
+
+
+def check_health() -> dict[str, object]:
+    """Run SELECT now() and return connection health info."""
+
+    try:
+        row = fetch_one("SELECT current_database() AS db, current_schema() AS schema, now() AS server_time")
+        return {
+            "status": "ok",
+            "database": row["db"] if row else None,
+            "schema": row["schema"] if row else None,
+            "server_time": str(row["server_time"]) if row else None,
+            "driver": "psycopg",
+        }
+    except Exception as exc:
+        return {
+            "status": "error",
+            "message": str(exc),
+        }
 
 
 def wait_for_database(timeout_seconds: int = 30) -> bool:

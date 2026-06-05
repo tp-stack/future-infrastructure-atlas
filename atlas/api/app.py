@@ -293,6 +293,20 @@ def create_app(repository: CommercialRepositoryProtocol | None = None, billing_s
             raise api_error(503, "stripe_not_configured", str(exc)) from exc
         return {"checkout_url": session["url"], "session_id": session["id"], "plan": request.plan}
 
+    @app.get("/v1/billing/usage")
+    def billing_usage(
+        auth: AuthContext = Depends(require_auth("assets:read")),
+        repository: CommercialRepositoryProtocol = Depends(get_repository),
+    ) -> dict[str, Any]:
+        used = repository.count_monthly_requests(auth.customer_id)
+        return {
+            "customer_id": auth.customer_id,
+            "plan_key": auth.plan_key,
+            "monthly_request_quota": auth.monthly_request_quota,
+            "monthly_requests_used": used,
+            "monthly_export_quota_mb": auth.monthly_export_quota_mb,
+        }
+
     @app.get("/v1/tiles/catalog", response_model=TileCatalogResponse)
     def tile_catalog(
         auth: AuthContext = Depends(require_auth("tiles:read")),

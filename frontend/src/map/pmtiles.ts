@@ -21,6 +21,7 @@ export interface TileStatus {
   substations: "present" | "missing" | "unknown";
   openinframap_power_lines?: "present" | "missing" | "unknown";
   openinframap_substations?: "present" | "missing" | "unknown";
+  water_risk?: "present" | "missing" | "unknown";
 }
 
 export type TileRegistry = Record<string, { url?: string; status?: string; layer_name?: string } | undefined>;
@@ -33,6 +34,7 @@ const FALLBACK_TILE_URLS: Record<string, string> = {
   substations: "pmtiles:///tiles/substations.pmtiles",
   openinframap_power_lines: "pmtiles:///tiles/openinframap_power_lines.pmtiles",
   openinframap_substations: "pmtiles:///tiles/openinframap_substations.pmtiles",
+  water_risk: "pmtiles:///tiles/water_risk.pmtiles",
 };
 
 function normalizePMTilesUrl(url: string | undefined, fallback: string): string {
@@ -49,7 +51,8 @@ function sourceSpecFor(
   tileStatus: TileStatus,
   tileRegistry?: TileRegistry
 ): maplibregl.SourceSpecification | null {
-  if ((tileStatus as unknown as Record<string, string | undefined>)[key] !== "present") return null;
+  const status = (tileStatus as unknown as Record<string, string | undefined>)[key];
+  if (status !== "present" && status !== "unknown") return null;
   const url = normalizePMTilesUrl(tileRegistry?.[key]?.url, FALLBACK_TILE_URLS[key]);
   if (!url) return null;
   return { type: "vector", url };
@@ -65,6 +68,7 @@ export function getTileStatusFromCore(core: AtlasCore): TileStatus {
     substations: reg.substations?.status?.startsWith("present") ? "present" : "missing",
     openinframap_power_lines: reg.openinframap_power_lines?.status?.startsWith("present") ? "present" : "missing",
     openinframap_substations: reg.openinframap_substations?.status?.startsWith("present") ? "present" : "missing",
+    water_risk: reg.water_risk?.status?.startsWith("present") ? "present" : "missing",
   };
 }
 
@@ -118,6 +122,7 @@ export function getPMTilesSources(
   const substations = sourceSpecFor("substations", tileStatus, tileRegistry);
   const openInfraMapPowerLines = sourceSpecFor("openinframap_power_lines", tileStatus, tileRegistry);
   const openInfraMapSubstations = sourceSpecFor("openinframap_substations", tileStatus, tileRegistry);
+  const waterRisk = sourceSpecFor("water_risk", tileStatus, tileRegistry);
 
   if (powerPlants) sources["power_plants_tiles"] = powerPlants;
   if (submarineCables) sources["submarine_cables_tiles"] = submarineCables;
@@ -126,6 +131,7 @@ export function getPMTilesSources(
   if (substations) sources["substations_tiles"] = substations;
   if (openInfraMapPowerLines) sources["openinframap_power_lines_tiles"] = openInfraMapPowerLines;
   if (openInfraMapSubstations) sources["openinframap_substations_tiles"] = openInfraMapSubstations;
+  if (waterRisk) sources["water_risk_tiles"] = waterRisk;
   return sources;
 }
 
@@ -135,7 +141,7 @@ export function getPMTilesLayers(
 ): maplibregl.LayerSpecification[] {
   const layers: maplibregl.LayerSpecification[] = [];
 
-  if (tileStatus.power_plants === "present" && visibleLayers.power_plants) {
+  if ((tileStatus.power_plants === "present" || tileStatus.power_plants === "unknown") && visibleLayers.power_plants) {
     layers.push({
       id: "power_plants_tiles-layer",
       type: "circle",
@@ -149,7 +155,7 @@ export function getPMTilesLayers(
     });
   }
 
-  if (tileStatus.submarine_cables === "present" && visibleLayers.cables) {
+  if ((tileStatus.submarine_cables === "present" || tileStatus.submarine_cables === "unknown") && visibleLayers.cables) {
     layers.push({
       id: "submarine_cables_tiles-layer",
       type: "line",
@@ -163,7 +169,7 @@ export function getPMTilesLayers(
     });
   }
 
-  if (tileStatus.data_centers === "present" && visibleLayers.data_centers) {
+  if ((tileStatus.data_centers === "present" || tileStatus.data_centers === "unknown") && visibleLayers.data_centers) {
     layers.push({
       id: "data_centers_tiles-layer",
       type: "circle",
@@ -179,7 +185,7 @@ export function getPMTilesLayers(
     });
   }
 
-  if (tileStatus.power_lines === "present" && visibleLayers.power_lines) {
+  if ((tileStatus.power_lines === "present" || tileStatus.power_lines === "unknown") && visibleLayers.power_lines) {
     layers.push({
       id: "power_lines_tiles-layer",
       type: "line",
@@ -217,7 +223,7 @@ export function getPMTilesLayers(
     });
   }
 
-  if (tileStatus.openinframap_power_lines === "present" && visibleLayers.power_lines) {
+  if ((tileStatus.openinframap_power_lines === "present" || tileStatus.openinframap_power_lines === "unknown") && visibleLayers.power_lines) {
     layers.push({
       id: "openinframap_power_lines_tiles-layer",
       type: "line",
@@ -255,7 +261,7 @@ export function getPMTilesLayers(
     });
   }
 
-  if (tileStatus.substations === "present" && visibleLayers.substations) {
+  if ((tileStatus.substations === "present" || tileStatus.substations === "unknown") && visibleLayers.substations) {
     layers.push({
       id: "substations_tiles-layer",
       type: "circle",
@@ -276,7 +282,7 @@ export function getPMTilesLayers(
     });
   }
 
-  if (tileStatus.openinframap_substations === "present" && visibleLayers.substations) {
+  if ((tileStatus.openinframap_substations === "present" || tileStatus.openinframap_substations === "unknown") && visibleLayers.substations) {
     layers.push({
       id: "openinframap_substations_tiles-layer",
       type: "circle",
@@ -293,6 +299,28 @@ export function getPMTilesLayers(
         "circle-opacity": 0.9,
         "circle-stroke-color": SUBSTATION_STROKE_COLOR,
         "circle-stroke-width": 1.2,
+      },
+    });
+  }
+
+  if ((tileStatus.water_risk === "present" || tileStatus.water_risk === "unknown") && visibleLayers.water_risk) {
+    layers.push({
+      id: "water_risk_tiles-layer",
+      type: "fill",
+      source: "water_risk_tiles",
+      "source-layer": "water_risk",
+      paint: {
+        "fill-color": [
+          "match", ["get", "wr"],
+          0, "#1a3a1a",
+          1, "#2d5a1a",
+          2, "#8a7a2a",
+          3, "#b06a20",
+          4, "#8a3020",
+          5, "#5a1010",
+          "#1a1a1a",
+        ],
+        "fill-opacity": 0.55,
       },
     });
   }

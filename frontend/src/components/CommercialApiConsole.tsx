@@ -294,7 +294,7 @@ export default function CommercialApiConsole({ embedded = false, onClose, initia
       <header className="commercial-api-header">
         <div className="commercial-api-title-block">
           <span className="commercial-api-kicker">Commercial surface</span>
-          <h1>FUTURE Atlas API Console</h1>
+          <h1>FUTURE Intelligence API Console</h1>
           <p>Test authenticated assets, protected tiles, exports, attribution, and commercial rights behavior from the browser.</p>
         </div>
         <div className="commercial-api-status-row">

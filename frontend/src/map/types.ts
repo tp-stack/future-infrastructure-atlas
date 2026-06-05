@@ -26,6 +26,7 @@ export interface Cable {
   landing_points?: string | string[];
   length_km?: string;
   unmapped_reason?: string;
+  commercial_use_allowed?: boolean;
 }
 
 export interface DataCenter {

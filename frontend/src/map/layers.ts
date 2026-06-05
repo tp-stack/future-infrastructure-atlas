@@ -38,6 +38,15 @@ export const POWER_CABLE_HVDC_COLOR = "#8f4dd8";
 export const SUBSTATION_COLOR = "#2f6b4f";
 export const SUBSTATION_STROKE_COLOR = "#ffffff";
 
+export const WATER_RISK_COLORS: Record<number, string> = {
+  0: "#1a3a1a",
+  1: "#2d5a1a",
+  2: "#8a7a2a",
+  3: "#b06a20",
+  4: "#8a3020",
+  5: "#5a1010",
+};
+
 export const LAYER_IDS = {
   POWER_PLANTS: "power-plants",
   CABLES: "submarine-cables",

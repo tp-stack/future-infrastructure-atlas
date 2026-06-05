@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import type { AtlasData, FilterState, Asset, AtlasCore } from "./types";
+import type { AtlasData, FilterState, Asset, AtlasCore, PowerPlant } from "./types";
 import InfrastructureCanvasOverlay from "./InfrastructureCanvasOverlay";
 import type { CanvasDiagnostics } from "./InfrastructureCanvasOverlay";
 import { buildPowerPlantGeoJSON, buildDataCenterGeoJSON, buildCableGeoJSON } from "./geojson";
@@ -25,6 +25,18 @@ import {
   type LonLatBounds,
 } from "./viewport";
 import type { AtlasTheme } from "../utils/theme";
+import {
+  ENERGY_LAYER_ID,
+  ENERGY_GLOW_ID,
+  ENERGY_COLOR,
+  ENERGY_UNKNOWN_COLOR,
+  ENERGY_FLOW_SOURCE_ID,
+  ENERGY_FLOW_LAYER_ID,
+  ENERGY_FLOW_DESTINATION_ID,
+  FLOW_LINE_PAINT,
+  FLOW_DESTINATION_PAINT,
+} from "../layers/energyFactoryLayer";
+import EnergyFlowLayer from "../components/EnergyFlowLayer";
 
 interface Props {
   data: AtlasData;
@@ -51,9 +63,13 @@ interface Props {
   candidateSites?: CandidateSite[];
   analysisBounds?: [number, number, number, number] | null;
   onCandidateClick?: (candidate: CandidateSite) => void;
+  energyLayerEnabled?: boolean;
+  selectedEnergyFactory?: PowerPlant | null;
+  onEnergyFactorySelect?: (plant: PowerPlant | null) => void;
+  energyFlowGeoJSON?: GeoJSON.FeatureCollection | null;
 }
 
-const GEOJSON_INTERACTIVE_LAYERS = ["power-points", "data-center-points", "submarine-cable-lines", "power-line-lines", "power-line-cables", "substation-points"];
+const GEOJSON_INTERACTIVE_LAYERS = ["power-points", "data-center-points", "submarine-cable-lines", "power-line-lines", "power-line-cables", "substation-points", ENERGY_LAYER_ID];
 const PMTILES_INTERACTIVE_LAYERS = [
   "power_plants_tiles-layer",
   "data_centers_tiles-layer",
@@ -64,6 +80,13 @@ const PMTILES_INTERACTIVE_LAYERS = [
   "openinframap_power_cables_tiles-layer",
   "substations_tiles-layer",
   "openinframap_substations_tiles-layer",
+  "power-points",
+  "data-center-points",
+  "submarine-cable-lines",
+  "power-line-lines",
+  "power-line-cables",
+  "substation-points",
+  ENERGY_LAYER_ID,
 ];
 
 function getTileStatusFromCore(core: AtlasCore): TileStatus {
@@ -368,6 +391,57 @@ function addSubstationLayer(m: maplibregl.Map, beforeId?: string) {
   }, beforeId);
 }
 
+function addEnergyFactoryLayers(m: maplibregl.Map, beforeLayer?: string) {
+  const bl = m.getLayer(beforeLayer || "power-points") ? (beforeLayer || "power-points") : undefined;
+  m.addLayer({
+    id: ENERGY_GLOW_ID,
+    type: "circle",
+    source: "power-plants-source",
+    paint: {
+      "circle-radius": [
+        "interpolate", ["linear"], ["coalesce", ["get", "mw"], 0],
+        0, 5, 10, 7, 100, 10, 500, 13, 1000, 15, 5000, 17, 22500, 19,
+      ],
+      "circle-color": ENERGY_COLOR,
+      "circle-opacity": 0.12,
+      "circle-blur": 1.5,
+    },
+    layout: { visibility: "none" },
+  }, bl);
+  m.addLayer({
+    id: ENERGY_LAYER_ID,
+    type: "circle",
+    source: "power-plants-source",
+    paint: {
+      "circle-radius": [
+        "case",
+        ["==", ["coalesce", ["get", "mw"], 0], 0], 3,
+        ["interpolate", ["linear"], ["coalesce", ["get", "mw"], 0],
+          1, 3, 10, 5, 50, 6, 200, 8, 500, 10, 1000, 12, 5000, 13, 22500, 14,
+        ],
+      ],
+      "circle-color": [
+        "case",
+        ["==", ["coalesce", ["get", "mw"], 0], 0],
+        ENERGY_UNKNOWN_COLOR, ENERGY_COLOR,
+      ],
+      "circle-opacity": [
+        "case",
+        ["==", ["coalesce", ["get", "mw"], 0], 0], 0.5, 0.45,
+      ],
+      "circle-stroke-width": 1.5,
+      "circle-stroke-color": [
+        "case",
+        ["==", ["coalesce", ["get", "mw"], 0], 0],
+        ENERGY_UNKNOWN_COLOR, ENERGY_COLOR,
+      ],
+      "circle-stroke-opacity": 0.85,
+      "circle-blur": 0.15,
+    },
+    layout: { visibility: "none" },
+  }, ENERGY_GLOW_ID);
+}
+
 export default function AtlasMap({
   data, filters, visibleLayers, onPopup, onCanvasDiagnostics,
   showTestPoints, graticuleVisible,
@@ -383,6 +457,10 @@ export default function AtlasMap({
   candidateSites,
   analysisBounds,
   onCandidateClick,
+  energyLayerEnabled = false,
+  selectedEnergyFactory,
+  onEnergyFactorySelect,
+  energyFlowGeoJSON,
 }: Props) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
@@ -398,9 +476,9 @@ export default function AtlasMap({
     error: null as string | null,
   });
 
-  const tileStatus = core ? getTileStatusFromCore(core) : null;
-  const usePMTiles = tileStatus !== null && Object.values(tileStatus).some((status) => status === "present");
-  const interactiveLayerIds = usePMTiles ? PMTILES_INTERACTIVE_LAYERS : GEOJSON_INTERACTIVE_LAYERS;
+  const tileStatus: TileStatus = core ? getTileStatusFromCore(core) : { power_plants: "unknown", submarine_cables: "unknown", data_centers: "unknown", power_lines: "unknown", substations: "unknown", water_risk: "unknown" };
+  const pmtilesAvailable = Object.values(tileStatus).some((s) => s === "present" || s === "unknown");
+  const interactiveLayerIds = pmtilesAvailable ? PMTILES_INTERACTIVE_LAYERS : GEOJSON_INTERACTIVE_LAYERS;
   const prevCableHover = useRef<string | null>(null);
 
   const setMapError = useCallback((message: string) => {
@@ -422,7 +500,7 @@ export default function AtlasMap({
     } catch (error) { setMapError(error instanceof Error ? error.message : String(error)); }
     if (powerLinesData) {
       try {
-        if (!m.getSource("power-lines-source") && (!usePMTiles || tileStatus?.power_lines !== "present")) {
+        if (!m.getSource("power-lines-source")) {
           m.addSource("power-lines-source", { type: "geojson", data: powerLinesData });
           addPowerLineLayer(m);
         }
@@ -431,14 +509,14 @@ export default function AtlasMap({
     }
     if (substationsData) {
       try {
-        if (!m.getSource("substations-source") && (!usePMTiles || tileStatus?.substations !== "present")) {
+        if (!m.getSource("substations-source")) {
           m.addSource("substations-source", { type: "geojson", data: substationsData });
           addSubstationLayer(m);
         }
         (m.getSource("substations-source") as maplibregl.GeoJSONSource)?.setData(substationsData);
       } catch (error) { setMapError(error instanceof Error ? error.message : String(error)); }
     }
-  }, [data, filters, setMapError, usePMTiles, tileStatus, powerLinesData, substationsData, cableFilters, cableCompanyStats]);
+  }, [data, filters, setMapError, tileStatus, powerLinesData, substationsData, cableFilters, cableCompanyStats]);
 
   const { call: debouncedUpdateSources, cancel: cancelUpdate } = useDebounce(doUpdateSources, 300);
 
@@ -447,7 +525,7 @@ export default function AtlasMap({
     if (!m || layersAddedRef.current) return;
 
     try {
-      if (usePMTiles && tileStatus) {
+      if (pmtilesAvailable) {
         registerPMTilesProtocol();
         const tileSources = getPMTilesSources(tileStatus, core?.tile_registry);
         for (const [id, spec] of Object.entries(tileSources)) {
@@ -457,7 +535,7 @@ export default function AtlasMap({
         for (const layer of tileLayers) {
           m.addLayer(layer);
         }
-        if (tileStatus.submarine_cables !== "present") {
+        {
           const cableGeoJSON = buildCableGeoJSON(data, cableFilters, cableCompanyStats);
           m.addSource("submarine-cables-source", { type: "geojson", data: cableGeoJSON });
           m.addLayer({
@@ -471,12 +549,12 @@ export default function AtlasMap({
             },
           });
         }
-        // Also add GeoJSON sources for power_plants and data_centers when their tiles are missing
-        if (tileStatus.power_plants !== "present") {
+        {
           m.addSource("power-plants-source", { type: "geojson", data: buildPowerPlantGeoJSON(data, filters) });
           addPowerPlantLayers(m);
+          addEnergyFactoryLayers(m);
         }
-        if (tileStatus.data_centers !== "present") {
+        {
           m.addSource("data-centers-source", { type: "geojson", data: buildDataCenterGeoJSON(data, filters) });
           m.addLayer({
             id: "data-center-points", type: "circle", source: "data-centers-source",
@@ -487,11 +565,11 @@ export default function AtlasMap({
             },
           });
         }
-        if (tileStatus.power_lines !== "present" && powerLinesData) {
+        if (powerLinesData) {
           m.addSource("power-lines-source", { type: "geojson", data: powerLinesData });
           addPowerLineLayer(m);
         }
-        if (tileStatus.substations !== "present" && substationsData) {
+        if (substationsData) {
           m.addSource("substations-source", { type: "geojson", data: substationsData });
           addSubstationLayer(m);
         }
@@ -527,6 +605,7 @@ export default function AtlasMap({
           });
 
         addPowerPlantLayers(m);
+        addEnergyFactoryLayers(m);
 
         m.addLayer({
           id: "data-center-points",
@@ -562,7 +641,7 @@ export default function AtlasMap({
     } catch (error) {
       setMapError(error instanceof Error ? error.message : String(error));
     }
-  }, [core, data, filters, setMapError, usePMTiles, tileStatus, powerLinesData, substationsData, cableFilters, cableCompanyStats, layerOpacity]);
+  }, [core, data, filters, setMapError, tileStatus, powerLinesData, substationsData, cableFilters, cableCompanyStats, layerOpacity]);
 
   const fitToData = useCallback((opts?: { maxZoom?: number; padding?: number }) => {
     const m = map.current;
@@ -668,7 +747,9 @@ export default function AtlasMap({
       onZoomChanged?.(m.getZoom());
     };
     m.on("moveend", handler);
-    return () => { m.off("moveend", handler); };
+    cleanupFnsRef.current.push(() => {
+      try { m.off("moveend", handler); } catch {}
+    });
   }, [onBoundsChanged, onZoomChanged]);
 
   useEffect(() => {
@@ -702,11 +783,11 @@ export default function AtlasMap({
     if (!m || !layersAddedRef.current) return;
 
     const setVis = (id: string, key: string) => {
-      if (!m.getLayer(id)) return;
+      if (!m || !m.getLayer(id)) return;
       m.setLayoutProperty(id, "visibility", visibleLayers[key] ? "visible" : "none");
     };
 
-    if (usePMTiles) {
+    if (pmtilesAvailable) {
       setVis("power_plants_tiles-layer", "power_plants");
       setVis("data_centers_tiles-layer", "data_centers");
       setVis("submarine_cables_tiles-layer", "cables");
@@ -716,14 +797,27 @@ export default function AtlasMap({
       setVis("openinframap_power_cables_tiles-layer", "power_lines");
       setVis("substations_tiles-layer", "substations");
       setVis("openinframap_substations_tiles-layer", "substations");
+      setVis("water_risk_tiles-layer", "water_risk");
     }
-    setVis("power-points", "power_plants");
+    if (energyLayerEnabled) {
+      setVis(ENERGY_GLOW_ID, "power_plants");
+      setVis(ENERGY_LAYER_ID, "power_plants");
+      if (m.getLayer("power-points")) {
+        m.setLayoutProperty("power-points", "visibility", "none");
+      }
+    } else {
+      setVis("power-points", "power_plants");
+      if (m.getLayer(ENERGY_LAYER_ID)) {
+        m.setLayoutProperty(ENERGY_LAYER_ID, "visibility", "none");
+        m.setLayoutProperty(ENERGY_GLOW_ID, "visibility", "none");
+      }
+    }
     setVis("data-center-points", "data_centers");
     setVis("submarine-cable-lines", "cables");
     setVis("power-line-lines", "power_lines");
     setVis("power-line-cables", "power_lines");
     setVis("substation-points", "substations");
-  }, [visibleLayers]);
+  }, [visibleLayers, energyLayerEnabled]);
 
   useEffect(() => {
     const m = map.current;
@@ -828,6 +922,17 @@ export default function AtlasMap({
 
   useEffect(() => {
     const m = map.current;
+    if (!m || !mapStatus.layersReady) return;
+
+    if (selectedEnergyFactory && m.getSource(ENERGY_FLOW_SOURCE_ID)) {
+      try {
+        (m.getSource(ENERGY_FLOW_SOURCE_ID) as maplibregl.GeoJSONSource).setData(energyFlowGeoJSON || { type: "FeatureCollection", features: [] });
+      } catch {}
+    }
+  }, [selectedEnergyFactory, energyFlowGeoJSON, mapStatus.layersReady]);
+
+  useEffect(() => {
+    const m = map.current;
     if (!m) return;
     const layerId = "analysis-bbox-layer";
     const sourceId = "analysis-bbox-source";
@@ -883,6 +988,7 @@ export default function AtlasMap({
     if (!m) return;
 
     const handleClick = (e: maplibregl.MapMouseEvent & { features?: maplibregl.MapGeoJSONFeature[] }) => {
+      if (!m) return;
       userInteractedRef.current = true;
 
       const interactiveLayers = interactiveLayerIds.filter((id) => m.getLayer(id));
@@ -896,7 +1002,7 @@ export default function AtlasMap({
       const feat = features[0];
       const layerId = feat.layer?.id;
 
-      if (usePMTiles) {
+      if (pmtilesAvailable) {
         if (layerId === "power_plants_tiles-layer" || layerId === "data_centers_tiles-layer" || layerId === "submarine_cables_tiles-layer" || layerId === "power_lines_tiles-layer" || layerId === "power_lines_cables_tiles-layer" || layerId === "openinframap_power_lines_tiles-layer" || layerId === "openinframap_power_cables_tiles-layer" || layerId === "substations_tiles-layer" || layerId === "openinframap_substations_tiles-layer") {
           const p = feat.properties as Record<string, unknown>;
           let asset: Asset;
@@ -919,8 +1025,24 @@ export default function AtlasMap({
           }
           onPopup(asset);
           onSelectedAsset?.(id);
-        }
-        if (layerId === "power-line-lines" || layerId === "power-line-cables") {
+        } else if (layerId === "power-points") {
+          const p = feat.properties as Record<string, unknown>;
+          const asset = getPowerPlantFromProps(p);
+          const id = `pp-${p._idx ?? `${p.name}-${p.lat}-${p.lon}`}`;
+          onPopup(asset);
+          onSelectedAsset?.(id);
+          if (onEnergyFactorySelect && asset.kind === "power_plant") {
+            onEnergyFactorySelect(asset as PowerPlant);
+          }
+        } else if (layerId === "data-center-points") {
+          const p = feat.properties as Record<string, unknown>;
+          onPopup(getDataCenterFromProps(p));
+          onSelectedAsset?.(`dc-${p.name}-${p.lat}-${p.lon}`);
+        } else if (layerId === "submarine-cable-lines") {
+          const p = feat.properties as Record<string, unknown>;
+          onPopup(getCableFromProps(p));
+          onSelectedAsset?.(`cable-${p.name}`);
+        } else if (layerId === "power-line-lines" || layerId === "power-line-cables") {
           const p = feat.properties as Record<string, unknown>;
           onPopup(getPowerLineFromProps(p));
           onSelectedAsset?.(`power-line-${p.id ?? "?"}`);
@@ -932,12 +1054,27 @@ export default function AtlasMap({
         return;
       }
 
+      if (layerId === ENERGY_LAYER_ID) {
+        const p = feat.properties as Record<string, unknown>;
+        const asset = getPowerPlantFromProps(p);
+        const id = `pp-${p._idx ?? `${p.name}-${p.lat}-${p.lon}`}`;
+        onPopup(asset);
+        onSelectedAsset?.(id);
+        if (onEnergyFactorySelect && asset.kind === "power_plant") {
+          onEnergyFactorySelect(asset as PowerPlant);
+        }
+        return;
+      }
+
       if (layerId === "power-points") {
         const p = feat.properties as Record<string, unknown>;
         const asset = getPowerPlantFromProps(p);
         const id = `pp-${p._idx ?? `${p.name}-${p.lat}-${p.lon}`}`;
         onPopup(asset);
         onSelectedAsset?.(id);
+        if (onEnergyFactorySelect && asset.kind === "power_plant") {
+          onEnergyFactorySelect(asset as PowerPlant);
+        }
         return;
       }
 
@@ -978,12 +1115,13 @@ export default function AtlasMap({
     };
 
     const handleMouseMove = (e: maplibregl.MapMouseEvent) => {
+      if (!m) return;
       const interactiveLayers = interactiveLayerIds.filter((id) => m.getLayer(id));
       const features = interactiveLayers.length > 0 ? m.queryRenderedFeatures(e.point, { layers: interactiveLayers }) : [];
       const hasFeatures = features && features.length > 0;
       m.getCanvas().style.cursor = hasFeatures ? "pointer" : "";
       if (hasFeatures) {
-        if (!usePMTiles && m.getLayer("submarine-cable-lines")) {
+        if (m.getLayer("submarine-cable-lines")) {
           const cableFeat = features.find((f) => f.layer?.id === "submarine-cable-lines");
           const cableId = cableFeat?.id != null ? String(cableFeat.id) : null;
           if (cableId && prevCableHover.current !== cableId) {
@@ -1001,31 +1139,20 @@ export default function AtlasMap({
         const layerId = feat.layer?.id;
         const props = feat.properties as Record<string, unknown>;
         let hoverId: string | null = null;
-        if (usePMTiles) {
-          if (layerId === "power_plants_tiles-layer") hoverId = `pp-pmtiles-${props.n ?? "?"}`;
-          else if (layerId === "data_centers_tiles-layer") hoverId = `dc-pmtiles-${props.n ?? "?"}`;
-          else if (layerId === "submarine_cables_tiles-layer") hoverId = `cable-pmtiles-${props.n ?? "?"}`;
-          else if (layerId === "power_lines_tiles-layer" || layerId === "power_lines_cables_tiles-layer" || layerId === "openinframap_power_lines_tiles-layer" || layerId === "openinframap_power_cables_tiles-layer") hoverId = `power-line-pmtiles-${props.id ?? props.n ?? "?"}`;
-          else if (layerId === "substations_tiles-layer" || layerId === "openinframap_substations_tiles-layer") hoverId = `substation-pmtiles-${props.id ?? props.n ?? "?"}`;
-          else if (layerId === "power-line-lines" || layerId === "power-line-cables") hoverId = `power-line-${props.id ?? "?"}`;
-          else if (layerId === "substation-points") hoverId = `substation-${props.id ?? props.n ?? "?"}`;
-        } else {
-          if (layerId === "power-points") {
-            hoverId = `pp-${props._idx ?? `${props.name}-${props.lat}-${props.lon}`}`;
-          } else if (layerId === "data-center-points") {
-            hoverId = `dc-${props.name}-${props.lat}-${props.lon}`;
-          } else if (layerId === "submarine-cable-lines") {
-            hoverId = `cable-${props.name}`;
-          } else if (layerId === "power-line-lines" || layerId === "power-line-cables") {
-            hoverId = `power-line-${props.id ?? "?"}`;
-          } else if (layerId === "substation-points") {
-            hoverId = `substation-${props.id ?? props.n ?? "?"}`;
-          }
-        }
+        if (layerId === "power_plants_tiles-layer") hoverId = `pp-pmtiles-${props.n ?? "?"}`;
+        else if (layerId === "data_centers_tiles-layer") hoverId = `dc-pmtiles-${props.n ?? "?"}`;
+        else if (layerId === "submarine_cables_tiles-layer") hoverId = `cable-pmtiles-${props.n ?? "?"}`;
+        else if (layerId === "power_lines_tiles-layer" || layerId === "power_lines_cables_tiles-layer" || layerId === "openinframap_power_lines_tiles-layer" || layerId === "openinframap_power_cables_tiles-layer") hoverId = `power-line-pmtiles-${props.id ?? props.n ?? "?"}`;
+        else if (layerId === "substations_tiles-layer" || layerId === "openinframap_substations_tiles-layer") hoverId = `substation-pmtiles-${props.id ?? props.n ?? "?"}`;
+        else if (layerId === ENERGY_LAYER_ID || layerId === "power-points") hoverId = `pp-${props._idx ?? `${props.name}-${props.lat}-${props.lon}`}`;
+        else if (layerId === "data-center-points") hoverId = `dc-${props.name}-${props.lat}-${props.lon}`;
+        else if (layerId === "submarine-cable-lines") hoverId = `cable-${props.name}`;
+        else if (layerId === "power-line-lines" || layerId === "power-line-cables") hoverId = `power-line-${props.id ?? "?"}`;
+        else if (layerId === "substation-points") hoverId = `substation-${props.id ?? props.n ?? "?"}`;
         onHoveredAsset?.(hoverId);
       } else {
         onHoveredAsset?.(null);
-        if (!usePMTiles && prevCableHover.current) {
+        if (prevCableHover.current) {
           try { m.setFeatureState({ source: "submarine-cables-source", id: prevCableHover.current }, { hover: false }); } catch {}
           prevCableHover.current = null;
         }
@@ -1033,9 +1160,10 @@ export default function AtlasMap({
     };
 
     const handleMouseLeave = () => {
+      if (!m) return;
       m.getCanvas().style.cursor = "";
       onHoveredAsset?.(null);
-      if (!usePMTiles && prevCableHover.current) {
+      if (prevCableHover.current) {
         try { m.setFeatureState({ source: "submarine-cables-source", id: prevCableHover.current }, { hover: false }); } catch {}
         prevCableHover.current = null;
       }
@@ -1045,12 +1173,14 @@ export default function AtlasMap({
     m.on("mousemove", handleMouseMove);
     m.on("mouseleave", handleMouseLeave);
 
-    return () => {
-      m.off("click", handleClick);
-      m.off("mousemove", handleMouseMove);
-      m.off("mouseleave", handleMouseLeave);
-    };
-  }, [onPopup, onSelectedAsset, onHoveredAsset, interactiveLayerIds, usePMTiles]);
+    cleanupFnsRef.current.push(() => {
+      try {
+        m.off("click", handleClick);
+        m.off("mousemove", handleMouseMove);
+        m.off("mouseleave", handleMouseLeave);
+      } catch {}
+    });
+  }, [onPopup, onSelectedAsset, onHoveredAsset, interactiveLayerIds, pmtilesAvailable]);
 
   useEffect(() => {
     const m = map.current;
@@ -1068,7 +1198,9 @@ export default function AtlasMap({
     };
 
     m.on("click", layerId, handler);
-    return () => { m.off("click", layerId, handler); };
+    cleanupFnsRef.current.push(() => {
+      try { m.off("click", layerId, handler); } catch {}
+    });
   }, [candidateSites, onCandidateClick]);
 
   const handleCanvasDiagnostics = useCallback((d: CanvasDiagnostics) => {
@@ -1089,6 +1221,11 @@ export default function AtlasMap({
   return (
     <div className="map-container">
       <div ref={mapContainer} className="map-canvas" />
+      <EnergyFlowLayer
+        map={mapInstance}
+        geoJSON={energyFlowGeoJSON ?? null}
+        layersReady={mapStatus.layersReady}
+      />
       {canvasEnabled && (
         <InfrastructureCanvasOverlay
           enabled

@@ -5,6 +5,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+from atlas import settings
+from atlas.db import check_health
 from atlas.site_selection.api import router
 
 app = FastAPI(
@@ -29,6 +32,7 @@ def root():
     return {
         "service": "FUTURE Site Selection API",
         "version": "0.1.0",
+        "database_schema": settings.database_schema,
         "endpoints": {
             "profiles": "/v1/site-selection/profiles",
             "query": "POST /v1/site-selection/query",
@@ -36,5 +40,11 @@ def root():
             "candidate_detail": "/v1/site-selection/candidate/{id}",
             "export": "POST /v1/site-selection/export-report",
             "health": "/v1/site-selection/health",
+            "database_health": "/health/db",
         },
     }
+
+
+@app.get("/health/db")
+def database_health():
+    return check_health()

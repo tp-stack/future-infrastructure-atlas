@@ -5,22 +5,27 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from atlas import settings
 from atlas.db import fetch_all, fetch_one
 
 
+def _target_schema() -> str:
+    return settings.database_schema
+
+
 def table_exists(table_name: str) -> bool:
-    """Return true when a public table exists."""
+    """Return true when a table exists in the configured schema."""
 
     row = fetch_one(
         """
         SELECT EXISTS (
             SELECT 1
             FROM information_schema.tables
-            WHERE table_schema = 'public'
+            WHERE table_schema = %s
               AND table_name = %s
         ) AS exists
         """,
-        (table_name,),
+        (_target_schema(), table_name),
     )
     return bool(row and row["exists"])
 
@@ -33,17 +38,17 @@ def postgis_available() -> bool:
 
 
 def get_table_columns(table_name: str) -> list[str]:
-    """Return ordered column names for a public table."""
+    """Return ordered column names for a table in the configured schema."""
 
     rows = fetch_all(
         """
         SELECT column_name
         FROM information_schema.columns
-        WHERE table_schema = 'public'
+        WHERE table_schema = %s
           AND table_name = %s
         ORDER BY ordinal_position
         """,
-        (table_name,),
+        (_target_schema(), table_name),
     )
     return [row["column_name"] for row in rows]
 

@@ -5,11 +5,14 @@ from __future__ import annotations
 import json
 import os
 import re
+import secrets
 from typing import Any, Protocol
 
 from atlas import db
 from atlas.api.models import AuthContext, CheckoutSessionRequest, ExportCreateRequest
 from atlas.api.rights import sql_commercial_rights_predicate
+from atlas.api.security import hash_api_key, key_prefix
+from atlas.email_service import send_api_key_email
 from atlas.payments import price_env_var
 
 
@@ -475,7 +478,7 @@ class CommercialRepository:
         if not plan_key or not stripe_customer_id:
             return
 
-        plan = db.fetch_one("SELECT plan_id FROM api_plan WHERE plan_key = %(plan_key)s", {"plan_key": plan_key})
+        plan = db.fetch_one("SELECT plan_id, name FROM api_plan WHERE plan_key = %(plan_key)s", {"plan_key": plan_key})
         if not plan:
             return
 
@@ -494,7 +497,8 @@ class CommercialRepository:
             "billing_status": "active",
         }
         if existing:
-            values["customer_id"] = existing["customer_id"]
+            customer_id = existing["customer_id"]
+            values["customer_id"] = customer_id
             db.run_sql(
                 """
                 UPDATE api_customer
@@ -509,43 +513,64 @@ class CommercialRepository:
                 """,
                 values,
             )
+        else:
+            row = db.fetch_one(
+                """
+                INSERT INTO api_customer (
+                    customer_key,
+                    display_name,
+                    plan_id,
+                    status,
+                    billing_email,
+                    stripe_customer_id,
+                    stripe_subscription_id,
+                    billing_status,
+                    checkout_session_id
+                ) VALUES (
+                    %(customer_key)s,
+                    %(display_name)s,
+                    %(plan_id)s,
+                    'active',
+                    %(billing_email)s,
+                    %(stripe_customer_id)s,
+                    %(stripe_subscription_id)s,
+                    %(billing_status)s,
+                    %(checkout_session_id)s
+                )
+                ON CONFLICT (customer_key) DO UPDATE SET
+                    plan_id = EXCLUDED.plan_id,
+                    display_name = EXCLUDED.display_name,
+                    billing_email = EXCLUDED.billing_email,
+                    stripe_customer_id = EXCLUDED.stripe_customer_id,
+                    stripe_subscription_id = EXCLUDED.stripe_subscription_id,
+                    billing_status = EXCLUDED.billing_status,
+                    checkout_session_id = EXCLUDED.checkout_session_id,
+                    status = 'active'
+                RETURNING customer_id
+                """,
+                values,
+            )
+            customer_id = row["customer_id"] if row else None
+
+        if not customer_id or not email:
             return
 
+        raw_key = f"fia_{secrets.token_urlsafe(32)}"
         db.run_sql(
             """
-            INSERT INTO api_customer (
-                customer_key,
-                display_name,
-                plan_id,
-                status,
-                billing_email,
-                stripe_customer_id,
-                stripe_subscription_id,
-                billing_status,
-                checkout_session_id
-            ) VALUES (
-                %(customer_key)s,
-                %(display_name)s,
-                %(plan_id)s,
-                'active',
-                %(billing_email)s,
-                %(stripe_customer_id)s,
-                %(stripe_subscription_id)s,
-                %(billing_status)s,
-                %(checkout_session_id)s
-            )
-            ON CONFLICT (customer_key) DO UPDATE SET
-                plan_id = EXCLUDED.plan_id,
-                display_name = EXCLUDED.display_name,
-                billing_email = EXCLUDED.billing_email,
-                stripe_customer_id = EXCLUDED.stripe_customer_id,
-                stripe_subscription_id = EXCLUDED.stripe_subscription_id,
-                billing_status = EXCLUDED.billing_status,
-                checkout_session_id = EXCLUDED.checkout_session_id,
-                status = 'active'
+            INSERT INTO api_key (customer_id, key_prefix, key_hash, scopes)
+            VALUES (%(customer_id)s, %(key_prefix)s, %(key_hash)s, %(scopes)s)
             """,
-            values,
+            {
+                "customer_id": customer_id,
+                "key_prefix": key_prefix(raw_key),
+                "key_hash": hash_api_key(raw_key),
+                "scopes": ["assets:read", "tiles:read", "exports:create"],
+            },
         )
+        display_name = values["display_name"]
+        plan_name = plan.get("name") or plan_key
+        send_api_key_email(email, display_name, raw_key, plan_name)
 
     def update_billing_subscription(self, subscription: dict[str, Any]) -> None:
         stripe_subscription_id = subscription.get("id")

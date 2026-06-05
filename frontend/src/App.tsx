@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo, useCallback, lazy, Suspense } from "react";
-import AtlasMap from "./map/AtlasMap";
 import SimpleAtlasMap from "./map/SimpleAtlasMap";
 import PMTilesAtlasMap from "./map/PMTilesAtlasMap";
 import ZoomableAtlasMap from "./map/ZoomableAtlasMap";
@@ -7,9 +6,12 @@ import ReliableAtlasMap from "./map/ReliableAtlasMap";
 import GlobeAtlasMap from "./map/GlobeAtlasMap";
 import type { CanvasDiagnostics } from "./map/InfrastructureCanvasOverlay";
 import ErrorBoundary from "./components/ErrorBoundary";
+import UsageMeter from "./components/UsageMeter";
 import LayerPanel from "./components/LayerPanel";
 import Legend from "./components/Legend";
 
+const AtlasMap = lazy(() => import("./map/AtlasMap"));
+const PricingPage = lazy(() => import("./components/PricingPage"));
 const StatsDashboard = lazy(() => import("./components/StatsDashboard"));
 const DataExport = lazy(() => import("./components/DataExport"));
 const StatsPanel = lazy(() => import("./components/StatsPanel"));
@@ -18,6 +20,7 @@ const SourcePanel = lazy(() => import("./components/SourcePanel"));
 const AssetDetailsPanel = lazy(() => import("./components/AssetDetailsPanel"));
 const CommercialApiConsole = lazy(() => import("./components/CommercialApiConsole"));
 const SiteSelectionPanel = lazy(() => import("./components/site_selection/SiteSelectionPanel"));
+const LeadGenAsset = lazy(() => import("./components/LeadGenAsset"));
 import type { AtlasData, AtlasCore, FilterState, Asset, PowerPlant, Cable } from "./map/types";
 import type { CandidateSite } from "./api/siteSelectionApi";
 import type { InteractableType } from "./map/interaction";
@@ -31,8 +34,12 @@ import { readUrlParams, writeUrlParams, layersToParam, paramToLayers } from "./u
 import { toggleTheme, getTheme } from "./utils/theme";
 import { DEFAULT_GRID_CONTINENT_FILTERS, type GridContinentFilters, type GridContinentKey } from "./map/continents";
 
+import EnergyLegend from "./components/EnergyLegend";
+import Curtain from "./components/Curtain";
+import { calculateNearbyDestinations, buildFlowGeoJSON } from "./utils/energyFlowUtils";
+
 type ViewMode = "map" | "globe";
-const MAP_LAYER_KEYS = ["power_plants", "cables", "data_centers", "power_lines", "substations"] as const;
+const MAP_LAYER_KEYS = ["power_plants", "cables", "data_centers", "power_lines", "substations", "water_risk"] as const;
 
 export default function App() {
   const queryParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : new URLSearchParams();
@@ -43,6 +50,9 @@ export default function App() {
     queryParams.get("apiDashboard") === "1" ||
     pathname === "/api" ||
     pathname === "/api-dashboard";
+  const pricingRoute = queryParams.get("pricing") === "1" || pathname === "/pricing";
+  const checkoutSuccess = queryParams.get("checkout") === "success" && queryParams.get("session_id");
+  const checkoutCancelled = queryParams.get("checkout") === "cancelled";
   const initialParams = typeof window !== "undefined" ? readUrlParams() : {};
   const [data, setData] = useState<AtlasData | null>(null);
   const [core, setCore] = useState<AtlasCore | null>(null);
@@ -75,9 +85,14 @@ export default function App() {
   const [mapBounds, setMapBounds] = useState<[number, number, number, number] | null>(null);
   const [currentZoom, setCurrentZoom] = useState(0);
   const [showSiteSelection, setShowSiteSelection] = useState(false);
+  const [showLeadGen, setShowLeadGen] = useState(false);
   const [siteSelectionAutoTrigger, setSiteSelectionAutoTrigger] = useState(false);
   const [candidateSites, setCandidateSites] = useState<CandidateSite[]>([]);
   const [selectedCandidate, setSelectedCandidate] = useState<CandidateSite | null>(null);
+  const [energyLayerEnabled, setEnergyLayerEnabled] = useState(false);
+  const [selectedEnergyFactory, setSelectedEnergyFactory] = useState<PowerPlant | null>(null);
+  const [showEnergyFlows, setShowEnergyFlows] = useState(false);
+  const [energyFlowGeoJSON, setEnergyFlowGeoJSON] = useState<GeoJSON.FeatureCollection | null>(null);
 
   const openApiDashboard = useCallback(() => {
     window.location.href = "/?commercialApi=1";
@@ -105,6 +120,7 @@ export default function App() {
     data_centers: true,
     power_lines: true,
     substations: true,
+    water_risk: false,
   });
   const [layerOpacity, setLayerOpacity] = useState<Record<string, number>>({
     power_plants: 0.85,
@@ -328,6 +344,7 @@ export default function App() {
     if (!asset) {
       setSelectedAssetId(null);
       setSelectedAssetType(null);
+      setSelectedEnergyFactory(null);
     } else if (asset.kind === "power_plant") {
       setSelectedAssetType("power_plant");
     } else if (asset.kind === "data_center") {
@@ -350,7 +367,35 @@ export default function App() {
     setSelectedAsset(null);
     setSelectedAssetId(null);
     setSelectedAssetType(null);
+    setSelectedEnergyFactory(null);
+    setShowEnergyFlows(false);
+    setEnergyFlowGeoJSON(null);
   }, []);
+
+  const handleEnergyFactorySelect = useCallback((plant: PowerPlant | null) => {
+    setSelectedEnergyFactory(plant);
+    if (plant && data && showEnergyFlows) {
+      const destinations = calculateNearbyDestinations(plant, data);
+      setEnergyFlowGeoJSON(buildFlowGeoJSON(plant, destinations));
+    } else {
+      setEnergyFlowGeoJSON(null);
+    }
+  }, [data, showEnergyFlows]);
+
+  const handleToggleEnergyFlows = useCallback((plant?: PowerPlant | null) => {
+    const p = plant || selectedEnergyFactory;
+    setShowEnergyFlows((prev) => {
+      const next = !prev;
+      if (next && p && data) {
+        const destinations = calculateNearbyDestinations(p, data);
+        setEnergyFlowGeoJSON(buildFlowGeoJSON(p, destinations));
+      } else {
+        setEnergyFlowGeoJSON(null);
+      }
+      return next;
+    });
+    if (plant) setSelectedEnergyFactory(plant);
+  }, [selectedEnergyFactory, data]);
 
   function getCableFirstCoord(cable: Cable): [number, number] | null {
     const g = cable.geometry;
@@ -435,6 +480,18 @@ export default function App() {
     canvasDiag?.active && data && canvasDiag.powerPlantsDrawn === 0 && canvasDiag.recordsReceived > 1000
   );
 
+  if (pricingRoute) {
+    return (
+      <Suspense fallback={<div className="app"><div className="loading-screen"><div className="loading-spinner" /><div className="loading-text">Loading pricing...</div></div></div>}>
+        <PricingPage
+          onClose={() => { window.location.href = "/"; }}
+          checkoutSuccess={checkoutSuccess ? { sessionId: checkoutSuccess, plan: "" } : null}
+          checkoutCancelled={checkoutCancelled}
+        />
+      </Suspense>
+    );
+  }
+
   if (commercialApiRoute) {
     return (
       <Suspense fallback={<div className="app"><div className="loading-screen"><div className="loading-spinner" /><div className="loading-text">Loading API dashboard...</div></div></div>}>
@@ -447,9 +504,10 @@ export default function App() {
     return (
       <div className="app">
         <div className="loading-screen">
+          <div className="loading-brand">FUTURE Infrastructure Intelligence</div>
           <div className="loading-spinner" />
           <div className="loading-text">Loading infrastructure intelligence...</div>
-          <div className="loading-sub">The decision layer for AI compute, energy, and data-center infrastructure.</div>
+          <div className="loading-sub">The decision layer for AI compute, energy, and data-center infrastructure site selection.</div>
         </div>
       </div>
     );
@@ -515,7 +573,8 @@ export default function App() {
       <ErrorBoundary>
         <div className="app app-shell app-shell--embed">
           <div className="map-area map-stage" style={{ width: "100%", height: "100%" }}>
-            <AtlasMap
+            <Suspense fallback={<div className="loading-screen"><div className="loading-spinner"></div><div className="loading-text">Loading map...</div></div>}>
+              <AtlasMap
               key={`embed-${theme}`}
               data={data}
               filters={filters}
@@ -536,7 +595,8 @@ export default function App() {
               cableCompanyStats={cableCompanyStats}
               cableFilters={cableFilters}
               theme={theme}
-            />
+              />
+            </Suspense>
           </div>
         </div>
       </ErrorBoundary>
@@ -545,16 +605,225 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <div className={`app app-shell ${sidebarOpen ? "" : "sidebar-collapsed"}`}>
-        <div className={`side-panel sidebar ${sidebarOpen ? "open" : "closed"}`}>
-          <div className="panel-header">
-            <div className="panel-header-top">
-              <h1>FUTURE Infrastructure Intelligence</h1>
-              <button className="sidebar-toggle" onClick={() => setSidebarOpen(false)} title="Close sidebar">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      <div className="app app-shell">
+        {/* ─── Map (full viewport) ─── */}
+        <div className="map-area map-stage">
+
+          {/* Floating top bar */}
+          <div className="floating-topbar">
+            <span className="floating-topbar-title">FUTURE</span>
+            <UsageMeter />
+            <button className="top-bar-api-link" type="button" onClick={openApiDashboard}>
+              Enterprise API
+            </button>
+            <button className="top-bar-api-link pricing-link" type="button" onClick={() => { window.location.href = "/?pricing=1"; }}>
+              Pricing
+            </button>
+            <div className="view-mode-switch" role="group" aria-label="Map view mode">
+              <button type="button" className={`view-mode-option ${viewMode === "map" ? "active" : ""}`} onClick={() => handleViewModeChange("map")} aria-pressed={viewMode === "map"}>Map</button>
+              <button type="button" className={`view-mode-option ${viewMode === "globe" ? "active" : ""}`} onClick={() => handleViewModeChange("globe")} aria-pressed={viewMode === "globe"}>Globe</button>
+            </div>
+            <span className="top-bar-stat">{ppTotal.toLocaleString()} power plants</span>
+            <span className="top-bar-stat">{powerLinesMapped.toLocaleString()} lines</span>
+            <span className="top-bar-stat">{substationsMapped.toLocaleString()} substations</span>
+            <span className="top-bar-stat">{cablesMapped.toLocaleString()} / {cablesTotal.toLocaleString()} cables</span>
+            <span className="top-bar-stat">{dcsMapped.toLocaleString()} / {dcsTotal.toLocaleString()} data centers</span>
+            {activeFilterCount > 0 && <span className="top-bar-filter-badge">{activeFilterCount} filter{activeFilterCount > 1 ? "s" : ""} active</span>}
+            {hasCoverageWarning && <span className="top-bar-warning-badge">Partial coverage</span>}
+            {viewMode === "map" && canvasDiag?.active && canvasDiag.projectionMode && <span className="top-bar-stat">{canvasDiag.projectionMode}</span>}
+            {hasZeroCanvasPoints && <span className="top-bar-warning-badge">0 points drawn</span>}
+            <button className="toolbar-btn" onClick={handleToggleTheme} title="Toggle dark/light theme">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+            </button>
+            <button className="toolbar-btn" onClick={handleShare} title="Copy share link">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+            </button>
+            {copyFeedback && <span className="top-bar-share-feedback">{copyFeedback}</span>}
+          </div>
+
+          {/* FABs */}
+          <button
+            className={`floating-fab floating-fab--layers ${sidebarOpen ? "active" : ""}`}
+            onClick={() => setSidebarOpen((v) => !v)}
+            title="Toggle layer catalog"
+            aria-label="Toggle layer catalog"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          </button>
+          <button
+            className={`floating-fab floating-fab--analytics ${!!selectedAsset ? "active" : ""}`}
+            onClick={() => { if (selectedAsset) handleCloseDetails(); }}
+            title="Contextual analytics"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+          </button>
+
+          {/* Coverage warnings */}
+          {hasCoverageWarning && (
+            <div className="coverage-warning" style={{ position: "absolute", top: "72px", left: "64px", zIndex: 20, maxWidth: "400px" }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 9v2m0 4h.01M12 2l10 18H2L12 2z"/></svg>
+              <span>Some infrastructure layers have limited mapped coverage. Cables: {cablesMapped}/{cablesTotal} mapped. Data centers: {dcsMapped}/{dcsTotal} mapped.</span>
+            </div>
+          )}
+          {hasZeroCanvasPoints && (
+            <div className="coverage-warning" style={{ position: "absolute", top: hasCoverageWarning ? "102px" : "72px", left: "64px", zIndex: 20, maxWidth: "400px", borderTop: "1px solid rgba(200,50,50,0.2)" }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 9v2m0 4h.01M12 2l10 18H2L12 2z"/></svg>
+              <span>Visible points in current viewport: 0. Valid coordinates loaded: {canvasDiag?.validCoords?.toLocaleString()}. Camera may be outside data bounds.</span>
+            </div>
+          )}
+
+          {/* Power plant toggle */}
+          <button
+            type="button"
+            className={`power-plant-view-toggle ${visibleLayers.power_plants ? "active" : ""}`}
+            onClick={() => handleToggle("power_plants")}
+            aria-pressed={Boolean(visibleLayers.power_plants)}
+            title={visibleLayers.power_plants ? "Hide power plants" : "Show power plants"}
+            style={{ position: "absolute", top: "70px", left: "64px", zIndex: 20 }}
+          >
+            <span className="power-plant-view-toggle__dot" />
+            <span>{visibleLayers.power_plants ? "Power Plants On" : "Power Plants Off"}</span>
+          </button>
+
+          {/* Map */}
+          {globeMap ? (
+            <div className="map-container" style={{ width: "100%", height: "100%" }}>
+              <GlobeAtlasMap
+                key={`globe-${theme}`}
+                data={data}
+                filters={filters}
+                visibleLayers={visibleLayers}
+                graticuleVisible={graticuleVisible}
+                proof={proof}
+                onAssetSelect={handlePopup}
+                cableCompanyStats={cableCompanyStats}
+                cableFilters={cableFilters}
+                navigateTo={navigateTo}
+                core={core ?? undefined}
+                powerLinesData={powerLinesData}
+                layerOpacity={layerOpacity}
+                gridContinentFilters={gridContinentFilters}
+                theme={theme}
+              />
+            </div>
+          ) : reliableMap ? (
+            <div className="map-container" style={{ width: "100%", height: "100%" }}>
+              <ReliableAtlasMap
+                data={data}
+                filters={filters}
+                visibleLayers={visibleLayers}
+                graticuleVisible={graticuleVisible}
+                onAssetSelect={handlePopup}
+                cableCompanyStats={cableCompanyStats}
+                cableFilters={cableFilters}
+              />
+            </div>
+          ) : (
+            <Suspense fallback={<div className="loading-screen" style={{ position: "absolute", inset: 0 }}><div className="loading-spinner"></div><div className="loading-text">Loading map...</div></div>}>
+              <AtlasMap
+                key={`atlas-${theme}`}
+                data={data}
+                filters={filters}
+                visibleLayers={visibleLayers}
+                onPopup={handlePopup}
+                onCanvasDiagnostics={setCanvasDiag}
+                showTestPoints={showTestPoints}
+                graticuleVisible={graticuleVisible}
+                onHoveredAsset={setHoveredAssetId}
+                onSelectedAsset={handleSelectedAsset}
+                selectedAssetId={selectedAssetId}
+                canvasEnabled={canvasEnabled || canvasFallback}
+                core={core ?? undefined}
+                navigateTo={navigateTo}
+                layerOpacity={layerOpacity}
+                powerLinesData={powerLinesData}
+                substationsData={substationsData}
+                cableCompanyStats={cableCompanyStats}
+                cableFilters={cableFilters}
+                theme={theme}
+                onBoundsChanged={handleBoundsChanged}
+                onZoomChanged={handleZoomChanged}
+                candidateSites={candidateSites}
+                analysisBounds={candidateSites.length > 0 ? mapBounds : null}
+                onCandidateClick={handleCandidateClick}
+                energyLayerEnabled={energyLayerEnabled}
+                selectedEnergyFactory={selectedEnergyFactory}
+                onEnergyFactorySelect={handleEnergyFactorySelect}
+                energyFlowGeoJSON={energyFlowGeoJSON}
+              />
+            </Suspense>
+          )}
+
+          {/* Diagnostics */}
+          <DiagnosticsPanel
+            canvasDiag={canvasDiag}
+            showTestPoints={showTestPoints}
+            onToggleTestPoints={setShowTestPoints}
+            visible={showDiagnostics}
+            canvasEnabled={canvasEnabled}
+            onToggleCanvas={setCanvasEnabled}
+            onClose={() => setShowDiagnostics(false)}
+          />
+
+          {/* Commercial workbench overlay */}
+          {showCommercialWorkbench && (
+            <div className="commercial-map-overlay" role="dialog" aria-modal="true" aria-label="Commercial API workbench">
+              <Suspense fallback={<div className="commercial-map-loading">Loading API workbench...</div>}>
+                <CommercialApiConsole embedded onClose={() => setShowCommercialWorkbench(false)} />
+              </Suspense>
+            </div>
+          )}
+
+          {/* Analyze area button */}
+          {currentZoom >= 8 && !showSiteSelection && viewMode !== "globe" && candidateSites.length === 0 && (
+            <div className="analyze-area-btn-container">
+              <button className="analyze-area-btn" onClick={() => { setShowSiteSelection(true); setSiteSelectionAutoTrigger(true); }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
+                  <circle cx="12" cy="10" r="3"/>
+                </svg>
+                Run Compute Site Selection
               </button>
             </div>
-            <div className="panel-subtitle">AI compute, energy &amp; data-center site intelligence</div>
+          )}
+
+          {/* Toolbar in top-right (theme, share, graticule, etc.) */}
+          <div style={{ position: "absolute", top: "16px", right: "16px", zIndex: 25, display: "flex", gap: "6px" }}>
+            <button className={`toolbar-btn ${graticuleVisible ? "active" : ""}`} onClick={() => setGraticuleVisible((v) => !v)} title="Toggle graticule">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2v20"/></svg>
+            </button>
+            {(showDiagnostics || new URLSearchParams(window.location.search).get("debug") === "1") && (
+              <>
+                <button className={`toolbar-btn toolbar-btn--canvas ${canvasEnabled || canvasFallback ? "active" : ""}`} onClick={() => setCanvasEnabled((v) => !v)} title="Toggle canvas overlay">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg>
+                </button>
+                <button className={`toolbar-btn ${showDiagnostics ? "active" : ""}`} onClick={() => setShowDiagnostics((v) => !v)} title="Toggle diagnostics">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg>
+                </button>
+              </>
+            )}
+            <button className={`toolbar-btn toolbar-btn--commercial ${showCommercialWorkbench ? "active" : ""}`} onClick={() => setShowCommercialWorkbench((v) => !v)} title="Open commercial API and pricing workbench">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 7c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3z"/><path d="M4 7v5c0 1.7 3.6 3 8 3s8-1.3 8-3V7"/><path d="M4 12v5c0 1.7 3.6 3 8 3s8-1.3 8-3v-5"/></svg>
+            </button>
+            <button className={`toolbar-btn ${showSiteSelection ? "active" : ""}`} onClick={() => setShowSiteSelection((v) => !v)} title="Site selection analysis">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            </button>
+            <button className={`toolbar-btn ${showLeadGen ? "active" : ""}`} onClick={() => setShowLeadGen((v) => !v)} title="Sample site selection report (lead gen)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            </button>
+          </div>
+        </div>
+
+        {/* ─── Left Curtain (Layer Catalog) ─── */}
+        <Curtain side="left" open={sidebarOpen} onClose={() => setSidebarOpen(false)} width={380}>
+          <div className="curtain-header">
+            <h2>FUTURE Infrastructure Intelligence</h2>
+            <button className="curtain-close" onClick={() => setSidebarOpen(false)} title="Close panel">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <div className="curtain-section">
+            <div style={{ fontSize: "10px", color: "var(--text-muted)", marginBottom: "10px" }}>AI compute, energy &amp; data-center site intelligence</div>
             <div className="decision-mode-buttons">
               <button className="decision-btn decision-btn--primary" type="button" onClick={() => { setShowSiteSelection(true); setSidebarOpen(true); }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
@@ -567,6 +836,10 @@ export default function App() {
             <button className="api-dashboard-link" type="button" onClick={openApiDashboard}>
               <span>Enterprise Data &amp; API</span>
               <strong>Pricing, keys, exports &amp; institutional access</strong>
+            </button>
+            <button className="api-dashboard-link pricing-link" type="button" onClick={() => { window.location.href = "/?pricing=1"; }}>
+              <span>Pricing &amp; Plans</span>
+              <strong>Launch $299/mo · Scale $1,250/mo · Enterprise $4,900+/mo</strong>
             </button>
           </div>
           <LayerPanel
@@ -592,11 +865,16 @@ export default function App() {
             showGridContinentControls={globeMap}
             gridContinentFilters={gridContinentFilters}
             onGridContinentToggle={handleGridContinentToggle}
+            energyLayerEnabled={energyLayerEnabled}
+            onEnergyToggle={() => setEnergyLayerEnabled((v) => !v)}
           />
-          <Suspense fallback={<div className="panel-section"><div className="panel-loading">Loading...</div></div>}>
+          <Suspense fallback={<div className="curtain-section"><div className="panel-loading">Loading...</div></div>}>
             <StatsDashboard data={data} filters={filters} />
           </Suspense>
-          <Legend cableCompanyStats={cableCompanyStats} cableFilters={cableFilters} />
+          <div className="curtain-section">
+            <Legend cableCompanyStats={cableCompanyStats} cableFilters={cableFilters} />
+            <EnergyLegend />
+          </div>
           <Suspense fallback={null}>
             <StatsPanel metadata={data.metadata} />
           </Suspense>
@@ -610,7 +888,7 @@ export default function App() {
             <SourcePanel metadata={data.metadata} core={core ?? undefined} />
           </Suspense>
           {showSiteSelection && (
-            <Suspense fallback={<div className="panel-section"><div className="panel-loading">Loading site selection...</div></div>}>
+            <Suspense fallback={<div className="curtain-section"><div className="panel-loading">Loading site selection...</div></div>}>
               <SiteSelectionPanel
                 mapBounds={mapBounds}
                 onCandidatesGenerated={setCandidateSites}
@@ -619,244 +897,37 @@ export default function App() {
               />
             </Suspense>
           )}
-          <div className="panel-footer">
+          {showLeadGen && (
+            <Suspense fallback={<div className="curtain-section"><div className="panel-loading">Loading report...</div></div>}>
+              <LeadGenAsset onClose={() => setShowLeadGen(false)} />
+            </Suspense>
+          )}
+          <div className="curtain-section" style={{ fontSize: "10px", color: "var(--text-muted)", textAlign: "center", padding: "16px" }}>
             Generated {new Date(data.metadata.generated_at).toLocaleString()}
           </div>
-        </div>
+        </Curtain>
 
-        {!sidebarOpen && (
-          <button className="sidebar-reopen" onClick={() => setSidebarOpen(true)} title="Open sidebar">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6"/></svg>
-          </button>
-        )}
-
-        <div className="map-area map-stage">
-          <div className="top-bar">
-            <div className="top-bar-left">
-              <span className="top-bar-title">FUTURE Infrastructure Intelligence</span>
-              <button className="top-bar-api-link" type="button" onClick={openApiDashboard}>
-                Enterprise API
-              </button>
-              <div className="view-mode-switch" role="group" aria-label="Map view mode">
-                <button
-                  type="button"
-                  className={`view-mode-option ${viewMode === "map" ? "active" : ""}`}
-                  onClick={() => handleViewModeChange("map")}
-                  aria-pressed={viewMode === "map"}
-                >
-                  Map
-                </button>
-                <button
-                  type="button"
-                  className={`view-mode-option ${viewMode === "globe" ? "active" : ""}`}
-                  onClick={() => handleViewModeChange("globe")}
-                  aria-pressed={viewMode === "globe"}
-                >
-                  Globe
-                </button>
-              </div>
-              <span className="top-bar-stat">{ppTotal.toLocaleString()} power plants</span>
-              <span className="top-bar-stat">{powerLinesMapped.toLocaleString()} lines</span>
-              <span className="top-bar-stat">{substationsMapped.toLocaleString()} substations</span>
-              <span className="top-bar-stat">{cablesMapped.toLocaleString()} / {cablesTotal.toLocaleString()} cables</span>
-              <span className="top-bar-stat">{dcsMapped.toLocaleString()} / {dcsTotal.toLocaleString()} data centers</span>
-            </div>
-            <div className="top-bar-right">
-              <button
-                className="toolbar-btn"
-                onClick={handleToggleTheme}
-                title="Toggle dark/light theme"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
-              </button>
-              <button
-                className="toolbar-btn"
-                onClick={handleShare}
-                title="Copy share link"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
-              </button>
-              {copyFeedback && <span className="top-bar-share-feedback">{copyFeedback}</span>}
-              <button
-                className={`toolbar-btn ${graticuleVisible ? "active" : ""}`}
-                onClick={() => setGraticuleVisible((v) => !v)}
-                title="Toggle graticule"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2v20"/></svg>
-              </button>
-              {(showDiagnostics || new URLSearchParams(window.location.search).get("debug") === "1") && (
-                <button
-                  className={`toolbar-btn toolbar-btn--canvas ${canvasEnabled || canvasFallback ? "active" : ""}`}
-                  onClick={() => setCanvasEnabled((v) => !v)}
-                  title="Toggle canvas overlay"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg>
-                </button>
-              )}
-              {(showDiagnostics || new URLSearchParams(window.location.search).get("debug") === "1") && (
-                <button
-                  className={`toolbar-btn ${showDiagnostics ? "active" : ""}`}
-                  onClick={() => setShowDiagnostics((v) => !v)}
-                  title="Toggle diagnostics"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg>
-                </button>
-              )}
-              <button
-                className={`toolbar-btn toolbar-btn--commercial ${showCommercialWorkbench ? "active" : ""}`}
-                onClick={() => setShowCommercialWorkbench((v) => !v)}
-                title="Open commercial API and pricing workbench"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 7c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3z"/><path d="M4 7v5c0 1.7 3.6 3 8 3s8-1.3 8-3V7"/><path d="M4 12v5c0 1.7 3.6 3 8 3s8-1.3 8-3v-5"/></svg>
-              </button>
-              <button
-                className={`toolbar-btn ${showSiteSelection ? "active" : ""}`}
-                onClick={() => setShowSiteSelection((v) => !v)}
-                title="Site selection analysis"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-              </button>
-              {activeFilterCount > 0 && (
-                <span className="top-bar-filter-badge">{activeFilterCount} filter{activeFilterCount > 1 ? "s" : ""} active</span>
-              )}
-              {hasCoverageWarning && <span className="top-bar-warning-badge">Partial coverage</span>}
-              {viewMode === "map" && canvasDiag?.active && canvasDiag.projectionMode && <span className="top-bar-stat">{canvasDiag.projectionMode}</span>}
-              {hasZeroCanvasPoints && <span className="top-bar-warning-badge">0 points drawn</span>}
-            </div>
+        {/* ─── Right Curtain (Contextual Analytics) ─── */}
+        <Curtain side="right" open={!!selectedAsset} onClose={handleCloseDetails} width={420}>
+          <div className="curtain-header">
+            <h2>Asset Details</h2>
+            <button className="curtain-close" onClick={handleCloseDetails} title="Close panel">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
           </div>
-
-          {hasCoverageWarning && (
-            <div className="coverage-warning">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 9v2m0 4h.01M12 2l10 18H2L12 2z"/></svg>
-              <span>Some infrastructure layers have limited mapped coverage. Cables: {cablesMapped}/{cablesTotal} mapped. Data centers: {dcsMapped}/{dcsTotal} mapped.</span>
-            </div>
-          )}
-
-          {hasZeroCanvasPoints && (
-            <div className="coverage-warning" style={{ borderTop: "1px solid rgba(200,50,50,0.2)" }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 9v2m0 4h.01M12 2l10 18H2L12 2z"/></svg>
-              <span>Visible points in current viewport: 0. Valid coordinates loaded: {canvasDiag?.validCoords?.toLocaleString()}. Camera may be outside data bounds. Use Reset Global View.</span>
-            </div>
-          )}
-
-          <button
-            type="button"
-            className={`power-plant-view-toggle ${visibleLayers.power_plants ? "active" : ""}`}
-            onClick={() => handleToggle("power_plants")}
-            aria-pressed={Boolean(visibleLayers.power_plants)}
-            title={visibleLayers.power_plants ? "Hide power plants" : "Show power plants"}
-          >
-            <span className="power-plant-view-toggle__dot" />
-            <span>{visibleLayers.power_plants ? "Power Plants On" : "Power Plants Off"}</span>
-          </button>
-
-          {globeMap ? (
-            <div className="map-container">
-              <GlobeAtlasMap
-                key={`globe-${theme}`}
-                data={data}
-                filters={filters}
-                visibleLayers={visibleLayers}
-                graticuleVisible={graticuleVisible}
-                proof={proof}
-                onAssetSelect={handlePopup}
-                cableCompanyStats={cableCompanyStats}
-                cableFilters={cableFilters}
-                navigateTo={navigateTo}
-                core={core ?? undefined}
-                powerLinesData={powerLinesData}
-                layerOpacity={layerOpacity}
-                gridContinentFilters={gridContinentFilters}
-                theme={theme}
+          <div className="curtain-inner">
+            <Suspense fallback={<div className="curtain-section"><div className="panel-loading">Loading details...</div></div>}>
+              <AssetDetailsPanel
+                asset={selectedAsset}
+                assetType={selectedAssetType}
+                onClose={handleCloseDetails}
+                onFitAsset={handleFitAsset}
+                showEnergyFlows={showEnergyFlows}
+                onToggleEnergyFlows={handleToggleEnergyFlows}
               />
-            </div>
-          ) : reliableMap ? (
-            <div className="map-container">
-              <ReliableAtlasMap
-                data={data}
-                filters={filters}
-                visibleLayers={visibleLayers}
-                graticuleVisible={graticuleVisible}
-                onAssetSelect={handlePopup}
-                cableCompanyStats={cableCompanyStats}
-                cableFilters={cableFilters}
-              />
-            </div>
-          ) : (
-            <AtlasMap
-              key={`atlas-${theme}`}
-              data={data}
-              filters={filters}
-              visibleLayers={visibleLayers}
-              onPopup={handlePopup}
-              onCanvasDiagnostics={setCanvasDiag}
-              showTestPoints={showTestPoints}
-              graticuleVisible={graticuleVisible}
-              onHoveredAsset={setHoveredAssetId}
-              onSelectedAsset={handleSelectedAsset}
-              selectedAssetId={selectedAssetId}
-              canvasEnabled={canvasEnabled || canvasFallback}
-              core={core ?? undefined}
-              navigateTo={navigateTo}
-              layerOpacity={layerOpacity}
-              powerLinesData={powerLinesData}
-              substationsData={substationsData}
-              cableCompanyStats={cableCompanyStats}
-              cableFilters={cableFilters}
-              theme={theme}
-              onBoundsChanged={handleBoundsChanged}
-              onZoomChanged={handleZoomChanged}
-              candidateSites={candidateSites}
-              analysisBounds={candidateSites.length > 0 ? mapBounds : null}
-              onCandidateClick={handleCandidateClick}
-            />
-          )}
-
-          <Suspense fallback={null}>
-            <AssetDetailsPanel
-              asset={selectedAsset}
-              assetType={selectedAssetType}
-              onClose={handleCloseDetails}
-              onFitAsset={handleFitAsset}
-            />
-          </Suspense>
-
-          <DiagnosticsPanel
-            canvasDiag={canvasDiag}
-            showTestPoints={showTestPoints}
-            onToggleTestPoints={setShowTestPoints}
-            visible={showDiagnostics}
-            canvasEnabled={canvasEnabled}
-            onToggleCanvas={setCanvasEnabled}
-            onClose={() => setShowDiagnostics(false)}
-          />
-
-          {showCommercialWorkbench && (
-            <div className="commercial-map-overlay" role="dialog" aria-modal="true" aria-label="Commercial API workbench">
-              <Suspense fallback={<div className="commercial-map-loading">Loading API workbench...</div>}>
-                <CommercialApiConsole embedded onClose={() => setShowCommercialWorkbench(false)} />
-              </Suspense>
-            </div>
-          )}
-
-          {currentZoom >= 8 && !showSiteSelection && viewMode !== "globe" && candidateSites.length === 0 && (
-            <div className="analyze-area-btn-container">
-              <button
-                className="analyze-area-btn"
-                onClick={() => {
-                  setShowSiteSelection(true);
-                  setSiteSelectionAutoTrigger(true);
-                }}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
-                  <circle cx="12" cy="10" r="3"/>
-                </svg>
-                Run Compute Site Selection
-              </button>
-            </div>
-          )}
-        </div>
+            </Suspense>
+          </div>
+        </Curtain>
       </div>
     </ErrorBoundary>
   );

@@ -26,6 +26,8 @@ interface Props {
   showGridContinentControls?: boolean;
   gridContinentFilters?: GridContinentFilters;
   onGridContinentToggle?: (key: GridContinentKey) => void;
+  energyLayerEnabled?: boolean;
+  onEnergyToggle?: () => void;
 }
 
 type LayerConfig = {
@@ -90,6 +92,15 @@ const LAYER_CONFIG: LayerConfig[] = [
     getCoverage: () => "ok",
     tooltip: "Electric substations from OSM/PyPSA-compatible source data (ODbL 1.0)",
   },
+  {
+    key: "water_risk",
+    label: "Water Risk (WRI Aqueduct)",
+    dotColor: "#b06a20",
+    getMapped: () => 1,
+    getTotal: () => 1,
+    getCoverage: () => "ok",
+    tooltip: "WRI Aqueduct 4.0 Overall Water Risk — watershed-level baseline (CC BY 4.0)",
+  },
 ];
 
 export default function LayerPanel({
@@ -115,6 +126,8 @@ export default function LayerPanel({
   showGridContinentControls = false,
   gridContinentFilters,
   onGridContinentToggle,
+  energyLayerEnabled = false,
+  onEnergyToggle,
 }: Props) {
   const activeFilters = [filters.fuelType, filters.country, filters.minMw > 0 ? `${filters.minMw}+ MW` : ""].filter(Boolean);
   const activeCableCompany = cableCompanyStats.find((stat) => stat.operator === cableFilters?.operator);
@@ -216,6 +229,23 @@ export default function LayerPanel({
         </div>
       )}
 
+      {onEnergyToggle && (
+        <div className="layer-row">
+          <label className="layer-toggle" style={{ borderTop: "1px solid var(--border-light)", paddingTop: 8, marginTop: 4 }}>
+            <input
+              type="checkbox"
+              checked={energyLayerEnabled}
+              onChange={onEnergyToggle}
+            />
+            <span className="layer-dot" style={{ background: "#d69a13", width: 8, height: 8, borderRadius: "50%" }} />
+            <div className="layer-info">
+              <span className="layer-name">Energy Flow</span>
+              <span className="layer-counts">Capacity-based markers</span>
+            </div>
+          </label>
+        </div>
+      )}
+
       {cableFilters && onCableFiltersChange && (
         <div className="cable-focus">
           <div className="cable-focus-header">
@@ -298,6 +328,7 @@ export default function LayerPanel({
                 >
                   <span className={`search-result-dot search-result-dot--${r.type}`} />
                   <span className="search-result-label">{r.label}</span>
+                  <span className="search-result-type">{r.type === "power_plant" ? "Plant" : r.type === "cable" ? "Cable" : "DC"}</span>
                 </div>
               ))}
               {searchResults.length > 15 && (

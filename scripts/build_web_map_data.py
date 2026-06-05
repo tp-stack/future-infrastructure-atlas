@@ -119,6 +119,99 @@ def _normalize_key(name: str) -> str:
     return n.strip('_')
 
 
+def _load_osm_cables(cables: list[dict]) -> tuple[int, int]:
+    """Merge OSM submarine cables as an ODbL-licensed supplement.
+
+    Reads OSM GeoJSON (if available), matches cables by name with existing
+    SCN entries, and upgrades their license to ODbL. Adds unmatched OSM cables
+    as new entries with commercial_use_allowed=True.
+    Returns (matched, added_new).
+    """
+    osm_path = (
+        PROJECT_ROOT / "data" / "raw" / "submarine_cable_geometries"
+        / "osm_submarine_cables.geojson"
+    )
+    if not osm_path.exists():
+        return 0, 0
+
+    with open(osm_path, encoding="utf-8") as f:
+        osm_data = json.load(f)
+    osm_features = osm_data.get("features", [])
+    if not osm_features:
+        return 0, 0
+
+    osm_by_name: dict[str, dict] = {}
+    for feat in osm_features:
+        name = (feat.get("properties", {}).get("name") or "").strip().lower()
+        if name:
+            key = _normalize_key(name)
+            existing = osm_by_name.get(key)
+            existing_coords = len(existing.get("geometry", {}).get("coordinates", [])) if existing else 0
+            new_coords = len(feat.get("geometry", {}).get("coordinates", []))
+            if not existing or new_coords > existing_coords:
+                osm_by_name[key] = feat
+
+    existing_keys = {_normalize_key(c.get("n", "")) for c in cables}
+    matched = 0
+    added_new = 0
+
+    for cable in cables:
+        key = _normalize_key(cable.get("n", ""))
+        osm_feat = osm_by_name.get(key)
+        if not osm_feat:
+            continue
+        cable["source_license"] = "ODbL (OpenStreetMap)"
+        cable["coordinate_source"] = "OpenStreetMap (matched)"
+        cable["commercial_use_allowed"] = True
+        cable["geometry_precision"] = "osm_public_geometry"
+        osm_coords_raw = osm_feat.get("geometry", {}).get("coordinates", [])
+        existing_geom = cable.get("geometry", [])
+        osm_point_count = len(osm_coords_raw) if osm_coords_raw and isinstance(osm_coords_raw[0], (list, tuple)) else 0
+        existing_point_count = 0
+        if existing_geom and isinstance(existing_geom, list):
+            for seg in existing_geom:
+                if isinstance(seg, list):
+                    existing_point_count += len(seg)
+        if osm_point_count > existing_point_count * 1.5:
+            cable["geometry"] = [osm_coords_raw] if (osm_coords_raw and isinstance(osm_coords_raw[0], (int, float))) else osm_coords_raw
+        matched += 1
+
+    for name_key, feat in osm_by_name.items():
+        if name_key in existing_keys:
+            continue
+        props = feat.get("properties", {})
+        name = props.get("name", "").strip()
+        if not name:
+            continue
+        geom = feat.get("geometry", {})
+        coords = geom.get("coordinates", [])
+        if not coords or len(coords) < 2:
+            continue
+        osm_coords = [coords] if (coords and isinstance(coords[0], (int, float))) else coords
+        cables.append({
+            "n": name,
+            "source": "OpenStreetMap",
+            "geometry": osm_coords,
+            "geometry_precision": "osm_public_geometry",
+            "mapped_status": "mapped",
+            "coordinate_source": "OpenStreetMap",
+            "source_license": "ODbL (OpenStreetMap)",
+            "source_url": "https://www.openstreetmap.org/",
+            "confidence": 0.7,
+            "operators": props.get("operator", ""),
+            "landing_points": [],
+            "length_km": "",
+            "segment_count": 1,
+            "commercial_use_allowed": True,
+        })
+        existing_keys.add(name_key)
+        added_new += 1
+
+    if matched or added_new:
+        print(f"[build] OSM cables: {matched} upgraded to ODbL, {added_new} new entries added")
+    return matched, added_new
+
+
 def _parse_lp_list(value: str) -> list[str]:
     if not value:
         return []
@@ -272,6 +365,7 @@ def _format_landing_points(value: str) -> list[str]:
 
 
 def _source_cable_from_geometry_entry(entry: dict) -> dict:
+    license_val = entry.get("source_license", "")
     return {
         "n": entry.get("cable_name", ""),
         "source": entry.get("source_name", "KMCD Internet Infrastructure Map"),
@@ -279,13 +373,14 @@ def _source_cable_from_geometry_entry(entry: dict) -> dict:
         "geometry_precision": entry.get("geometry_precision", "generalized_public_geometry"),
         "mapped_status": "mapped",
         "coordinate_source": entry.get("source_name", ""),
-        "source_license": entry.get("source_license", ""),
+        "source_license": license_val,
         "source_url": entry.get("source_url", ""),
         "confidence": entry.get("confidence", 0.0),
         "operators": entry.get("owners", ""),
         "landing_points": _format_landing_points(entry.get("landing_points_json", "")),
         "length_km": entry.get("length", ""),
         "source_only_geometry": True,
+        "commercial_use_allowed": license_val not in ("to_verify", ""),
     }
 
 
@@ -323,9 +418,11 @@ def _apply_cable_geometry_supplement(cables: list[dict]) -> None:
         if srctype == "fuzzy_match_kmcd":
             cable["coordinate_source"] = "KMCD Internet Infrastructure Map (fuzzy name match)"
             cable["geometry_precision"] = entry.get("precision", "generalized_public_geometry")
+            cable["commercial_use_allowed"] = False
         else:
             cable["coordinate_source"] = "schematic from SCN landing points"
             cable["geometry_precision"] = "schematic_landing_points"
+            cable["commercial_use_allowed"] = True
         applied += 1
 
     if applied:
@@ -499,6 +596,7 @@ def _enrich_cable_geometry(cables: list[dict], lookup: dict) -> list[dict]:
                 "landing_points": cable["landing_points"],
                 "length_km": cable["length_km"],
                 "segment_count": cable.get("segment_count", 1),
+                "commercial_use_allowed": False,
             })
         else:
             enriched.append({
@@ -735,6 +833,9 @@ def build_web_data(
 
             # ── Apply supplemental geometries (fuzzy bridge + schematic) ──
             _apply_cable_geometry_supplement(cables)
+
+            # ── Apply OSM submarine cables as ODbL supplement ──
+            _load_osm_cables(cables)
         else:
             print(f"[build] Cable geometry CSV not found: {csv_path}", file=sys.stderr)
 
@@ -820,6 +921,15 @@ def build_web_data(
             "name": f"KMCD Internet Infrastructure Map — cable geometries",
             "url": "https://map.kmcd.dev/data/all_cables.json",
             "license": "to_verify — requires license review before production/commercial use",
+        })
+
+    osm_source_path = PROJECT_ROOT / "data/raw/submarine_cable_geometries/osm_submarine_cables.geojson"
+    if osm_source_path.exists():
+        sources.append({
+            "key": "osm_submarine_cables",
+            "name": "OpenStreetMap submarine cables (ODbL)",
+            "url": "https://www.openstreetmap.org/",
+            "license": "ODbL — commercial use allowed with attribution",
         })
 
     unmapped_cables = [
@@ -922,7 +1032,7 @@ def main() -> None:
 
     cable_path = Path(args.cable_geo_path) if args.cable_geo_path else None
     dc_path = Path(args.datacenter_geo_path) if args.datacenter_geo_path else None
-    cable_csv_path = Path(args.cable_geometry_csv) if args.cable_geometry_csv else None
+    cable_csv_path = Path(args.cable_geometry_csv) if args.cable_geometry_csv else CABLE_GEOMETRY_CSV_DEFAULT
     peeringdb_path = Path(args.peeringdb_csv) if args.peeringdb_csv else None
 
     success = build_web_data(

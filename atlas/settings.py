@@ -22,6 +22,7 @@ database_url = os.environ.get(
     "DATABASE_URL",
     f"postgresql://{database_user}:{database_password}@{database_host}:{database_port}/{database_name}",
 )
+database_schema = os.environ.get("DATABASE_SCHEMA", "public")
 
 
 def load_yaml_config(config_name: str, repo_root: str | Path | None = None) -> dict[str, Any]:
@@ -53,4 +54,5 @@ def get_database_settings() -> dict[str, str | int]:
         "database_user": database_user,
         "database_password": database_password,
         "database_url": database_url,
+        "database_schema": database_schema,
     }
