@@ -20,6 +20,7 @@ from atlas.loaders.fde_tables import (  # noqa: E402
     preview_fde_table,
 )
 from atlas.loaders.postgis import postgis_available  # noqa: E402
+from atlas.loaders.power_plants import power_plant_loader_status  # noqa: E402
 
 
 def main() -> int:
@@ -65,6 +66,17 @@ def main() -> int:
     print(f"  unmapped: {loader['unmapped']}")
     print(f"  fallback_enabled: {loader.get('fallback_enabled')}")
     print(f"  fallback_reason: {loader.get('fallback_reason')}")
+
+    power_loader = power_plant_loader_status()
+    print("power plant loader:")
+    print(f"  source: {power_loader['source']}")
+    print(f"  table_name: {power_loader.get('table_name')}")
+    print(f"  source_path: {power_loader.get('source_path')}")
+    print(f"  count: {power_loader['count']}")
+    print(f"  mapped: {power_loader['mapped']}")
+    print(f"  unmapped: {power_loader['unmapped']}")
+    print(f"  fallback_enabled: {power_loader.get('fallback_enabled')}")
+    print(f"  fallback_reason: {power_loader.get('fallback_reason')}")
 
     return 0
 
