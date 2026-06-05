@@ -96,14 +96,15 @@ def _data_center_full_rows() -> list[dict[str, Any]]:
     return rows
 
 
-def _power_plant_sample_rows(limit: int = POWER_PLANTS_SAMPLE_SIZE) -> list[dict[str, Any]]:
+def _power_plant_rows(limit: int | None = None) -> list[dict[str, Any]]:
     payload = json.loads(ATLAS_WEB_DATA_SOURCE.read_text(encoding="utf-8"))
     power_plants = payload.get("power_plants", [])
     if not isinstance(power_plants, list):
         raise ValueError(f"Expected power_plants list in {ATLAS_WEB_DATA_SOURCE}")
 
     rows = []
-    for index, record in enumerate(power_plants[:limit], start=1):
+    selected = power_plants if limit is None else power_plants[:limit]
+    for index, record in enumerate(selected, start=1):
         if not isinstance(record, dict):
             continue
         latitude = record.get("lat")
@@ -138,10 +139,13 @@ def export_dataset(dataset: str, output: Path | None = None) -> Path:
         rows = _data_center_full_rows()
         default_name = "data_centers_full.csv"
     elif dataset == "power_plants_sample":
-        rows = _power_plant_sample_rows()
+        rows = _power_plant_rows(POWER_PLANTS_SAMPLE_SIZE)
         default_name = "power_plants_sample.csv"
+    elif dataset == "power_plants_full":
+        rows = _power_plant_rows()
+        default_name = "power_plants_full.csv"
     else:
-        raise ValueError("Supported datasets: data_centers, data_centers_full, power_plants_sample")
+        raise ValueError("Supported datasets: data_centers, data_centers_full, power_plants_sample, power_plants_full")
 
     if not rows:
         raise ValueError(f"No rows found for {dataset}")
@@ -157,7 +161,11 @@ def export_dataset(dataset: str, output: Path | None = None) -> Path:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Export an Atlas dataset to CSV for Future Dataset Engine upload.")
-    parser.add_argument("--dataset", default="data_centers", choices=["data_centers", "data_centers_full", "power_plants_sample"])
+    parser.add_argument(
+        "--dataset",
+        default="data_centers",
+        choices=["data_centers", "data_centers_full", "power_plants_sample", "power_plants_full"],
+    )
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
 
