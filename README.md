@@ -142,24 +142,33 @@ GET /data/fde/tables
 GET /data/fde/tables/{table_name}/preview
 ```
 
-The first migrated dataset is the public data center location config:
+The first proof dataset was the public data center location config:
 
 ```text
 source: config/datacenter_locations.yaml
 FDE table: app_atlas.data_centers
 ```
 
+The full Atlas data-center table uses the current frontend map payload:
+
+```text
+source: frontend/public/data/atlas_web_data.json
+FDE table: app_atlas.data_centers_full
+rows: 2,341
+```
+
 Export the Atlas source file to an ignored CSV for FDE upload:
 
 ```bash
 .venv/bin/python scripts/export_dataset_for_fde.py --dataset data_centers
+.venv/bin/python scripts/export_dataset_for_fde.py --dataset data_centers_full
 ```
 
-In FDE, create or reuse the `Future Infrastructure Atlas` project, upload the generated CSV as `Atlas Data Centers`, then materialize it:
+In FDE, create or reuse the `Future Infrastructure Atlas` project, upload the generated CSV as `Atlas Data Centers Full`, then materialize it:
 
 ```bash
 cd /home/mrgovernment/future-dataset-engine
-./scripts/materialize_dataset.sh DATASET_ID atlas data_centers
+./scripts/materialize_dataset.sh DATASET_ID atlas data_centers_full
 ```
 
 Configure Atlas to prefer FDE tables in local `.env`:
@@ -167,8 +176,8 @@ Configure Atlas to prefer FDE tables in local `.env`:
 ```bash
 ATLAS_USE_FDE_TABLES=true
 ATLAS_FDE_FALLBACK_TO_LOCAL=true
-ATLAS_FDE_PRIMARY_TABLE=data_centers
-ATLAS_FDE_DATA_CENTERS_TABLE=data_centers
+ATLAS_FDE_PRIMARY_TABLE=data_centers_full
+ATLAS_FDE_DATA_CENTERS_TABLE=data_centers_full
 ```
 
 `ATLAS_FDE_FALLBACK_TO_LOCAL=true` keeps the existing local JSON/YAML/CSV path available. If the FDE table is missing, Atlas reads data centers from the current local map payload at `frontend/public/data/atlas_web_data.json`. Set it to `false` only when you want a missing FDE table to fail clearly.
@@ -187,7 +196,7 @@ Then start the backend and preview the materialized rows:
 ```bash
 .venv/bin/python -m uvicorn backend.main:app --host 127.0.0.1 --port 8001
 curl -s http://localhost:8001/data/fde/tables
-curl -s http://localhost:8001/data/fde/tables/data_centers/preview
+curl -s http://localhost:8001/data/fde/tables/data_centers_full/preview
 curl -s http://localhost:8001/data/data-centers
 ```
 
@@ -209,13 +218,13 @@ It returns:
 ```json
 {
   "source": "fde",
-  "table_name": "data_centers",
-  "count": 3,
+  "table_name": "data_centers_full",
+  "count": 2341,
   "records": []
 }
 ```
 
-When `ATLAS_USE_FDE_TABLES=true`, Atlas reads `app_atlas.data_centers` first. Rows are converted into the frontend data-center record shape (`n`, `op`, `c`, `city`, `lat`, `lon`, `mapped_status`, source metadata). Records with missing or invalid coordinates are returned with `mapped_status: "unmapped"` and an `unmapped_reason`.
+When `ATLAS_USE_FDE_TABLES=true`, Atlas reads the configured app-schema table first. For full data-center mode that is `app_atlas.data_centers_full`. Rows are converted into the frontend data-center record shape (`n`, `op`, `c`, `city`, `lat`, `lon`, `mapped_status`, source metadata). Records with missing or invalid coordinates are returned with `mapped_status: "unmapped"` and an `unmapped_reason`.
 
 The static map data build also checks this configuration. With FDE enabled and available, `scripts/build_web_map_data.py` uses the materialized FDE data centers; otherwise it continues through the existing local source pipeline:
 
