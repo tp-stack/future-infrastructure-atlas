@@ -6,21 +6,23 @@ import ReliableAtlasMap from "./map/ReliableAtlasMap";
 import GlobeAtlasMap from "./map/GlobeAtlasMap";
 import type { CanvasDiagnostics } from "./map/InfrastructureCanvasOverlay";
 import ErrorBoundary from "./components/ErrorBoundary";
-import UsageMeter from "./components/UsageMeter";
 import LayerPanel from "./components/LayerPanel";
 import Legend from "./components/Legend";
 
+const PUBLIC_STATIC_MODE = import.meta.env.VITE_PUBLIC_STATIC === "1";
+
 const AtlasMap = lazy(() => import("./map/AtlasMap"));
-const PricingPage = lazy(() => import("./components/PricingPage"));
+const UsageMeter = PUBLIC_STATIC_MODE ? null : lazy(() => import("./components/UsageMeter"));
+const PricingPage = PUBLIC_STATIC_MODE ? null : lazy(() => import("./components/PricingPage"));
 const StatsDashboard = lazy(() => import("./components/StatsDashboard"));
 const DataExport = lazy(() => import("./components/DataExport"));
 const StatsPanel = lazy(() => import("./components/StatsPanel"));
 const UnmappedPanel = lazy(() => import("./components/UnmappedPanel"));
 const SourcePanel = lazy(() => import("./components/SourcePanel"));
 const AssetDetailsPanel = lazy(() => import("./components/AssetDetailsPanel"));
-const CommercialApiConsole = lazy(() => import("./components/CommercialApiConsole"));
-const SiteSelectionPanel = lazy(() => import("./components/site_selection/SiteSelectionPanel"));
-const LeadGenAsset = lazy(() => import("./components/LeadGenAsset"));
+const CommercialApiConsole = PUBLIC_STATIC_MODE ? null : lazy(() => import("./components/CommercialApiConsole"));
+const SiteSelectionPanel = PUBLIC_STATIC_MODE ? null : lazy(() => import("./components/site_selection/SiteSelectionPanel"));
+const LeadGenAsset = PUBLIC_STATIC_MODE ? null : lazy(() => import("./components/LeadGenAsset"));
 import type { AtlasData, AtlasCore, FilterState, Asset, PowerPlant, Cable } from "./map/types";
 import type { CandidateSite } from "./api/siteSelectionApi";
 import type { InteractableType } from "./map/interaction";
@@ -45,12 +47,15 @@ export default function App() {
   const queryParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : new URLSearchParams();
   const pathname = typeof window !== "undefined" ? window.location.pathname : "/";
   const commercialApiRoute =
-    queryParams.get("commercialApi") === "1" ||
-    queryParams.get("apiConsole") === "1" ||
-    queryParams.get("apiDashboard") === "1" ||
-    pathname === "/api" ||
-    pathname === "/api-dashboard";
-  const pricingRoute = queryParams.get("pricing") === "1" || pathname === "/pricing";
+    !PUBLIC_STATIC_MODE &&
+    (
+      queryParams.get("commercialApi") === "1" ||
+      queryParams.get("apiConsole") === "1" ||
+      queryParams.get("apiDashboard") === "1" ||
+      pathname === "/api" ||
+      pathname === "/api-dashboard"
+    );
+  const pricingRoute = !PUBLIC_STATIC_MODE && (queryParams.get("pricing") === "1" || pathname === "/pricing");
   const checkoutSuccess = queryParams.get("checkout") === "success" && queryParams.get("session_id");
   const checkoutCancelled = queryParams.get("checkout") === "cancelled";
   const initialParams = typeof window !== "undefined" ? readUrlParams() : {};
@@ -65,10 +70,10 @@ export default function App() {
   const [showTestPoints, setShowTestPoints] = useState(false);
   const [graticuleVisible, setGraticuleVisible] = useState(true);
   const [showDiagnostics, setShowDiagnostics] = useState(
-    () => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("debug") === "1",
+    () => !PUBLIC_STATIC_MODE && typeof window !== "undefined" && new URLSearchParams(window.location.search).get("debug") === "1",
   );
   const [showCommercialWorkbench, setShowCommercialWorkbench] = useState(
-    () => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("commercialPanel") === "1",
+    () => !PUBLIC_STATIC_MODE && typeof window !== "undefined" && new URLSearchParams(window.location.search).get("commercialPanel") === "1",
   );
   const [canvasEnabled, setCanvasEnabled] = useState(false);
   const [, setHoveredAssetId] = useState<string | null>(null);
@@ -95,6 +100,7 @@ export default function App() {
   const [energyFlowGeoJSON, setEnergyFlowGeoJSON] = useState<GeoJSON.FeatureCollection | null>(null);
 
   const openApiDashboard = useCallback(() => {
+    if (PUBLIC_STATIC_MODE) return;
     window.location.href = "/?commercialApi=1";
   }, []);
 
@@ -142,6 +148,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (PUBLIC_STATIC_MODE) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.ctrlKey && e.shiftKey && e.key === "D") {
         setShowDiagnostics((v) => !v);
@@ -480,7 +487,7 @@ export default function App() {
     canvasDiag?.active && data && canvasDiag.powerPlantsDrawn === 0 && canvasDiag.recordsReceived > 1000
   );
 
-  if (pricingRoute) {
+  if (pricingRoute && PricingPage) {
     return (
       <Suspense fallback={<div className="app"><div className="loading-screen"><div className="loading-spinner" /><div className="loading-text">Loading pricing...</div></div></div>}>
         <PricingPage
@@ -492,7 +499,7 @@ export default function App() {
     );
   }
 
-  if (commercialApiRoute) {
+  if (commercialApiRoute && CommercialApiConsole) {
     return (
       <Suspense fallback={<div className="app"><div className="loading-screen"><div className="loading-spinner" /><div className="loading-text">Loading API dashboard...</div></div></div>}>
         <CommercialApiConsole onClose={() => { window.location.href = "/"; }} />
@@ -528,14 +535,14 @@ export default function App() {
   }
 
   const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : new URLSearchParams();
-  const debugMap = params.get("debugMap") === "1";
-  const zoomMap = params.get("zoomMap") === "1";
-  const reliableMap = params.get("reliableMap") === "1";
-  const maplibreMap = params.get("maplibreMap") === "1";
-  const pmtilesMap = params.get("pmtilesMap") === "1";
+  const debugMap = !PUBLIC_STATIC_MODE && params.get("debugMap") === "1";
+  const zoomMap = !PUBLIC_STATIC_MODE && params.get("zoomMap") === "1";
+  const reliableMap = !PUBLIC_STATIC_MODE && params.get("reliableMap") === "1";
+  const maplibreMap = !PUBLIC_STATIC_MODE && params.get("maplibreMap") === "1";
+  const pmtilesMap = !PUBLIC_STATIC_MODE && params.get("pmtilesMap") === "1";
   const globeMap = viewMode === "globe";
-  const proof = params.get("proof") === "1";
-  const canvasFallback = params.get("canvasFallback") === "1";
+  const proof = !PUBLIC_STATIC_MODE && params.get("proof") === "1";
+  const canvasFallback = !PUBLIC_STATIC_MODE && params.get("canvasFallback") === "1";
   const embed = params.get("embed") === "1";
 
   if (pmtilesMap) {
@@ -612,13 +619,17 @@ export default function App() {
           {/* Floating top bar */}
           <div className="floating-topbar">
             <span className="floating-topbar-title">FUTURE</span>
-            <UsageMeter />
-            <button className="top-bar-api-link" type="button" onClick={openApiDashboard}>
-              Enterprise API
-            </button>
-            <button className="top-bar-api-link pricing-link" type="button" onClick={() => { window.location.href = "/?pricing=1"; }}>
-              Pricing
-            </button>
+            {UsageMeter && <UsageMeter />}
+            {!PUBLIC_STATIC_MODE && (
+              <>
+                <button className="top-bar-api-link" type="button" onClick={openApiDashboard}>
+                  Enterprise API
+                </button>
+                <button className="top-bar-api-link pricing-link" type="button" onClick={() => { window.location.href = "/?pricing=1"; }}>
+                  Pricing
+                </button>
+              </>
+            )}
             <div className="view-mode-switch" role="group" aria-label="Map view mode">
               <button type="button" className={`view-mode-option ${viewMode === "map" ? "active" : ""}`} onClick={() => handleViewModeChange("map")} aria-pressed={viewMode === "map"}>Map</button>
               <button type="button" className={`view-mode-option ${viewMode === "globe" ? "active" : ""}`} onClick={() => handleViewModeChange("globe")} aria-pressed={viewMode === "globe"}>Globe</button>
@@ -759,14 +770,14 @@ export default function App() {
             canvasDiag={canvasDiag}
             showTestPoints={showTestPoints}
             onToggleTestPoints={setShowTestPoints}
-            visible={showDiagnostics}
+            visible={!PUBLIC_STATIC_MODE && showDiagnostics}
             canvasEnabled={canvasEnabled}
             onToggleCanvas={setCanvasEnabled}
             onClose={() => setShowDiagnostics(false)}
           />
 
           {/* Commercial workbench overlay */}
-          {showCommercialWorkbench && (
+          {!PUBLIC_STATIC_MODE && showCommercialWorkbench && CommercialApiConsole && (
             <div className="commercial-map-overlay" role="dialog" aria-modal="true" aria-label="Commercial API workbench">
               <Suspense fallback={<div className="commercial-map-loading">Loading API workbench...</div>}>
                 <CommercialApiConsole embedded onClose={() => setShowCommercialWorkbench(false)} />
@@ -775,7 +786,7 @@ export default function App() {
           )}
 
           {/* Analyze area button */}
-          {currentZoom >= 8 && !showSiteSelection && viewMode !== "globe" && candidateSites.length === 0 && (
+          {!PUBLIC_STATIC_MODE && currentZoom >= 8 && !showSiteSelection && viewMode !== "globe" && candidateSites.length === 0 && (
             <div className="analyze-area-btn-container">
               <button className="analyze-area-btn" onClick={() => { setShowSiteSelection(true); setSiteSelectionAutoTrigger(true); }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -792,7 +803,7 @@ export default function App() {
             <button className={`toolbar-btn ${graticuleVisible ? "active" : ""}`} onClick={() => setGraticuleVisible((v) => !v)} title="Toggle graticule">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2v20"/></svg>
             </button>
-            {(showDiagnostics || new URLSearchParams(window.location.search).get("debug") === "1") && (
+            {!PUBLIC_STATIC_MODE && (showDiagnostics || new URLSearchParams(window.location.search).get("debug") === "1") && (
               <>
                 <button className={`toolbar-btn toolbar-btn--canvas ${canvasEnabled || canvasFallback ? "active" : ""}`} onClick={() => setCanvasEnabled((v) => !v)} title="Toggle canvas overlay">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg>
@@ -802,15 +813,19 @@ export default function App() {
                 </button>
               </>
             )}
-            <button className={`toolbar-btn toolbar-btn--commercial ${showCommercialWorkbench ? "active" : ""}`} onClick={() => setShowCommercialWorkbench((v) => !v)} title="Open commercial API and pricing workbench">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 7c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3z"/><path d="M4 7v5c0 1.7 3.6 3 8 3s8-1.3 8-3V7"/><path d="M4 12v5c0 1.7 3.6 3 8 3s8-1.3 8-3v-5"/></svg>
-            </button>
-            <button className={`toolbar-btn ${showSiteSelection ? "active" : ""}`} onClick={() => setShowSiteSelection((v) => !v)} title="Site selection analysis">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-            </button>
-            <button className={`toolbar-btn ${showLeadGen ? "active" : ""}`} onClick={() => setShowLeadGen((v) => !v)} title="Sample site selection report (lead gen)">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-            </button>
+            {!PUBLIC_STATIC_MODE && (
+              <>
+                <button className={`toolbar-btn toolbar-btn--commercial ${showCommercialWorkbench ? "active" : ""}`} onClick={() => setShowCommercialWorkbench((v) => !v)} title="Open commercial API and pricing workbench">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 7c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3z"/><path d="M4 7v5c0 1.7 3.6 3 8 3s8-1.3 8-3V7"/><path d="M4 12v5c0 1.7 3.6 3 8 3s8-1.3 8-3v-5"/></svg>
+                </button>
+                <button className={`toolbar-btn ${showSiteSelection ? "active" : ""}`} onClick={() => setShowSiteSelection((v) => !v)} title="Site selection analysis">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                </button>
+                <button className={`toolbar-btn ${showLeadGen ? "active" : ""}`} onClick={() => setShowLeadGen((v) => !v)} title="Sample site selection report (lead gen)">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                </button>
+              </>
+            )}
           </div>
         </div>
 
@@ -824,23 +839,27 @@ export default function App() {
           </div>
           <div className="curtain-section">
             <div style={{ fontSize: "10px", color: "var(--text-muted)", marginBottom: "10px" }}>AI compute, energy &amp; data-center site intelligence</div>
-            <div className="decision-mode-buttons">
-              <button className="decision-btn decision-btn--primary" type="button" onClick={() => { setShowSiteSelection(true); setSidebarOpen(true); }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                <span>Run Site Selection</span>
-              </button>
-              <button className="decision-btn decision-btn--secondary" type="button" onClick={() => { setShowSiteSelection(false); }}>
-                Explore Infrastructure
-              </button>
-            </div>
-            <button className="api-dashboard-link" type="button" onClick={openApiDashboard}>
-              <span>Enterprise Data &amp; API</span>
-              <strong>Pricing, keys, exports &amp; institutional access</strong>
-            </button>
-            <button className="api-dashboard-link pricing-link" type="button" onClick={() => { window.location.href = "/?pricing=1"; }}>
-              <span>Pricing &amp; Plans</span>
-              <strong>Launch $299/mo · Scale $1,250/mo · Enterprise $4,900+/mo</strong>
-            </button>
+            {!PUBLIC_STATIC_MODE && (
+              <>
+                <div className="decision-mode-buttons">
+                  <button className="decision-btn decision-btn--primary" type="button" onClick={() => { setShowSiteSelection(true); setSidebarOpen(true); }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                    <span>Run Site Selection</span>
+                  </button>
+                  <button className="decision-btn decision-btn--secondary" type="button" onClick={() => { setShowSiteSelection(false); }}>
+                    Explore Infrastructure
+                  </button>
+                </div>
+                <button className="api-dashboard-link" type="button" onClick={openApiDashboard}>
+                  <span>Enterprise Data &amp; API</span>
+                  <strong>Pricing, keys, exports &amp; institutional access</strong>
+                </button>
+                <button className="api-dashboard-link pricing-link" type="button" onClick={() => { window.location.href = "/?pricing=1"; }}>
+                  <span>Pricing &amp; Plans</span>
+                  <strong>Launch $299/mo · Scale $1,250/mo · Enterprise $4,900+/mo</strong>
+                </button>
+              </>
+            )}
           </div>
           <LayerPanel
             visibleLayers={visibleLayers}
@@ -887,7 +906,7 @@ export default function App() {
           <Suspense fallback={null}>
             <SourcePanel metadata={data.metadata} core={core ?? undefined} />
           </Suspense>
-          {showSiteSelection && (
+          {!PUBLIC_STATIC_MODE && showSiteSelection && SiteSelectionPanel && (
             <Suspense fallback={<div className="curtain-section"><div className="panel-loading">Loading site selection...</div></div>}>
               <SiteSelectionPanel
                 mapBounds={mapBounds}
@@ -897,7 +916,7 @@ export default function App() {
               />
             </Suspense>
           )}
-          {showLeadGen && (
+          {!PUBLIC_STATIC_MODE && showLeadGen && LeadGenAsset && (
             <Suspense fallback={<div className="curtain-section"><div className="panel-loading">Loading report...</div></div>}>
               <LeadGenAsset onClose={() => setShowLeadGen(false)} />
             </Suspense>
@@ -938,7 +957,7 @@ function GlobeMapRoute({ data, proof }: { data: AtlasData; proof?: boolean }) {
   const [selectedAssetType, setSelectedAssetType] = useState<InteractableType | null>(null);
   const [navigateTo, setNavigateTo] = useState<{ lon: number; lat: number; zoom?: number; bounds?: LonLatBounds } | null>(null);
   const [showCommercialWorkbench, setShowCommercialWorkbench] = useState(
-    () => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("commercialPanel") === "1",
+    () => !PUBLIC_STATIC_MODE && typeof window !== "undefined" && new URLSearchParams(window.location.search).get("commercialPanel") === "1",
   );
   const visibleLayers = useMemo(() => ({ power_plants: true, cables: true, data_centers: true }), []);
   const filters = useMemo(() => ({ fuelType: "", country: "", minMw: 0 }), []);
@@ -980,14 +999,16 @@ function GlobeMapRoute({ data, proof }: { data: AtlasData; proof?: boolean }) {
               navigateTo={navigateTo}
             />
           </div>
-          <button
-            className={`globe-commercial-button ${showCommercialWorkbench ? "active" : ""}`}
-            type="button"
-            onClick={() => setShowCommercialWorkbench((v) => !v)}
-            title="Open commercial API and pricing workbench"
-          >
-            API
-          </button>
+          {!PUBLIC_STATIC_MODE && (
+            <button
+              className={`globe-commercial-button ${showCommercialWorkbench ? "active" : ""}`}
+              type="button"
+              onClick={() => setShowCommercialWorkbench((v) => !v)}
+              title="Open commercial API and pricing workbench"
+            >
+              API
+            </button>
+          )}
           <Suspense fallback={null}>
             <AssetDetailsPanel
               asset={selectedAsset}
@@ -996,7 +1017,7 @@ function GlobeMapRoute({ data, proof }: { data: AtlasData; proof?: boolean }) {
               onFitAsset={handleFitAsset}
             />
           </Suspense>
-          {showCommercialWorkbench && (
+          {!PUBLIC_STATIC_MODE && showCommercialWorkbench && CommercialApiConsole && (
             <div className="commercial-map-overlay commercial-map-overlay--globe" role="dialog" aria-modal="true" aria-label="Commercial API workbench">
               <Suspense fallback={<div className="commercial-map-loading">Loading API workbench...</div>}>
                 <CommercialApiConsole embedded onClose={() => setShowCommercialWorkbench(false)} />
