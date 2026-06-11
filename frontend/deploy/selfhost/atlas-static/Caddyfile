@@ -1,0 +1,16 @@
+:3460 {
+	bind 0.0.0.0
+
+	root * /srv
+	encode gzip zstd
+
+	header {
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		X-Frame-Options "DENY"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+	}
+
+	try_files {path} /index.html
+	file_server
+}
