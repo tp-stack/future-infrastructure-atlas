@@ -1,13 +1,13 @@
 {
-  "generated_at": "2026-05-23T04:48:50.467353Z",
+  "generated_at": "2026-06-15T11:25:02.528113Z",
   "architecture": "atlas_core + PMTiles",
   "counts": {
     "power_plants_total": 34936,
     "power_plants_mapped": 34936,
     "power_plants_rejected": 0,
-    "submarine_cables_total": 881,
-    "submarine_cables_mapped": 674,
-    "submarine_cables_unmapped": 207,
+    "submarine_cables_total": 1283,
+    "submarine_cables_mapped": 1265,
+    "submarine_cables_unmapped": 18,
     "data_centers_total": 2341,
     "data_centers_mapped": 2341,
     "data_centers_unmapped": 0,
@@ -16,13 +16,13 @@
     "cable_geometry_source": "KMCD Internet Infrastructure Map",
     "cable_geometry_license_status": "to_verify",
     "cable_geometry_review_required": true,
-    "power_lines_total": 1499479,
-    "power_lines_mapped": 1499479,
+    "power_lines_total": 6000,
+    "power_lines_mapped": 6000,
     "substations_total": 288480,
     "substations_mapped": 288480,
     "openinframap_power_lines_mapped": 1499479,
     "openinframap_substations_mapped": 288480,
-    "power_grid_source": "OpenStreetMap power grid via Geofabrik extracts",
+    "power_grid_source": "OpenStreetMap Power Lines for Europe via ArcGIS Online",
     "power_grid_license_status": "ODbL 1.0"
   },
   "sources": [
@@ -51,15 +51,33 @@
       "license": "PeeringDB public/user-maintained facility data — verify terms before commercial redistribution"
     },
     {
+      "key": "cable_geometry_supplement_fuzzy",
+      "name": "KMCD cable geometries (24 fuzzy name-match entries)",
+      "url": "https://map.kmcd.dev/data/all_cables.json",
+      "license": "to_verify — requires license review before production/commercial use"
+    },
+    {
+      "key": "cable_geometry_supplement_schematic",
+      "name": "Schematic cable geometries (322 landing-point-based entries)",
+      "url": "",
+      "license": "Derived from SCN landing point data — schematic/generalized routes"
+    },
+    {
       "key": "cable_geometry_csv",
       "name": "KMCD Internet Infrastructure Map — cable geometries",
       "url": "https://map.kmcd.dev/data/all_cables.json",
       "license": "to_verify — requires license review before production/commercial use"
     },
     {
+      "key": "osm_submarine_cables",
+      "name": "OpenStreetMap submarine cables (ODbL)",
+      "url": "https://www.openstreetmap.org/",
+      "license": "ODbL — commercial use allowed with attribution"
+    },
+    {
       "key": "osm_power_grid",
-      "name": "OpenStreetMap power grid via Geofabrik extracts",
-      "url": "https://download.geofabrik.de/",
+      "name": "OpenStreetMap Power Lines for Europe via ArcGIS Online",
+      "url": "https://services-eu1.arcgis.com/zci5bUiJ8olAal7N/arcgis/rest/services/OpenStreetMap_Power_Lines_for_Europe/FeatureServer/0",
       "license": "ODbL 1.0"
     },
     {
@@ -73,42 +91,45 @@
   "tile_registry": {
     "power_plants": {
       "url": "/tiles/power_plants.pmtiles",
-      "status": "artifact_only (5.08 MB in data/tiles; not publicly served)",
+      "status": "present (10.20 MB)",
       "layer_name": "power_plants"
     },
     "submarine_cables": {
       "url": "/tiles/submarine_cables.pmtiles",
-      "status": "artifact_only (4.63 MB in data/tiles; not publicly served)",
+      "status": "artifact_only (118.01 MB in data/tiles; not publicly served)",
       "layer_name": "submarine_cables"
     },
     "data_centers": {
       "url": "/tiles/data_centers.pmtiles",
-      "status": "artifact_only (0.68 MB in data/tiles; not publicly served)",
+      "status": "present (1.10 MB)",
       "layer_name": "data_centers"
     },
     "power_lines": {
-      "url": "pmtiles://https://0ubjomuu7dbyf9q9.public.blob.vercel-storage.com/power_lines.pmtiles",
-      "status": "present (remote)",
+      "url": "pmtiles:///tiles/power_lines.pmtiles",
+      "status": "present (1.88 MB)",
       "layer_name": "power_lines",
-      "deployment_mode": "remote"
+      "deployment_mode": "local"
     },
     "substations": {
-      "url": "pmtiles://https://0ubjomuu7dbyf9q9.public.blob.vercel-storage.com/substations.pmtiles",
-      "status": "present (remote)",
+      "url": "pmtiles:///tiles/substations.pmtiles",
+      "status": "present (12.06 MB)",
       "layer_name": "substations",
-      "deployment_mode": "remote"
+      "deployment_mode": "local"
     },
     "openinframap_power_lines": {
-      "url": "pmtiles://https://0ubjomuu7dbyf9q9.public.blob.vercel-storage.com/openinframap_power_lines.pmtiles",
-      "status": "present (remote)",
-      "layer_name": "openinframap_power_lines",
-      "deployment_mode": "remote"
+      "url": "/tiles/openinframap_power_lines.pmtiles",
+      "status": "present (1.88 MB)",
+      "layer_name": "openinframap_power_lines"
     },
     "openinframap_substations": {
-      "url": "pmtiles://https://0ubjomuu7dbyf9q9.public.blob.vercel-storage.com/openinframap_substations.pmtiles",
-      "status": "present (remote)",
-      "layer_name": "openinframap_substations",
-      "deployment_mode": "remote"
+      "url": "/tiles/openinframap_substations.pmtiles",
+      "status": "present (12.85 MB)",
+      "layer_name": "openinframap_substations"
+    },
+    "water_risk": {
+      "url": "/tiles/water_risk.pmtiles",
+      "status": "present (0.06 MB)",
+      "layer_name": "water_risk"
     }
   },
   "license_warnings": [
@@ -124,7 +145,7 @@
     },
     {
       "layer": "power_grid",
-      "message": "OpenStreetMap power grid via Geofabrik extracts is ODbL 1.0; attribution and share-alike obligations apply.",
+      "message": "OpenStreetMap Power Lines for Europe via ArcGIS Online is ODbL 1.0; attribution and share-alike obligations apply.",
       "active": true
     },
     {
@@ -135,16 +156,16 @@
   ],
   "setup_warnings": [],
   "data_gaps": {
-    "cables_unmapped": 207,
+    "cables_unmapped": 18,
     "data_centers_unmapped": 0,
     "note": "Unmapped entries have no public geometry or coordinates. No coordinates are inferred."
   },
   "bounds": {
     "power_lines": {
-      "minLon": -179.1993392,
-      "minLat": -54.7972139,
-      "maxLon": 179.3807539,
-      "maxLat": 82.5247908
+      "minLon": -1.5270876,
+      "minLat": 38.63994,
+      "maxLon": 0.9728629,
+      "maxLat": 55.1593191
     },
     "substations": {
       "minLon": -179.4987147,

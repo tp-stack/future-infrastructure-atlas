@@ -33,6 +33,7 @@ atlas_fde_fallback_to_local = os.environ.get("ATLAS_FDE_FALLBACK_TO_LOCAL", "tru
 atlas_fde_primary_table = os.environ.get("ATLAS_FDE_PRIMARY_TABLE", "")
 atlas_fde_data_centers_table = os.environ.get("ATLAS_FDE_DATA_CENTERS_TABLE", "")
 atlas_fde_power_plants_table = os.environ.get("ATLAS_FDE_POWER_PLANTS_TABLE", "")
+atlas_fde_cable_landing_points_table = os.environ.get("ATLAS_FDE_CABLE_LANDING_POINTS_TABLE", "")
 atlas_fde_energy_sites_table = os.environ.get("ATLAS_FDE_ENERGY_SITES_TABLE", "")
 atlas_fde_cables_table = os.environ.get("ATLAS_FDE_CABLES_TABLE", "")
 
@@ -72,6 +73,7 @@ def get_database_settings() -> dict[str, str | int]:
         "atlas_fde_primary_table": atlas_fde_primary_table,
         "atlas_fde_data_centers_table": atlas_fde_data_centers_table,
         "atlas_fde_power_plants_table": atlas_fde_power_plants_table,
+        "atlas_fde_cable_landing_points_table": atlas_fde_cable_landing_points_table,
         "atlas_fde_energy_sites_table": atlas_fde_energy_sites_table,
         "atlas_fde_cables_table": atlas_fde_cables_table,
     }

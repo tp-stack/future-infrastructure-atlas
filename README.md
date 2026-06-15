@@ -173,6 +173,14 @@ FDE table: app_atlas.power_plants_full
 rows: 34,936
 ```
 
+The first cable point layer uses the derived site-selection infrastructure index:
+
+```text
+source: data/derived/site_selection/infrastructure_index.json
+FDE table: app_atlas.cable_landing_points
+rows: 2,918
+```
+
 Export the Atlas source file to an ignored CSV for FDE upload:
 
 ```bash
@@ -180,15 +188,17 @@ Export the Atlas source file to an ignored CSV for FDE upload:
 .venv/bin/python scripts/export_dataset_for_fde.py --dataset data_centers_full
 .venv/bin/python scripts/export_dataset_for_fde.py --dataset power_plants_sample
 .venv/bin/python scripts/export_dataset_for_fde.py --dataset power_plants_full
+.venv/bin/python scripts/export_dataset_for_fde.py --dataset cable_landing_points
 ```
 
-In FDE, create or reuse the `Future Infrastructure Atlas` project, upload the generated CSV as `Atlas Data Centers Full`, `Atlas Power Plants Sample`, or `Atlas Power Plants Full`, then materialize it:
+In FDE, create or reuse the `Future Infrastructure Atlas` project, upload the generated CSV as `Atlas Data Centers Full`, `Atlas Power Plants Sample`, `Atlas Power Plants Full`, or `Atlas Cable Landing Points`, then materialize it:
 
 ```bash
 cd /home/mrgovernment/future-dataset-engine
 ./scripts/materialize_dataset.sh DATASET_ID atlas data_centers_full
 ./scripts/materialize_dataset.sh DATASET_ID atlas power_plants_sample
 ./scripts/materialize_dataset.sh DATASET_ID atlas power_plants_full
+./scripts/materialize_dataset.sh DATASET_ID atlas cable_landing_points
 ```
 
 Configure Atlas to prefer FDE tables in local `.env`:
@@ -199,6 +209,7 @@ ATLAS_FDE_FALLBACK_TO_LOCAL=true
 ATLAS_FDE_PRIMARY_TABLE=data_centers_full
 ATLAS_FDE_DATA_CENTERS_TABLE=data_centers_full
 ATLAS_FDE_POWER_PLANTS_TABLE=power_plants_full
+ATLAS_FDE_CABLE_LANDING_POINTS_TABLE=cable_landing_points
 ```
 
 `ATLAS_FDE_FALLBACK_TO_LOCAL=true` keeps the existing local JSON/YAML/CSV path available. If the FDE table is missing, Atlas reads data centers from the current local map payload at `frontend/public/data/atlas_web_data.json`. Set it to `false` only when you want a missing FDE table to fail clearly.
@@ -220,8 +231,10 @@ curl -s http://localhost:8001/data/fde/tables
 curl -s http://localhost:8001/data/fde/tables/data_centers_full/preview
 curl -s http://localhost:8001/data/fde/tables/power_plants_sample/preview
 curl -s http://localhost:8001/data/fde/tables/power_plants_full/preview
+curl -s http://localhost:8001/data/fde/tables/cable_landing_points/preview
 curl -s http://localhost:8001/data/data-centers
 curl -s http://localhost:8001/data/power-plants
+curl -s http://localhost:8001/data/cable-landing-points
 ```
 
 Port convention for local development:
@@ -243,6 +256,12 @@ The application power-plant endpoint is:
 GET /data/power-plants
 ```
 
+The application cable landing point endpoint is:
+
+```text
+GET /data/cable-landing-points
+```
+
 It returns:
 
 ```json
@@ -257,6 +276,8 @@ It returns:
 When `ATLAS_USE_FDE_TABLES=true`, Atlas reads the configured app-schema table first. For full data-center mode that is `app_atlas.data_centers_full`. Rows are converted into the frontend data-center record shape (`n`, `op`, `c`, `city`, `lat`, `lon`, `mapped_status`, source metadata). Records with missing or invalid coordinates are returned with `mapped_status: "unmapped"` and an `unmapped_reason`.
 
 For full power-plant mode, Atlas reads `app_atlas.power_plants_full` through `ATLAS_FDE_POWER_PLANTS_TABLE`. The `app_atlas.power_plants_sample` table remains available as the smaller test table. Rows are converted into the frontend power-plant record shape (`n`, `c`, `f`, `mw`, `lat`, `lon`). Local fallback reads the existing `power_plants` array from `frontend/public/data/atlas_web_data.json`.
+
+For cable landing point mode, Atlas reads `app_atlas.cable_landing_points` through `ATLAS_FDE_CABLE_LANDING_POINTS_TABLE`. Rows are returned as point records with `cable_name`, `landing_point_name` when available, `country` when available, `lat`, `lon`, `status`, and source metadata. Local fallback reads `features.cable_landing_points` from `data/derived/site_selection/infrastructure_index.json`.
 
 The static map data build also checks this configuration. With FDE enabled and available, `scripts/build_web_map_data.py` uses the materialized FDE data centers; otherwise it continues through the existing local source pipeline:
 

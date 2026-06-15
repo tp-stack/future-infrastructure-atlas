@@ -168,6 +168,7 @@ def configured_table_status() -> dict[str, dict[str, Any]]:
         "primary": settings.atlas_fde_primary_table,
         "data_centers": settings.atlas_fde_data_centers_table,
         "power_plants": settings.atlas_fde_power_plants_table,
+        "cable_landing_points": settings.atlas_fde_cable_landing_points_table,
         "energy_sites": settings.atlas_fde_energy_sites_table,
         "cables": settings.atlas_fde_cables_table,
     }

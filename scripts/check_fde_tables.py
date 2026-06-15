@@ -13,6 +13,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from atlas import settings  # noqa: E402
 from atlas.db import check_health  # noqa: E402
+from atlas.loaders.cable_landing_points import cable_landing_point_loader_status  # noqa: E402
 from atlas.loaders.data_centers import data_center_loader_status  # noqa: E402
 from atlas.loaders.fde_tables import (  # noqa: E402
     configured_table_status,
@@ -77,6 +78,17 @@ def main() -> int:
     print(f"  unmapped: {power_loader['unmapped']}")
     print(f"  fallback_enabled: {power_loader.get('fallback_enabled')}")
     print(f"  fallback_reason: {power_loader.get('fallback_reason')}")
+
+    cable_loader = cable_landing_point_loader_status()
+    print("cable landing point loader:")
+    print(f"  source: {cable_loader['source']}")
+    print(f"  table_name: {cable_loader.get('table_name')}")
+    print(f"  source_path: {cable_loader.get('source_path')}")
+    print(f"  count: {cable_loader['count']}")
+    print(f"  mapped: {cable_loader['mapped']}")
+    print(f"  unmapped: {cable_loader['unmapped']}")
+    print(f"  fallback_enabled: {cable_loader.get('fallback_enabled')}")
+    print(f"  fallback_reason: {cable_loader.get('fallback_reason')}")
 
     return 0
 

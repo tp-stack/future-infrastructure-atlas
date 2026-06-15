@@ -16,6 +16,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 EXPORT_DIR = PROJECT_ROOT / "data" / "exports" / "fde"
 DATA_CENTER_SOURCE = PROJECT_ROOT / "config" / "datacenter_locations.yaml"
 ATLAS_WEB_DATA_SOURCE = PROJECT_ROOT / "frontend" / "public" / "data" / "atlas_web_data.json"
+INFRASTRUCTURE_INDEX_SOURCE = PROJECT_ROOT / "data" / "derived" / "site_selection" / "infrastructure_index.json"
 POWER_PLANTS_SAMPLE_SIZE = 1000
 
 
@@ -131,6 +132,38 @@ def _power_plant_rows(limit: int | None = None) -> list[dict[str, Any]]:
     return rows
 
 
+def _cable_landing_point_rows() -> list[dict[str, Any]]:
+    payload = json.loads(INFRASTRUCTURE_INDEX_SOURCE.read_text(encoding="utf-8"))
+    landing_points = payload.get("features", {}).get("cable_landing_points", [])
+    if not isinstance(landing_points, list):
+        raise ValueError(f"Expected features.cable_landing_points list in {INFRASTRUCTURE_INDEX_SOURCE}")
+
+    rows = []
+    for index, record in enumerate(landing_points, start=1):
+        if not isinstance(record, dict):
+            continue
+        latitude = record.get("lat")
+        longitude = record.get("lon")
+        cable_name = record.get("id") or record.get("name") or ""
+        rows.append(
+            {
+                "record_key": f"clp_{index:06d}_{_slug(str(cable_name), 'unnamed')}",
+                "cable_name": cable_name,
+                "landing_point_name": record.get("landing_point_name", ""),
+                "country": record.get("c") or record.get("country", ""),
+                "latitude": latitude,
+                "longitude": longitude,
+                "status": record.get("q", ""),
+                "point_type": record.get("t", ""),
+                "source": "data/derived/site_selection/infrastructure_index.json",
+                "source_url": record.get("source_url", ""),
+                "geometry_wkt": f"POINT ({longitude} {latitude})" if latitude is not None and longitude is not None else "",
+                "raw_metadata_json": json.dumps(record, ensure_ascii=False, sort_keys=True),
+            }
+        )
+    return rows
+
+
 def export_dataset(dataset: str, output: Path | None = None) -> Path:
     if dataset == "data_centers":
         rows = _data_center_rows()
@@ -144,8 +177,14 @@ def export_dataset(dataset: str, output: Path | None = None) -> Path:
     elif dataset == "power_plants_full":
         rows = _power_plant_rows()
         default_name = "power_plants_full.csv"
+    elif dataset == "cable_landing_points":
+        rows = _cable_landing_point_rows()
+        default_name = "cable_landing_points.csv"
     else:
-        raise ValueError("Supported datasets: data_centers, data_centers_full, power_plants_sample, power_plants_full")
+        raise ValueError(
+            "Supported datasets: data_centers, data_centers_full, power_plants_sample, "
+            "power_plants_full, cable_landing_points"
+        )
 
     if not rows:
         raise ValueError(f"No rows found for {dataset}")
@@ -164,7 +203,13 @@ def main() -> int:
     parser.add_argument(
         "--dataset",
         default="data_centers",
-        choices=["data_centers", "data_centers_full", "power_plants_sample", "power_plants_full"],
+        choices=[
+            "data_centers",
+            "data_centers_full",
+            "power_plants_sample",
+            "power_plants_full",
+            "cable_landing_points",
+        ],
     )
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()

@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from atlas import settings
 from atlas.db import check_health
+from atlas.loaders.cable_landing_points import CableLandingPointLoadError, load_cable_landing_points
 from atlas.loaders.data_centers import DataCenterLoadError, load_data_centers
 from atlas.loaders.fde_tables import list_fde_tables, preview_fde_table
 from atlas.loaders.power_plants import PowerPlantLoadError, load_power_plants
@@ -46,6 +47,7 @@ def root():
             "database_health": "/health/db",
             "data_centers": "/data/data-centers",
             "power_plants": "/data/power-plants",
+            "cable_landing_points": "/data/cable-landing-points",
         },
     }
 
@@ -93,6 +95,18 @@ def power_plants():
     try:
         return load_power_plants()
     except PowerPlantLoadError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:  # noqa: BLE001 - endpoint should report concise DB errors
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.get("/data/cable-landing-points")
+def cable_landing_points():
+    try:
+        return load_cable_landing_points()
+    except CableLandingPointLoadError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

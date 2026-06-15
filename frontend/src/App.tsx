@@ -619,6 +619,7 @@ export default function App() {
           {/* Floating top bar */}
           <div className="floating-topbar">
             <span className="floating-topbar-title">FUTURE</span>
+            <span className="top-bar-position">AI compute site intelligence</span>
             {UsageMeter && <UsageMeter />}
             {!PUBLIC_STATIC_MODE && (
               <>
@@ -838,7 +839,9 @@ export default function App() {
             </button>
           </div>
           <div className="curtain-section">
-            <div style={{ fontSize: "10px", color: "var(--text-muted)", marginBottom: "10px" }}>AI compute, energy &amp; data-center site intelligence</div>
+            <div style={{ fontSize: "10px", color: "var(--text-muted)", marginBottom: "10px", lineHeight: 1.55 }}>
+              Decision-grade geospatial intelligence for AI compute, energy, network reach, water risk, and data-center site selection.
+            </div>
             {!PUBLIC_STATIC_MODE && (
               <>
                 <div className="decision-mode-buttons">
